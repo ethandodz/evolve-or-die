@@ -7,9 +7,10 @@ export const H = 800;
 export const FONT = '"Press Start 2P", monospace';
 
 export const COLORS = {
-  panel: 0x1e1428, panelEdge: 0x0c0810, border: 0xe8c070,
-  button: 0x6a3a1e, buttonHi: 0x8a4e28, green: 0x3a8a3a, greenHi: 0x4caa4c,
-  red: 0xa02a2a, redHi: 0xc23a3a, purple: 0x5a2e8a, purpleHi: 0x7a48b0, grey: 0x4a4458,
+  // Carved stone and ochre paint, to match the cave-painting art
+  panel: 0x3a2618, panelEdge: 0x1e1009, border: 0xc89a5a,
+  button: 0x8a4a24, buttonHi: 0xa85c2e, green: 0x5a7a2a, greenHi: 0x6e9436,
+  red: 0x9a2a1c, redHi: 0xb83a26, purple: 0x5a2e6a, purpleHi: 0x74408a, grey: 0x4a3a30,
 };
 
 export function text(scene, x, y, str, size = 16, color = '#ffffff', origin = 0.5) {

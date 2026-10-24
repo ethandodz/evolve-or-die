@@ -1,7 +1,7 @@
 import Phaser from 'phaser';
 import { audio } from '../audio.js';
 import { save, persist } from '../save.js';
-import { AGES, ENEMIES, WEAPONS, PASSIVES, SHOP_ITEMS, AGE_LENGTH, xpForLevel } from '../data.js';
+import { AGES, ENEMIES, WEAPONS, PASSIVES, SHOP_ITEMS, AGE_LENGTH, BAL, CHARACTERS, statsOf, xpForLevel } from '../data.js';
 import { W, H, FONT } from '../ui.js';
 import { controls } from '../controls.js';
 
@@ -11,15 +11,11 @@ const AGE_TIME = TEST ? 60 : AGE_LENGTH;
 const BOSS_HP_MUL = TEST ? 0.25 : 1;
 
 const CELL = 64;
-const MAX_ENEMIES = 150;
+const MAX_ENEMIES = BAL.maxEnemies;
 const SPAWN_DIST = 520;
 const TAU = Math.PI * 2;
 
-const BLOOD = {
-  wolf: 0xc0c0cc, rival: 0xe8a872, raptor: 0x64a84e, sabertooth: 0xd0a066, mammoth: 0xa0603c,
-  legionary: 0xcc2a3c, spearman: 0x3a6ac8, gladiator: 0xd8a040, centurion: 0xd83c3c, chariot: 0x8a5a2e,
-  timecop: 0x3a6ac8, trex: 0x64a84e, hydra: 0x3ab8a4,
-};
+const hexColor = (h) => parseInt(String(h || '#ffffff').replace('#', ''), 16);
 
 const rand = (a, b) => a + Math.random() * (b - a);
 const pick = (arr) => arr[Math.floor(Math.random() * arr.length)];
@@ -49,7 +45,8 @@ export default class Game extends Phaser.Scene {
     this.xp = 0;
     this.xpNeed = xpForLevel(1);
     this.pendingLevels = 0;
-    this.rerolls = 3;
+    this.rerolls = BAL.rerolls;
+    this.charDef = CHARACTERS.find(c => c.key === this.character) || CHARACTERS[0];
     this.powerMul = 1;
     this.bonusHearts = 0;
     this.gemStreak = 0; this.gemStreakT = 0;
@@ -70,20 +67,20 @@ export default class Game extends Phaser.Scene {
     this.passiveOrder = [];
 
     this.cameras.main.setRoundPixels(true);
-    this.ground = this.add.tileSprite(W / 2, H / 2, W, H, 'ground_stone').setScrollFactor(0).setDepth(-3e7).setTileScale(2);
+    this.ground = this.add.tileSprite(W / 2, H / 2, W, H, 'ground_cave').setScrollFactor(0).setDepth(-3e7).setTileScale(1.5);
 
     // Player
     this.player = {
       x: 0, y: 0, r: 10, hearts: 5, maxHearts: 5, inv: 0, facing: 1, aim: 0, moving: false,
     };
-    this.player.shadow = this.add.image(0, 0, 'shadow').setScale(2).setDepth(-2e7);
-    this.player.spr = this.add.sprite(0, 0, this.character, 0).setScale(2).setOrigin(0.5, 0.85);
+    this.player.shadow = this.add.image(0, 0, 'shadow').setScale(1.6, 1.4).setDepth(-2e7);
+    this.player.spr = this.add.sprite(0, 0, this.charDef.sprite, 0).setScale(1.5).setOrigin(0.5, 0.85);
     this.fx = this.add.container(0, 0).setDepth(1e7 + 1);
 
     this.stats = {};
     this.recomputeStats();
     this.player.hearts = this.player.maxHearts;
-    this.addWeapon('club');
+    this.addWeapon(this.charDef.weapon in WEAPONS ? this.charDef.weapon : Object.keys(WEAPONS)[0]);
 
     this.cameras.main.startFollow(this.player.spr, true, 0.45, 0.45);
 
@@ -120,8 +117,9 @@ export default class Game extends Phaser.Scene {
     this.cleared = false;
     this.endless = false;
     this.portal = null;
-    this.ground.setTexture(this.age.ground);
+    this.ground.setTexture(`ground_${this.age.ground}`);
     this.cameras.main.setBackgroundColor(this.age.bg);
+    this.setDarkness(false, true);
     for (const [, list] of this.chunks) list.forEach(s => s.destroy());
     this.chunks.clear();
     audio.playMusic(this.age.music);
@@ -152,8 +150,9 @@ export default class Game extends Phaser.Scene {
     this.updateChunks();
 
     const cam = this.cameras.main;
-    this.ground.tilePositionX = cam.scrollX / 2;
-    this.ground.tilePositionY = cam.scrollY / 2;
+    this.ground.tilePositionX = cam.scrollX / 1.5;
+    this.ground.tilePositionY = cam.scrollY / 1.5;
+    this.updateDarkness(dt);
 
     if (this.pendingLevels > 0 && !this.frozen && !this.over) this.openLevelUp();
   }
@@ -189,7 +188,7 @@ export default class Game extends Phaser.Scene {
   // ------------------------------------------------------------------
   // Spawning: more enemies with more health over time
   hpScale() {
-    return this.age.hpMul * (1 + this.ageTime / 85);
+    return this.age.hpMul * (1 + this.ageTime / BAL.hpGrowth);
   }
 
   updateDirector(dt) {
@@ -197,10 +196,10 @@ export default class Game extends Phaser.Scene {
     const t = this.ageTime;
     const alive = this.enemies.length;
 
-    let rate = 1.1 + t * 0.03;
+    let rate = BAL.spawnBase + t * BAL.spawnGrowth;
     if (this.boss) rate *= 0.45;
     // The crowd grows over the age, up to the cap
-    const cap = Math.min(MAX_ENEMIES, 30 + t * 0.6);
+    const cap = Math.min(MAX_ENEMIES, BAL.crowdStart + t * BAL.crowdGrowth);
     this.spawnAcc += rate * dt;
     while (this.spawnAcc >= 1) {
       this.spawnAcc -= 1;
@@ -232,7 +231,7 @@ export default class Game extends Phaser.Scene {
     if (!this.miniSpawned && t >= AGE_TIME / 2 && !this.boss) {
       this.miniSpawned = true;
       const e = this.spawnEnemy(this.age.elite);
-      e.hp = e.maxHp = e.maxHp * 6;
+      e.hp = e.maxHp = e.maxHp * BAL.miniBossHp;
       e.mini = true;
       e.scaleMul = 1.5;
       e.r *= 1.4;
@@ -283,10 +282,10 @@ export default class Game extends Phaser.Scene {
     if (ox === undefined) { const a = rand(0, TAU); ox = Math.cos(a) * SPAWN_DIST; oy = Math.sin(a) * SPAWN_DIST; }
     let e = this.freeEnemies.pop();
     if (!e) {
-      e = { spr: this.add.sprite(0, 0, key, 0), shadow: this.add.image(0, 0, 'shadow').setDepth(-2e7) };
+      e = { spr: this.add.sprite(0, 0, def.sprite || key, 0), shadow: this.add.image(0, 0, 'shadow').setDepth(-2e7) };
       e.spr.setOrigin(0.5, 0.85);
     }
-    e.spr.setTexture(key, 0).setScale(def.scale).setVisible(true).setAlpha(1).clearTint().setAngle(0);
+    e.spr.setTexture(def.sprite || key, 0).setScale(def.scale).setVisible(true).setAlpha(1).clearTint().setAngle(0);
     e.shadow.setVisible(true).setScale(def.r / 7, def.r / 9);
     Object.assign(e, {
       key, def, x: p.x + ox, y: p.y + oy, r: def.r, speed: def.speed * rand(0.92, 1.08),
@@ -304,7 +303,7 @@ export default class Game extends Phaser.Scene {
     const key = this.age.stampede;
     const dx = Math.cos(dir), dy = Math.sin(dir);
     const nx = -dy, ny = dx;
-    const n = 26;
+    const n = BAL.stampedeSize;
     for (let i = 0; i < n; i++) {
       const off = rand(-230, 230);
       const back = rand(0, 260);
@@ -437,7 +436,7 @@ export default class Game extends Phaser.Scene {
 
   hitEnemy(e, base, sx, sy, kb = 0) {
     if (!e.alive) return;
-    const crit = Math.random() < 0.08;
+    const crit = Math.random() < BAL.critChance;
     const dmg = Math.max(1, Math.round(base * this.stats.dmg * (crit ? 2 : 1)));
     e.hp -= dmg;
     e.flash = 0.07;
@@ -457,7 +456,7 @@ export default class Game extends Phaser.Scene {
     if (!e.alive) return;
     this.removeEnemy(e);
     this.kills++;
-    this.burst(e.x, e.y - e.r * 0.6, BLOOD[e.key] || 0xffffff, e.boss ? 60 : e.def.heavy ? 18 : 8, e.boss ? 260 : 140);
+    this.burst(e.x, e.y - e.r * 0.6, hexColor(e.def.color), e.boss ? 60 : e.def.heavy ? 18 : 8, e.boss ? 260 : 140);
     if (!quiet) audio.play('kill');
     if (e.boss) { this.onBossDefeated(e); return; }
     if (quiet) return;
@@ -468,9 +467,9 @@ export default class Game extends Phaser.Scene {
     const r = Math.random();
     if (e.mini) this.dropPickup('chest', e.x, e.y);
     else if (e.def.heavy) for (let i = 0; i < 4; i++) this.dropPickup('coin', e.x + rand(-14, 14), e.y + rand(-14, 14));
-    else if (r < 0.09) this.dropPickup('coin', e.x + 6, e.y);
-    else if (r < 0.102) this.dropPickup('meat', e.x, e.y);
-    else if (r < 0.105) this.dropPickup('magnet', e.x, e.y);
+    else if (r < BAL.coinChance) this.dropPickup('coin', e.x + 6, e.y);
+    else if (r < BAL.coinChance + BAL.meatChance) this.dropPickup('meat', e.x, e.y);
+    else if (r < BAL.coinChance + BAL.meatChance + BAL.magnetChance) this.dropPickup('magnet', e.x, e.y);
   }
 
   // ------------------------------------------------------------------
@@ -478,23 +477,24 @@ export default class Game extends Phaser.Scene {
   addWeapon(key) {
     const w = { key, level: 1, t: 0.4, queue: [], sprites: [], phase: 0 };
     this.weapons.push(w);
-    if (key === 'fire') {
+    if (WEAPONS[key].behavior === 'aura') {
       w.ring = this.add.graphics().setDepth(-1.8e7);
-      for (let i = 0; i < 10; i++) w.sprites.push(this.add.sprite(0, 0, 'flame', 0).setScale(2).setOrigin(0.5, 0.9));
+      for (let i = 0; i < 10; i++) w.sprites.push(this.add.sprite(0, 0, WEAPONS[key].icon, 0).setScale(1.4).setOrigin(0.5, 0.9));
     }
     return w;
   }
 
   updateWeapons(dt) {
     for (const w of this.weapons) {
-      const st = WEAPONS[w.key].stats(w.level);
-      switch (w.key) {
-        case 'club': this.updateClub(w, st, dt); break;
-        case 'axes': this.updateAxes(w, st, dt); break;
-        case 'spear': this.updateSpear(w, st, dt); break;
-        case 'fire': this.updateFire(w, st, dt); break;
-        case 'rocks': this.updateRocks(w, st, dt); break;
-        case 'bolt': this.updateBolt(w, st, dt); break;
+      const st = statsOf(w.key, w.level);
+      st.icon = WEAPONS[w.key].icon;
+      switch (WEAPONS[w.key].behavior) {
+        case 'swing': this.updateClub(w, st, dt); break;
+        case 'orbit': this.updateAxes(w, st, dt); break;
+        case 'thrust': this.updateSpear(w, st, dt); break;
+        case 'aura': this.updateFire(w, st, dt); break;
+        case 'rockfall': this.updateRocks(w, st, dt); break;
+        case 'lightning': this.updateBolt(w, st, dt); break;
       }
     }
   }
@@ -528,14 +528,14 @@ export default class Game extends Phaser.Scene {
       this.query(p.x, p.y, radius, (e) => {
         const a = Math.atan2(e.y - p.y, e.x - p.x);
         const d = Math.hypot(e.x - p.x, e.y - p.y);
-        if (d < e.r + 14 || angleDiff(a, q.ang) <= arc) this.hitEnemy(e, st.dmg, p.x, p.y, 260);
+        if (d < e.r + 14 || angleDiff(a, q.ang) <= arc) this.hitEnemy(e, st.dmg, p.x, p.y, st.knockback || 260);
       });
-      this.slashFx(q.ang, radius, arc);
+      this.slashFx(q.ang, radius, arc, st.icon);
       audio.play('swing');
     });
   }
 
-  slashFx(ang, radius, arc) {
+  slashFx(ang, radius, arc, icon = 'club') {
     const g = this.add.graphics();
     const steps = 14;
     const draw = (inner, alpha, col) => {
@@ -557,7 +557,7 @@ export default class Game extends Phaser.Scene {
     draw(0.55, 0.35, 0xffe0a0);
     draw(0.75, 0.9, 0xffffff);
     this.fx.add(g);
-    const club = this.add.image(0, 0, 'club').setScale(2.4).setOrigin(0.1, 0.9);
+    const club = this.add.image(0, 0, icon).setScale(1.7).setOrigin(0.1, 0.9);
     this.fx.add(club);
     const r0 = radius * 0.55;
     const obj = { a: ang - arc };
@@ -593,7 +593,7 @@ export default class Game extends Phaser.Scene {
       streak.lineStyle(4, 0xffffff, 0.9).lineBetween(0, 0, Math.cos(q.ang) * len, Math.sin(q.ang) * len);
       this.fx.add(streak);
       this.tweens.add({ targets: streak, alpha: 0, duration: 160, onComplete: () => streak.destroy() });
-      const sp = this.add.image(0, 0, 'spear').setScale(2).setOrigin(0.15, 0.5).setRotation(q.ang);
+      const sp = this.add.image(0, 0, st.icon).setScale(1.5).setOrigin(0.15, 0.5).setRotation(q.ang);
       this.fx.add(sp);
       const reach = Math.max(0, len - 46);
       this.tweens.add({
@@ -606,7 +606,7 @@ export default class Game extends Phaser.Scene {
 
   updateAxes(w, st, dt) {
     const n = st.count + this.stats.count;
-    while (w.sprites.length < n) w.sprites.push(this.add.image(0, 0, 'axe').setScale(2.2).setDepth(1e7));
+    while (w.sprites.length < n) w.sprites.push(this.add.image(0, 0, st.icon).setScale(1.6).setDepth(1e7));
     while (w.sprites.length > n) w.sprites.pop().destroy();
     w.phase += st.spin * dt;
     const p = this.player;
@@ -617,8 +617,8 @@ export default class Game extends Phaser.Scene {
       s.setPosition(x, y);
       s.setRotation(w.phase * 3.5);
       this.query(x, y, 14, (e) => {
-        if (this.totalTime - (e.hitBy.axes || -9) < 0.45) return;
-        e.hitBy.axes = this.totalTime;
+        if (this.totalTime - (e.hitBy[w.key] || -9) < (st.hitDelay || 0.45)) return;
+        e.hitBy[w.key] = this.totalTime;
         this.hitEnemy(e, st.dmg, p.x, p.y, 160);
       });
     });
@@ -664,16 +664,16 @@ export default class Game extends Phaser.Scene {
       const e = targets[i];
       const tx = e ? e.x + rand(-8, 8) : p.x + rand(-200, 200);
       const ty = e ? e.y + rand(-8, 8) : p.y + rand(-260, 260);
-      this.time.delayedCall(i * 90, () => this.dropRock(tx, ty, radius, () => {
+      this.time.delayedCall(i * 90, () => this.dropRock(tx, ty, radius, st.icon, () => {
         this.query(tx, ty, radius, (en) => this.hitEnemy(en, st.dmg, tx, ty, 200));
       }));
     }
   }
 
-  dropRock(tx, ty, radius, onImpact, color = 0xffffff) {
+  dropRock(tx, ty, radius, icon, onImpact, color = 0xffffff) {
     const sh = this.add.image(tx, ty, 'shadow').setScale(radius / 12, radius / 20).setAlpha(0.3).setDepth(-1.85e7);
     if (color !== 0xffffff) sh.setTint(color);
-    const rock = this.add.image(tx, ty - 260, 'rock').setScale(radius / 10).setDepth(1e7 + 5);
+    const rock = this.add.image(tx, ty - 260, icon).setScale(radius / 9).setDepth(1e7 + 5);
     this.tweens.add({ targets: sh, alpha: 0.7, duration: 420 });
     this.tweens.add({
       targets: rock, y: ty, angle: 200, duration: 420, ease: 'Quad.in',
@@ -762,7 +762,7 @@ export default class Game extends Phaser.Scene {
     const p = this.player;
     if (p.inv > 0 || this.over) return;
     p.hearts -= n;
-    p.inv = 1.1;
+    p.inv = BAL.invincibility;
     audio.play('hurt');
     this.shake(120, 0.008);
     this.cameras.main.flash(90, 160, 20, 20);
@@ -814,7 +814,7 @@ export default class Game extends Phaser.Scene {
 
   dropPickup(kind, x, y, value = 1, tex) {
     const key = tex || { coin: 'coin', meat: 'meat', magnet: 'magnet', chest: 'chest' }[kind];
-    const spr = this.add.image(x, y, key).setScale(kind === 'chest' ? 2.5 : 2).setDepth(-1.6e7);
+    const spr = this.add.image(x, y, key).setScale(1.5).setDepth(-1.6e7);
     const pk = { kind, x, y, value, spr, fly: false, v: 0 };
     // Little pop when dropped
     spr.y -= 4;
@@ -922,7 +922,7 @@ export default class Game extends Phaser.Scene {
     } else if (c.type === 'passive') {
       if (!this.passives[c.key]) { this.passives[c.key] = 0; this.passiveOrder.push(c.key); }
       this.passives[c.key]++;
-      if (c.key === 'heart') { this.recomputeStats(); this.player.hearts = Math.min(this.player.maxHearts, this.player.hearts + 1); }
+      if (PASSIVES[c.key].effect === 'hearts') { this.recomputeStats(); this.player.hearts = Math.min(this.player.maxHearts, this.player.hearts + 1); }
     } else if (c.type === 'heal') {
       this.player.hearts = this.player.maxHearts;
     } else if (c.type === 'coins') {
@@ -940,13 +940,19 @@ export default class Game extends Phaser.Scene {
   }
 
   recomputeStats() {
-    const p = this.passives;
-    this.stats.dmg = (1 + 0.12 * (p.flint || 0)) * this.powerMul;
-    this.stats.area = 1 + 0.1 * (p.tusk || 0);
-    this.stats.count = p.totem || 0;
-    this.stats.pickup = 80 * (1 + 0.35 * (p.magnet || 0));
-    this.stats.speed = 140 * (1 + 0.1 * (p.sandals || 0));
-    this.player.maxHearts = 5 + (p.heart || 0) + this.bonusHearts;
+    // Sum each passive's effect
+    const sum = { hearts: 0, speed: 0, count: 0, damage: 0, area: 0, pickup: 0 };
+    for (const [k, lvl] of Object.entries(this.passives)) {
+      const d = PASSIVES[k];
+      if (d && sum[d.effect] !== undefined) sum[d.effect] += d.amount * lvl;
+    }
+    const ch = this.charDef;
+    this.stats.dmg = (1 + sum.damage) * this.powerMul;
+    this.stats.area = 1 + sum.area;
+    this.stats.count = Math.round(sum.count);
+    this.stats.pickup = BAL.pickupRange * (1 + sum.pickup);
+    this.stats.speed = BAL.playerSpeed * (ch.speed || 1) * (1 + sum.speed);
+    this.player.maxHearts = (ch.hearts || 5) + Math.round(sum.hearts) + this.bonusHearts;
     this.player.hearts = Math.min(this.player.hearts, this.player.maxHearts);
   }
 
@@ -962,6 +968,7 @@ export default class Game extends Phaser.Scene {
     e.vx = 0; e.vy = 0;
     this.boss = e;
     this.bossSummoned = true;
+    this.setDarkness(true);
     this.ui.banner(`${this.age.bossName}!`, 'Dodge the red zones', 2200, '#d83c3c');
     audio.play('roar');
     audio.playMusic(this.age.bossMusic);
@@ -1005,49 +1012,45 @@ export default class Game extends Phaser.Scene {
     const p = this.player;
     ai.n++;
     const ang = Math.atan2(p.y - b.y, p.x - b.x);
-    if (b.key === 'trex') {
-      const choice = ['charge', 'rocks', 'stomp', 'charge'][ai.n % 4];
-      if (choice === 'charge') {
-        ai.state = 'windup'; ai.t = 0.9;
-        this.addHazard({ kind: 'line', x: b.x, y: b.y, ang, len: 620, w: 70, t: 0.9, telegraphOnly: true });
-        ai.onWindup = () => { ai.state = 'dash'; ai.t = 1.15; ai.dx = Math.cos(ang); ai.dy = Math.sin(ang); audio.play('roar'); };
-      } else if (choice === 'stomp') {
-        ai.state = 'windup'; ai.t = 1.0;
-        this.addHazard({ kind: 'circle', x: b.x, y: b.y, r: 150, t: 1.0, follow: b });
-        ai.onWindup = () => { ai.state = 'rest'; ai.t = 0.6; this.shake(250, 0.012); this.ringFx(b.x, b.y, 150, 0xffffff); audio.play('thud'); };
-      } else {
-        for (let i = 0; i < 6; i++) {
-          const x = p.x + rand(-130, 130), y = p.y + rand(-130, 130);
-          this.addHazard({ kind: 'circle', x, y, r: 44, t: 1.1 + i * 0.12, rock: true });
-        }
-        this.addHazard({ kind: 'circle', x: p.x, y: p.y, r: 44, t: 1.0, rock: true });
-        ai.state = 'rest'; ai.t = 0.8; audio.play('roar');
+    const list = this.age.bossAttacks && this.age.bossAttacks.length ? this.age.bossAttacks : ['charge', 'stomp'];
+    const choice = list[ai.n % list.length];
+    if (choice === 'charge') {
+      ai.state = 'windup'; ai.t = 0.9;
+      this.addHazard({ kind: 'line', x: b.x, y: b.y, ang, len: 620, w: 70, t: 0.9, telegraphOnly: true });
+      ai.onWindup = () => { ai.state = 'dash'; ai.t = 1.15; ai.dx = Math.cos(ang); ai.dy = Math.sin(ang); audio.play('roar'); };
+    } else if (choice === 'stomp') {
+      ai.state = 'windup'; ai.t = 1.0;
+      this.addHazard({ kind: 'circle', x: b.x, y: b.y, r: 150, t: 1.0, follow: b });
+      ai.onWindup = () => { ai.state = 'rest'; ai.t = 0.6; this.shake(250, 0.012); this.ringFx(b.x, b.y, 150, 0xffffff); audio.play('thud'); };
+    } else if (choice === 'rocks') {
+      for (let i = 0; i < 6; i++) {
+        const x = p.x + rand(-130, 130), y = p.y + rand(-130, 130);
+        this.addHazard({ kind: 'circle', x, y, r: 44, t: 1.1 + i * 0.12, rock: true });
       }
+      this.addHazard({ kind: 'circle', x: p.x, y: p.y, r: 44, t: 1.0, rock: true });
+      ai.state = 'rest'; ai.t = 0.8; audio.play('roar');
+    } else if (choice === 'lunge') {
+      ai.state = 'windup'; ai.t = 0.95;
+      for (const off of [-0.42, 0, 0.42]) this.addHazard({ kind: 'line', x: b.x, y: b.y - 20, ang: ang + off, len: 430, w: 40, t: 0.95 });
+      ai.onWindup = () => { ai.state = 'rest'; ai.t = 0.5; audio.play('roar'); };
+    } else if (choice === 'pools') {
+      for (let i = 0; i < 5; i++) {
+        const x = p.x + rand(-150, 150), y = p.y + rand(-150, 150);
+        this.addHazard({ kind: 'circle', x, y, r: 52, t: 1.0, persist: 4, color: 0x6ad04a });
+      }
+      this.addHazard({ kind: 'circle', x: p.x, y: p.y, r: 52, t: 1.0, persist: 4, color: 0x6ad04a });
+      ai.state = 'rest'; ai.t = 0.6;
     } else {
-      const choice = ['lunge', 'pools', 'lunge', 'summon'][ai.n % 4];
-      if (choice === 'lunge') {
-        ai.state = 'windup'; ai.t = 0.95;
-        for (const off of [-0.42, 0, 0.42]) this.addHazard({ kind: 'line', x: b.x, y: b.y - 20, ang: ang + off, len: 430, w: 40, t: 0.95 });
-        ai.onWindup = () => { ai.state = 'rest'; ai.t = 0.5; audio.play('roar'); };
-      } else if (choice === 'pools') {
-        for (let i = 0; i < 5; i++) {
-          const x = p.x + rand(-150, 150), y = p.y + rand(-150, 150);
-          this.addHazard({ kind: 'circle', x, y, r: 52, t: 1.0, persist: 4, color: 0x6ad04a });
-        }
-        this.addHazard({ kind: 'circle', x: p.x, y: p.y, r: 52, t: 1.0, persist: 4, color: 0x6ad04a });
-        ai.state = 'rest'; ai.t = 0.6;
-      } else {
-        for (let i = 0; i < 10; i++) {
-          const a = (i / 10) * TAU;
-          this.spawnEnemy(pick(this.age.basic), b.x - p.x + Math.cos(a) * 70, b.y - p.y + Math.sin(a) * 70);
-        }
-        ai.state = 'rest'; ai.t = 0.8; audio.play('roar');
+      for (let i = 0; i < 10; i++) {
+        const a = (i / 10) * TAU;
+        this.spawnEnemy(pick(this.age.basic), b.x - p.x + Math.cos(a) * 70, b.y - p.y + Math.sin(a) * 70);
       }
+      ai.state = 'rest'; ai.t = 0.8; audio.play('roar');
     }
   }
 
   addHazard(h) {
-    h.g = this.add.graphics().setDepth(-1.7e7);
+    h.g = this.add.graphics().setDepth(1e7 - 0.4);
     h.age = 0;
     h.total = h.t;
     h.fired = false;
@@ -1080,7 +1083,7 @@ export default class Game extends Phaser.Scene {
           h.fired = true;
           if (h.rock) {
             g.clear();
-            this.dropRock(h.x, h.y, h.r, () => { if (Math.hypot(p.x - h.x, p.y - h.y) < h.r + p.r) this.hurtPlayer(1); }, 0xff6060);
+            this.dropRock(h.x, h.y, h.r, 'rock', () => { if (Math.hypot(p.x - h.x, p.y - h.y) < h.r + p.r) this.hurtPlayer(1); }, 0xff6060);
             h.dead = true;
           } else if (h.kind === 'circle') {
             if (Math.hypot(p.x - h.x, p.y - h.y) < h.r + p.r) this.hurtPlayer(1);
@@ -1116,6 +1119,7 @@ export default class Game extends Phaser.Scene {
   onBossDefeated(b) {
     this.boss = null;
     this.bossDead = true;
+    this.setDarkness(false);
     this.cleared = true;
     this.policeMode = false;
     this.clearHazards();
@@ -1163,8 +1167,8 @@ export default class Game extends Phaser.Scene {
     const glow = this.add.image(x, y, 'portal').setScale(0).setAlpha(0.35).setDepth(y - 1).setBlendMode(Phaser.BlendModes.ADD);
     this.tweens.add({ targets: portal, scale: 2.2, duration: 700, ease: 'Back.out' });
     this.tweens.add({ targets: glow, scale: 2.8, duration: 700, ease: 'Back.out', onComplete: () => this.tweens.add({ targets: glow, scale: 3.2, alpha: 0.15, yoyo: true, repeat: -1, duration: 600 }) });
-    const wiz = this.add.sprite(x + 85, y + 30, 'wizard', 0).setScale(2.4).setOrigin(0.5, 0.85).setDepth(y + 30);
-    this.add.image(wiz.x, wiz.y + 2, 'shadow').setScale(2).setDepth(-2e7);
+    const wiz = this.add.sprite(x + 85, y + 30, 'wizard', 0).setScale(1.7).setOrigin(0.5, 0.85).setDepth(y + 30);
+    this.add.image(wiz.x, wiz.y + 2, 'shadow').setScale(1.6).setDepth(-2e7);
     wiz.setAlpha(0);
     this.tweens.add({ targets: wiz, alpha: 1, duration: 500, delay: 400 });
     this.tweens.add({ targets: wiz, y: wiz.y - 3, yoyo: true, repeat: -1, duration: 700 });
@@ -1246,7 +1250,7 @@ export default class Game extends Phaser.Scene {
           for (const k of this.pickups) { if (k.kind === 'gem') this.addXp(k.value); k.spr.destroy(); }
           this.pickups = [];
           this.startAge(this.ageIndex + 1);
-          p.spr.setScale(2).setAngle(0);
+          p.spr.setScale(1.5).setAngle(0);
           this.player.inv = 1.5;
           this.frozen = false;
           this.ui.banner(this.age.name, `Summon the ${this.age.bossName} when you are ready`, 3000, '#e8c070');
@@ -1315,6 +1319,53 @@ export default class Game extends Phaser.Scene {
     this.cameras.main.shake(ms, amt * 0.6);
   }
 
+  // ------------------------------------------------------------------
+  // Boss fights happen at night: darkness with firelight and glowing eyes
+  setDarkness(on, instant = false) {
+    this.darkTarget = on ? BAL.bossDarkness : 0;
+    if (instant) this.darkLevel = this.darkTarget;
+  }
+
+  updateDarkness(dt) {
+    const t = this.totalTime;
+    for (const [, list] of this.chunks) for (const img of list) if (img.flicker !== undefined) img.setFrame(Math.floor(t * 6 + img.flicker) % 2);
+    this.darkLevel = (this.darkLevel || 0) + ((this.darkTarget || 0) - (this.darkLevel || 0)) * Math.min(1, dt * 1.5);
+    if (this.darkLevel < 0.01) {
+      if (this.dark) { this.dark.setVisible(false); this.eyes.clear(); this.glows.forEach(g => g.setVisible(false)); }
+      return;
+    }
+    if (!this.dark) {
+      // One big dark image with a soft hole in the middle follows the player (cheap on phones),
+      // and warm glows sit on top of campfires.
+      this.dark = this.add.image(0, 0, 'darkness').setDepth(1e7 - 1);
+      this.eyes = this.add.graphics().setDepth(1e7 - 0.5);
+      this.glows = [];
+    }
+    const cam = this.cameras.main;
+    const sx = cam.scrollX, sy = cam.scrollY;
+    const p = this.player;
+    this.dark.setVisible(true).setAlpha(this.darkLevel).setPosition(p.x, p.y - 6)
+      .setScale(1 + Math.sin(t * 13) * 0.02 + Math.sin(t * 7) * 0.015);
+    let gi = 0;
+    for (const [, list] of this.chunks) for (const img of list) {
+      if (!img.light) continue;
+      let gl = this.glows[gi++];
+      if (!gl) { gl = this.add.image(0, 0, 'glow').setDepth(1e7 - 0.6).setBlendMode(Phaser.BlendModes.ADD); this.glows.push(gl); }
+      gl.setVisible(true).setPosition(img.x, img.y - 14).setScale(3.4 + Math.sin(t * 11 + img.x) * 0.15).setAlpha(this.darkLevel);
+    }
+    for (; gi < this.glows.length; gi++) this.glows[gi].setVisible(false);
+    // Glowing eyes
+    const g = this.eyes;
+    g.clear();
+    for (const e of this.enemies) {
+      if (!e.alive || e.x < sx - 20 || e.x > sx + W + 20 || e.y < sy - 20 || e.y > sy + H + 20) continue;
+      const dir = e.spr.flipX ? -1 : 1;
+      const ex = e.x + dir * e.r * 0.7, ey = e.y - e.r * (e.boss ? 1.6 : 1.3);
+      g.fillStyle(e.boss ? 0xff4020 : 0xffe060, this.darkLevel);
+      g.fillRect(ex - 1, ey - 1, e.boss ? 4 : 2, e.boss ? 3 : 2);
+    }
+  }
+
   // Decorations scattered in chunks around the camera
   updateChunks() {
     const S = 320;
@@ -1333,8 +1384,19 @@ export default class Game extends Phaser.Scene {
       for (let i = 0; i < n; i++) {
         const x = cx * S + rnd() * S, y = cy * S + rnd() * S;
         const key = this.age.decor[Math.floor(rnd() * this.age.decor.length)];
-        const big = key === 'column' || key === 'bush';
-        list.push(this.add.image(x, y, key).setScale(2).setOrigin(0.5, 0.9).setDepth(big ? y : -1.9e7).setAlpha(big ? 1 : 0.85));
+        if (!this.textures.exists(key)) continue;
+        const flat = key === 'fern' || key === 'bones';
+        const img = this.add.sprite(x, y, key, 0).setScale(1.5).setOrigin(0.5, 0.9).setDepth(flat ? -1.9e7 : y);
+        if (this.textures.get(key).frameTotal > 2) img.flicker = rnd() * 10;
+        if (key === 'campfire' || key === 'brazier') img.light = true;
+        list.push(img);
+      }
+      if (this.age.paintings) {
+        const m = Math.floor(rnd() * 3);
+        for (let i = 0; i < m; i++) {
+          const key = ['handprint', 'deer', 'hunters', 'deer'][Math.floor(rnd() * 4)];
+          list.push(this.add.image(cx * S + rnd() * S, cy * S + rnd() * S, key).setScale(1.5).setAlpha(0.5).setDepth(-1.95e7));
+        }
       }
       this.chunks.set(k, list);
     }

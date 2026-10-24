@@ -1,340 +1,418 @@
-// Placeholder pixel art, drawn in code so the MVP has no licensing questions.
-// Each sprite is a grid of palette letters. A dark outline is added automatically
-// around every shape, which gives the chunky "dark outline, few shades" look.
+// Pixel art for the game, drawn in code with a shaded "painter" so the MVP has no
+// licensing questions. Every sprite becomes editable data ({ pal, frames }) that the
+// editor's pixel tool can change; edits are stored in the config's `sprites`.
 
-const PAL = {
-  k: '#1b1424', w: '#f4f0e8', s: '#e8a872', S: '#b8704a',
-  h: '#5a3420', H: '#7a4a2a', b: '#8a5a2e', B: '#5e3a1c',
-  g: '#a3a3b0', G: '#62627a', r: '#d83c3c', R: '#8a1e2a',
-  y: '#f2c84b', Y: '#c08a2a', o: '#f08a32', e: '#64a84e', E: '#356e3a',
-  l: '#7ad0f4', L: '#3a6ac8', n: '#263a7a', p: '#a466d4', P: '#5a2e8a',
-  t: '#d0a066', T: '#8a6236', c: '#f0dca0', m: '#a0603c', M: '#6a3624',
-  z: '#fff2c8', i: '#c0c0cc', I: '#7a7a8c', v: '#cc2a3c', V: '#8a1824',
-  q: '#d8a040', Q: '#8a5a1e', x: '#ece8e0', X: '#b4aea4', a: '#3ab8a4', A: '#1e6e6a',
-  f: '#ffe06a', F: '#ff7a2a', d: '#3a2a3a', u: '#e04a8a', j: '#88e05a',
-};
-const OUTLINE = PAL.k;
+const CHARS = '0123456789abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ!#$%&*+-/:;<=>?@^_~';
+const OUT = '#1e1009';
 
-// --- Characters ---------------------------------------------------------
-const CAVEMAN = [
-  '....hhhhh.....',
-  '...hhHHhhhh...',
-  '..hhssssshh...',
-  '..hssssksh....',
-  '..hsssssss....',
-  '..hhsSSssh....',
-  '...hhhhhhh....',
-  '...tTttTtt....',
-  '..sttttTtts...',
-  '..sttTttttS...',
-  '...ttttTtt....',
-  '...TttttTt....',
-];
-const CAVEMAN_LEGS = [['...ss...ss....', '..SSS...SSS...'], ['....ss.ss.....', '...SSS.SSS....']];
+// ---------------------------------------------------------------------------
+// Painter: shaded ellipses and boxes lit from the top left, then a dark outline
+let seed = 1;
+const R = () => { seed = (seed * 16807) % 2147483647; return seed / 2147483647; };
 
-const ROMAN = [
-  '....qqqqq.....',
-  '...qqqqqqq....',
-  '...qQssskq....',
-  '...qQsssss....',
-  '....ssSss.....',
-  '...vvvvvvv....',
-  '..svvqqvvvs...',
-  '..svvvvvvvs...',
-  '...vqqqqqv....',
-  '...vvvvvvv....',
-];
-const ROMAN_LEGS = [['...s....s.....', '..QQ....QQ....'], ['....s..s......', '...QQ.QQ......']];
+function paint(w, h, fn, opts = {}) {
+  const buf = Array.from({ length: h }, () => Array(w).fill(null));
+  const put = (x, y, c) => { x = Math.floor(x); y = Math.floor(y); if (x >= 0 && y >= 0 && x < w && y < h && c) buf[y][x] = c; };
+  const idx = (s) => (s > 0.5 ? 0 : s > 0.1 ? 1 : s > -0.3 ? 2 : 3);
+  const api = {
+    put,
+    ell(cx, cy, rx, ry, ramp, tex = 0) {
+      for (let y = Math.floor(cy - ry); y <= cy + ry; y++) for (let x = Math.floor(cx - rx); x <= cx + rx; x++) {
+        const nx = (x + 0.5 - cx) / rx, ny = (y + 0.5 - cy) / ry, d = nx * nx + ny * ny;
+        if (d > 1) continue;
+        let s = -nx * 0.55 - ny * 0.75 + (1 - d) * 0.35 - 0.15;
+        if (tex && R() < tex) s -= 0.4;
+        put(x, y, ramp[idx(s)]);
+      }
+    },
+    rect(x0, y0, w0, h0, ramp, tex = 0) {
+      for (let y = y0; y < y0 + h0; y++) for (let x = x0; x < x0 + w0; x++) {
+        const nx = (x - x0) / Math.max(1, w0 - 1) * 2 - 1, ny = (y - y0) / Math.max(1, h0 - 1) * 2 - 1;
+        let s = -nx * 0.5 - ny * 0.6 + 0.1;
+        if (tex && R() < tex) s -= 0.45;
+        put(x, y, ramp[idx(s)]);
+      }
+    },
+    line(x0, y0, x1, y1, c, thick = 1) {
+      const n = Math.max(Math.abs(x1 - x0), Math.abs(y1 - y0)) || 1;
+      for (let i = 0; i <= n; i++) {
+        const x = Math.round(x0 + (x1 - x0) * i / n), y = Math.round(y0 + (y1 - y0) * i / n);
+        for (let t = 0; t < thick; t++) put(x, y + t, c);
+      }
+    },
+    clear(x, y) { x = Math.floor(x); y = Math.floor(y); if (buf[y]) buf[y][x] = null; },
+  };
+  fn(api);
+  if (opts.noOutline) return buf;
+  return buf.map((row, y) => row.map((c, x) => c || (((buf[y - 1] && buf[y - 1][x]) || (buf[y + 1] && buf[y + 1][x]) || row[x - 1] || row[x + 1]) ? (opts.outline || OUT) : null)));
+}
 
-const COP = [
-  '....nnnnn.....',
-  '...nnnynnn....',
-  '..kkkkkkkkk...',
-  '...sssssss....',
-  '...ssskssk....',
-  '....sssss.....',
-  '...LLLLLLL....',
-  '..sLLyLLLLs...',
-  '..sLLLLLLLs...',
-  '...LkkkkkL....',
-  '...LLLLLLL....',
-];
-const COP_LEGS = [['...n....n.....', '..kk....kk....'], ['....n..n......', '...kk.kk......']];
+// Turns colour grids (one per frame) into editable sprite data
+function toSprite(grids) {
+  const pal = [];
+  const frames = grids.map(g => g.map(row => row.map(c => {
+    if (!c) return '.';
+    let i = pal.indexOf(c);
+    if (i < 0) { pal.push(c); i = pal.length - 1; }
+    return CHARS[i];
+  }).join('')));
+  return { pal, frames };
+}
 
-const WOLF = [
-  '...........i.i',
-  '..........iiii',
-  '.I.......iiiki',
-  '.II.....iiiiiz',
-  '..IIiiiiiiiI..',
-  '...iiiiiiiiI..',
-  '...IiiiiiiI...',
-];
-const WOLF_LEGS = [['...I.I...I.I..', '...I.I...I.I..'], ['..I...I.I...I.', '..I...I.I...I.']];
-
-const RAPTOR = [
-  '.........eee..',
-  '........eekee.',
-  '........eeeeez',
-  '........eeE...',
-  '..E....eeeE...',
-  '.EeE..eeeeE...',
-  '..eeeeeeeeE...',
-  '...eeEeeeE....',
-  '....eEeeE.....',
-];
-const RAPTOR_LEGS = [['....e...e.....', '....ee..ee....'], ['.....e.e......', '....ee.ee.....']];
-
-const SABER = [
-  '..........tt..',
-  '.........tttt.',
-  '.T......ttktt.',
-  '.TT....ttttttt',
-  '..TttTttTtttz.',
-  '...ttttTttt.z.',
-  '...tTtttttT...',
-];
-const SABER_LEGS = [['...t.t...t.t..', '...T.T...T.T..'], ['..t...t.t...t.', '..T...T.T...T.']];
-
-const MAMMOTH = [
-  '.....mmmmmm.......',
-  '...mmmmmmmmmm.....',
-  '..mmmmmmmmmmmmm...',
-  '.mmMmmmmmmmmkmmm..',
-  '.mmmmMmmmmmmmmmm..',
-  '.mmmmmmMmmmmmmmmm.',
-  '.mmmmmmmmmmmmmmzm.',
-  '.mMmmmmmmmmmmmzmm.',
-  '.mmmmmmmmmmmmzmm..',
-];
-const MAMMOTH_LEGS = [
-  ['..MmmM..MmmM.zmm..', '..mmmm..mmmm..mm..', '..MMMM..MMMM...m..'],
-  ['...MmmM.MmmM.zmm..', '...mmmm.mmmm..mm..', '...MMMM.MMMM...m..'],
-];
-
-const CHARIOT = [
-  '................bb..',
-  '...............bbkb.',
-  '..............bbbbbb',
-  '.....q.......bbb....',
-  '....qqq.....bbb.....',
-  '....vsv..bbbbbbb....',
-  '.QQQQQQQbbbbbbbbb...',
-  '.QvvvvvQbbbbbbbbbb..',
-  '.QQQQQQQ.bb.bb.bb...',
-];
-const CHARIOT_LEGS = [
-  ['..GgG....b..b...b...', '..gkg...bb..b...bb..', '..GgG...............'],
-  ['..gGg...b....b.b....', '..GkG..bb...bb.bb...', '..gGg...............'],
-];
-
-const TREX = [
-  '................EEEEEE..',
-  '...............EeeeeeeE.',
-  '..............Eeeekeeeee',
-  '..............Eeeeeeeeee',
-  '..............EeeeeRRRRR',
-  '..............Eeeezzzzz.',
-  '..............Eeeeeeeee.',
-  '.............Eeeeeee....',
-  '............EeeeeeeeE...',
-  'E..........EeeeeeeeeE...',
-  'EE.......EEeeeeeeeeEeE..',
-  '.EEE...EEeeeeeeeeeeE.E..',
-  '..EEEEEeeeeeeeeeeEeE....',
-  '....EEeeeceeeeeeeE......',
-  '......EEeeccceeEE.......',
-  '........EeeeeeE.........',
-];
-const TREX_LEGS = [
-  ['........EeE.EeE.........', '........Ee...Ee.........', '.......EEe..EEe.........', '.......zzz..zzz.........'],
-  ['.......EeE...EeE........', '.......Ee.....Ee........', '......EEe....EEe........', '......zzz....zzz........'],
-];
-
-const HYDRA = [
-  '..aa........aa........aa..',
-  '.aaka......aaka......aaka.',
-  '.aaaar.....aaaar.....aaaar',
-  '..aaa.......aaa.......aaa.',
-  '...Aa........aA......aA...',
-  '....Aa.......aA.....aA....',
-  '.....aa......aA....aa.....',
-  '......aa.....aA...aa......',
-  '.......aa....aA..aa.......',
-  '........aaaaaaaaaaa.......',
-  '.......aaaaaaaaaaaaa......',
-  '......aAaaaaaaaaaaAaa.....',
-  '.....aaaAaaaaaaaaAaaaa....',
-  '....aaaaaaaaaaaaaaaaaaa...',
-  '....aaacccccccccccccaaa...',
-  '.....aaccccccccccccaaa....',
-];
-const HYDRA_LEGS = [
-  ['......aaAaa....aaAaa.....', '......aa.........aa......', '.....AAA........AAA......'],
-  ['.....aaAaa......aaAaa....', '.....aa...........aa.....', '....AAA..........AAA.....'],
-];
-
-const WIZARD = [
-  '.......P......',
-  '......PPp.....',
-  '.....PPppy....',
-  '....PPpppp....',
-  '...PPPPPPPP...',
-  '....swwwws..y.',
-  '....skwwks.yfy',
-  '....wwwwww..Q.',
-  '...wwwwwwww.Q.',
-  '...PwwwwwwP.Q.',
-  '..PPpwwwwpPPQ.',
-  '..PppppppppPQ.',
-  '..PppppppppPQ.',
-  '..PPPPPPPPPP..',
-];
-
-// --- Weapons, pickups, icons -------------------------------------------
-const CLUB = [
-  '.....bbb',
-  '....bbbbb',
-  '....bBbbb',
-  '...bBbbb.',
-  '..bBb....',
-  '.bB......',
-  'bB.......',
-];
-const AXE = [
-  '.gggg...',
-  'gwggg...',
-  'gggggbb.',
-  'Ggggbbb.',
-  '.GG..bb.',
-  '......bb',
-  '.......b',
-];
-const SPEAR = [
-  '...................gg...',
-  'bbbbbbbbbbbbbbbbbbgwgg..',
-  'BBBBBBBBBBBBBBBBBBggggg.',
-  '...................gg...',
-];
-const ROCK = ['..gggg..', '.gggwgg.', 'ggggggGg', 'gGggggGg', '.GggGGG.', '..GGGG..'];
-const BOLT = ['....yy', '...yy.', '..yyyy', '....y.', '...y..', '..y...'];
-const FLAME = ['...f...', '..fFf..', '.fFFFf.', '.FFoFF.', 'FFoyoFF', '.FoyoF.', '..FFF..'];
-const FLAME2 = ['..f....', '..ff...', '.fFFf..', '.FFoFF.', 'FFoyoFF', '.FoyoF.', '..FFF..'];
-
-const GEM_S = ['..l..', '.lwl.', 'lllll', '.lLl.', '..L..'];
-const GEM_M = ['...j...', '..jwj..', '.jjjjj.', 'jjjjjjj', '.jjEjj.', '..jEj..', '...E...'];
-const GEM_L = ['...u...', '..uwu..', '.uuwuu.', 'uuuuuuu', 'uuuRuuu', '.uuRuu.', '..uRu..', '...R...'];
-const COIN = ['.yyyy.', 'yyfyyy', 'yfyYyy', 'yyyYyy', 'yyYYyy', '.yyyy.'];
-const MEAT = ['...rrr..', '..rrRrr.', '.rRrrrr.', '.rrrrRr.', '.zrrrr..', 'zz.rr...', 'z.......'];
-const MAGNET = ['rr..gg', 'rr..gg', 'rr..gg', 'rr..gg', 'rrrrgg', '.rrgg.'];
-const CHEST = ['.QQQQQQQQ.', 'QqqqqqqqqQ', 'QqqqqqqqqQ', 'QQQQyyQQQQ', 'QqqqykqqqQ', 'QqqqqqqqqQ', 'QQQQQQQQQQ'];
-const HEART = ['.rr.rr.', 'rwrrrrr', 'rrrrrrr', 'rrrrrrr', '.rrrrr.', '..rrr..', '...r...'];
-const HEART_EMPTY = ['.dd.dd.', 'ddddddd', 'ddddddd', 'ddddddd', '.ddddd.', '..ddd..', '...d...'];
-const SANDAL = ['....bb', '...bbb', '..bbtb', '.bbbb.', 'bbbb..', 'BBB...'];
-const TOTEM = ['.yyyy.', 'tkttkt', 'tttttt', '.TrrT.', 'tkttkt', 'tttttt', '.TTTT.', '.T..T.'];
-const FLINT = ['....G', '...Gg', '..Ggg', '.Ggwg', 'Gggg.', 'bG...', 'b....'];
-const TUSK = ['z.....', 'zz....', '.zz...', '.zzz..', '..zzz.', '...zzc', '....cc'];
-const LODESTONE = ['..GG..', '.GggG.', 'GglggG', 'GggglG', '.GggG.', '..GG..'];
-const SKULL = ['.wwwww.', 'wwwwwww', 'wkkwkkw', 'wkkwkkw', 'wwwkwww', '.wwwww.', '.w.w.w.'];
-const LOCK = ['..ggg..', '.g...g.', '.g...g.', 'yyyyyyy', 'yyykyyy', 'yyykyyy', 'yyyyyyy'];
-const POTION = ['..gg..', '..ww..', '.wrrw.', 'wrrrrw', 'wrwrrw', 'wrrrrw', '.wwww.'];
-const STAR = ['...y...', '..yyy..', 'yyyfyyy', '.yyfyy.', '..yyy..', '.yy.yy.', 'y.....y'];
-const REROLL = ['.lll..', 'l...l.', 'l....l', '....ll', 'll....', 'l....l', '.l...l', '..lll.'];
-
-// Decor
-const BUSH = ['...eee...', '.eeEeee..', 'eeeeeEee.', 'eEeeeeeEe', 'eeeEeeeee', '.EEEEEEE.'];
-const STONE = ['..ggg...', '.gggwgg.', 'gggggggG', 'GgggggGG', '.GGGGGG.'];
-const BONE = ['z.....z', 'zz...zz', '.zzzzz.', 'zz...zz', 'z.....z'];
-const FERN = ['e...e..', '.e.e..e', '..e..e.', 'e.Ee.e.', '.eEEe..', '..EE...'];
-const COLUMN = ['xxxxxx', '.XxxX.', '.xXxx.', '.xXxx.', '.xXxx.', '.xXxx.', 'xxxxxx', 'XXXXXX'];
-const URN = ['.QQQ.', '..q..', '.qqq.', 'qqTqq', 'qTTTq', 'qqqqq', '.qqq.'];
-const BROKEN = ['xx..', 'xXx.', 'xXxx', 'XXXx'];
-
-function withLegs(body, legs, i) { return body.concat(legs[i]); }
-
-const SPRITES = {
-  caveman: [withLegs(CAVEMAN, CAVEMAN_LEGS, 0), withLegs(CAVEMAN, CAVEMAN_LEGS, 1)],
-  rival: [withLegs(CAVEMAN, CAVEMAN_LEGS, 0), withLegs(CAVEMAN, CAVEMAN_LEGS, 1)],
-  wolf: [withLegs(WOLF, WOLF_LEGS, 0), withLegs(WOLF, WOLF_LEGS, 1)],
-  raptor: [withLegs(RAPTOR, RAPTOR_LEGS, 0), withLegs(RAPTOR, RAPTOR_LEGS, 1)],
-  sabertooth: [withLegs(SABER, SABER_LEGS, 0), withLegs(SABER, SABER_LEGS, 1)],
-  mammoth: [withLegs(MAMMOTH, MAMMOTH_LEGS, 0), withLegs(MAMMOTH, MAMMOTH_LEGS, 1)],
-  trex: [withLegs(TREX, TREX_LEGS, 0), withLegs(TREX, TREX_LEGS, 1)],
-  legionary: [withLegs(ROMAN, ROMAN_LEGS, 0), withLegs(ROMAN, ROMAN_LEGS, 1)],
-  spearman: [withLegs(ROMAN, ROMAN_LEGS, 0), withLegs(ROMAN, ROMAN_LEGS, 1)],
-  gladiator: [withLegs(ROMAN, ROMAN_LEGS, 0), withLegs(ROMAN, ROMAN_LEGS, 1)],
-  centurion: [withLegs(['.....rrrr.....', '....rrrrrr....'].concat(ROMAN), ROMAN_LEGS, 0), withLegs(['.....rrrr.....', '....rrrrrr....'].concat(ROMAN), ROMAN_LEGS, 1)],
-  chariot: [withLegs(CHARIOT, CHARIOT_LEGS, 0), withLegs(CHARIOT, CHARIOT_LEGS, 1)],
-  hydra: [withLegs(HYDRA, HYDRA_LEGS, 0), withLegs(HYDRA, HYDRA_LEGS, 1)],
-  timecop: [withLegs(COP, COP_LEGS, 0), withLegs(COP, COP_LEGS, 1)],
-  wizard: [WIZARD],
-  club: [CLUB], axe: [AXE], spear: [SPEAR], rock: [ROCK], bolt: [BOLT], flame: [FLAME, FLAME2],
-  gem_s: [GEM_S], gem_m: [GEM_M], gem_l: [GEM_L], coin: [COIN], meat: [MEAT], magnet: [MAGNET], chest: [CHEST],
-  heart: [HEART], heart_empty: [HEART_EMPTY], sandal: [SANDAL], totem: [TOTEM], flint: [FLINT], tusk: [TUSK],
-  lodestone: [LODESTONE], skull: [SKULL], lock: [LOCK], potion: [POTION], star: [STAR], reroll: [REROLL],
-  bush: [BUSH], stone: [STONE], bone: [BONE], fern: [FERN], column: [COLUMN], urn: [URN], broken: [BROKEN],
-};
-
-// Palette swaps make enemy variants from the same body
-const SWAPS = {
-  rival: { h: 'd', H: 'k', t: 'g', T: 'G', s: 'S' },
-  spearman: { v: 'L', q: 'g', Q: 'G' },
-  gladiator: { v: 's', q: 'q' },
-  timecop: {},
-};
-
-function parse(rows, swap) {
-  const h = rows.length;
+// Old-style letter grids (for small icons)
+function letters(rows, map, outline = true) {
   const w = Math.max(...rows.map(r => r.length));
-  // 1px padding for the outline
-  const grid = [];
-  for (let y = 0; y < h + 2; y++) grid.push(new Array(w + 2).fill(null));
-  rows.forEach((row, y) => {
-    for (let x = 0; x < row.length; x++) {
-      let ch = row[x];
-      if (ch === '.' || ch === ' ') continue;
-      if (swap && swap[ch]) ch = swap[ch];
-      grid[y + 1][x + 1] = PAL[ch] || '#ff00ff';
+  return paint(w + 2, rows.length + 2, (s) => rows.forEach((r, y) => [...r].forEach((ch, x) => { if (map[ch]) s.put(x + 1, y + 1, map[ch]); })), { noOutline: !outline });
+}
+
+// ---------------------------------------------------------------------------
+// Ramps (light to dark), warm and earthy to match the cave-painting look
+const SKIN = ['#e8a874', '#c47e50', '#935632', '#5e321c'];
+const SKIN2 = ['#c88a5c', '#9e6440', '#72422a', '#4a2618'];
+const HAIR = ['#7a4a28', '#5a321a', '#3e2010', '#24120a'];
+const BLACKH = ['#4a3a3a', '#302424', '#201618', '#140c0e'];
+const FUR = ['#ecc88a', '#c89a5a', '#9a6a36', '#6a4220'];
+const LEATHER = ['#b0784a', '#8a5a34', '#623e22', '#3e2614'];
+const WOOD = ['#a8774a', '#7f5534', '#5a3a24', '#3a2516'];
+const GREYW = ['#a8a2a6', '#7c7680', '#565260', '#36323e'];
+const DINO = ['#c8843a', '#a0642a', '#76461c', '#4c2c12'];
+const SABER = ['#ecb04c', '#c8862c', '#98601a', '#64400e'];
+const MAMM = ['#8a5a3a', '#6a4028', '#4a2a1a', '#2e180e'];
+const TREXR = ['#9aa45a', '#76823e', '#52602a', '#323e1a'];
+const STONE = ['#d8c8aa', '#b0a084', '#86785e', '#5c503c'];
+const GREYS = ['#b8b4b0', '#8c8884', '#64605c', '#403c38'];
+const BRONZE = ['#f0c060', '#c8923a', '#966420', '#603c10'];
+const STEEL = ['#dcdce4', '#a8a8b8', '#76768a', '#4a4a5c'];
+const RED = ['#e0503c', '#b8322a', '#86201c', '#541410'];
+const BLUE = ['#6a9ae0', '#4470b8', '#2c4c8a', '#1a2e5a'];
+const NAVY = ['#4a5a9a', '#323e72', '#222a50', '#141a34'];
+const PURPLE = ['#a674d8', '#7e4cb4', '#5a3088', '#381a5a'];
+const WHITE = ['#ffffff', '#e4e0d8', '#b8b2a8', '#86807a'];
+const TEAL = ['#5cd0b0', '#38a48c', '#227a68', '#124e44'];
+const CREAM = ['#f4e8c0', '#dcc898', '#b4a070', '#86744a'];
+const FIRE = ['#fff4b0', '#ffc848', '#f07a24', '#a83a12'];
+const LEAF = ['#8a8a44', '#6a6c30', '#4c4e20', '#303212'];
+const DARKLEAF = ['#4a6a3a', '#344e2a', '#22361c', '#142210'];
+const GOLD = ['#fff0a0', '#f0c040', '#b88420', '#7a5410'];
+const BONE = ['#f6eed4', '#ddd2b4', '#aca084', '#7a705a'];
+const MARBLE = ['#fbf8f0', '#e4ded2', '#bab2a4', '#8c8476'];
+const EYE = '#160c08';
+
+// ---------------------------------------------------------------------------
+// Humanoids share one body; options change the look
+function human(o, f) {
+  const H = 34;
+  return paint(24, H, (s) => {
+    const oy = 4;
+    const lx = f ? 1 : 0;
+    const legs = o.legs || o.skin;
+    s.rect(7 + lx, 22 + oy, 3, f ? 5 : 6, legs); s.rect(13 - lx, 22 + oy, 3, f ? 6 : 5, legs);
+    const boot = o.boots || HAIR;
+    s.rect(6 + lx, 26 + oy + (f ? -1 : 0), 4, 2, boot); s.rect(13 - lx, 26 + oy + (f ? 0 : -1), 4, 2, boot);
+    if (o.cape) s.ell(8, 18 + oy, 5, 7, o.cape);
+    s.ell(11.5, 18 + oy, 6, 6, o.body, o.bodyTex || 0);
+    if (o.spots) [[9, 16], [13, 19], [10, 20], [14, 16]].forEach(([x, y]) => s.put(x, y + oy, o.body[3]));
+    if (o.belt) s.rect(6, 21 + oy, 12, 1, o.belt);
+    if (o.badge) s.put(9, 16 + oy, '#f0d040');
+    // arms (back arm, front arm)
+    s.rect(4, 14 + oy + (f ? 1 : 0), 3, 7, o.arms || o.skin);
+    s.rect(17, 14 + oy + (f ? 0 : 1), 3, 6, o.arms || o.skin);
+    // head
+    s.ell(11.5, 8 + oy, 5, 5, o.skin);
+    if (o.hair) { s.ell(10.5, 5 + oy, 7, 4, o.hair, 0.2); s.ell(5.5, 9 + oy, 2.5, 4, o.hair, 0.2); }
+    if (o.beard) s.ell(12.5, 12 + oy, 4, 2.4, o.beard, 0.2);
+    if (o.band) s.rect(6, 5 + oy, 12, 1, o.band);
+    if (o.feathers) { s.line(8, 2 + oy, 6, -3 + oy, '#e8e0d0'); s.line(11, 1 + oy, 11, -4 + oy, '#d84a2a'); s.line(14, 2 + oy, 16, -3 + oy, '#e8e0d0'); }
+    if (o.helmet) {
+      s.ell(11.5, 6 + oy, 6, 4.5, o.helmet);
+      s.rect(5, 7 + oy, 3, 5, o.helmet);
+      if (o.plume) { s.ell(11.5, 0 + oy, 6, 2.6, o.plume, 0.1); s.rect(8, 1 + oy, 7, 2, o.plume); }
+      if (o.grill) for (let y = 7; y < 12; y += 2) s.rect(12, y + oy, 5, 1, o.helmet);
     }
+    if (o.cap) { s.rect(6, 3 + oy, 12, 3, o.cap); s.rect(12, 6 + oy, 7, 1, ['#1a1a1a', '#1a1a1a', '#101010', '#080808']); s.put(11, 4 + oy, '#f0d040'); }
+    if (o.paint) { s.put(10, 9 + oy, '#e8e0d0'); s.put(10, 10 + oy, '#e8e0d0'); s.put(15, 9 + oy, '#e8e0d0'); }
+    if (!o.grill) { s.put(14, 8 + oy, EYE); s.put(13, 8 + oy, '#f4ece0'); }
+    // held items
+    if (o.shield) { s.ell(4, 19 + oy, 4, 6, o.shield); s.put(4, 19 + oy, '#f0c060'); }
+    if (o.spear) { s.line(20, 28 + oy, 20, -2 + oy, WOOD[2]); s.line(21, 28 + oy, 21, -2 + oy, WOOD[1]); s.ell(20.5, -2 + oy, 1.6, 2.4, STEEL); }
+    if (o.sword) { s.line(19, 20 + oy, 22, 13 + oy, STEEL[1]); s.line(18, 20 + oy, 21, 13 + oy, STEEL[0]); }
+    if (o.staff) { s.line(20, 30 + oy, 20, 4 + oy, WOOD[1]); s.ell(20.5, 3 + oy, 2.2, 2.2, o.staff); }
+    if (o.trident) { s.line(20, 30 + oy, 20, 0 + oy, WOOD[1]); s.line(18, 0 + oy, 22, 0 + oy, STEEL[1]); [18, 20, 22].forEach(x => s.line(x, 0 + oy, x, -3 + oy, STEEL[0])); }
   });
-  // Outline: any empty pixel touching a filled one
-  const out = grid.map(r => r.slice());
-  for (let y = 0; y < grid.length; y++) {
-    for (let x = 0; x < grid[0].length; x++) {
-      if (grid[y][x]) continue;
-      const n = (grid[y - 1] && grid[y - 1][x]) || (grid[y + 1] && grid[y + 1][x]) || grid[y][x - 1] || grid[y][x + 1];
-      if (n) out[y][x] = OUTLINE;
-    }
+}
+
+const CHAR_LOOKS = {
+  caveman: { skin: SKIN, hair: HAIR, beard: HAIR, body: FUR, spots: true },
+  hunter: { skin: SKIN, hair: HAIR, body: LEATHER, band: ['#d84a2a', '#b8322a', '#86201c', '#541410'], spear: true, legs: SKIN, belt: '#3a2010' },
+  shaman: { skin: SKIN2, hair: BLACKH, body: ['#7a8a4a', '#5a6a34', '#3e4a22', '#262e14'], feathers: true, paint: true, staff: FIRE, belt: '#d0a040' },
+  rival: { skin: SKIN2, hair: BLACKH, beard: BLACKH, body: GREYW, spots: true },
+  legionary: { skin: SKIN, helmet: BRONZE, body: RED, belt: '#5a3a20', shield: RED, sword: true, legs: SKIN, boots: LEATHER },
+  spearman: { skin: SKIN, helmet: STEEL, body: BLUE, belt: '#3a2a20', spear: true, boots: LEATHER },
+  gladiator: { skin: SKIN2, helmet: BRONZE, grill: true, body: SKIN2, arms: SKIN2, belt: '#8a5a2e', trident: true, legs: SKIN2, boots: LEATHER },
+  centurion: { skin: SKIN, helmet: BRONZE, plume: RED, body: RED, cape: ['#a83a2a', '#86281c', '#5e1a12', '#3a0e0a'], belt: '#f0c060', sword: true, boots: LEATHER },
+  timecop: { skin: SKIN, cap: NAVY, body: BLUE, badge: true, belt: '#1a1a2a', legs: NAVY, boots: ['#2a2a2a', '#1a1a1a', '#101010', '#080808'] },
+};
+
+function quad(kind, f) {
+  switch (kind) {
+    case 'wolf': return paint(28, 18, (s) => {
+      const P = GREYW;
+      s.ell(13, 8, 8, 4.5, P, 0.15); s.ell(21, 5, 4, 3.5, P, 0.1); s.rect(23, 5, 4, 2, P);
+      s.put(20, 0, P[1]); s.put(20, 1, P[2]); s.put(22, 1, P[1]); s.put(22, 2, P[2]);
+      s.put(22, 4, EYE); s.put(26, 5, EYE); s.put(24, 7, '#f0e8dc');
+      s.line(5, 7, 1, f ? 2 : 4, P[2]); s.line(5, 6, 2, f ? 2 : 4, P[1]);
+      const L = f ? [[7, 4], [11, 5], [16, 4], [20, 5]] : [[8, 5], [11, 4], [17, 5], [19, 4]];
+      L.forEach(([x, hgt]) => s.rect(x, 11, 2, hgt, P));
+    });
+    case 'raptor': return paint(26, 24, (s) => {
+      const P = DINO;
+      s.ell(11, 12, 6, 5, P, 0.12); s.ell(17, 5, 4, 3.4, P); s.rect(19, 5, 5, 2, P);
+      s.put(18, 4, EYE); s.put(22, 7, '#f0e8dc'); s.put(20, 7, '#f0e8dc');
+      for (let i = 0; i < 4; i++) s.put(8 + i * 2, 8, P[3]);
+      s.line(5, 11, 0, f ? 7 : 9, P[2]); s.line(5, 12, 1, f ? 8 : 10, P[1]);
+      s.rect(15, 8, 2, 4, P);
+      if (f) { s.rect(8, 16, 2, 5, P); s.rect(14, 16, 2, 4, P); s.rect(7, 21, 3, 1, P); s.rect(14, 20, 3, 1, P); }
+      else { s.rect(10, 16, 2, 4, P); s.rect(12, 16, 2, 5, P); s.rect(10, 20, 3, 1, P); s.rect(12, 21, 3, 1, P); }
+    });
+    case 'sabertooth': return paint(32, 20, (s) => {
+      const P = SABER;
+      s.ell(14, 9, 9, 5, P, 0.06);
+      for (let i = 0; i < 4; i++) s.line(10 + i * 3, 5, 9 + i * 3, 12, P[3]);
+      s.ell(24, 6, 4.5, 4, P); s.rect(26, 7, 4, 2, P); s.put(27, 9, BONE[0]); s.put(27, 10, BONE[1]); s.put(29, 9, BONE[0]); s.put(29, 10, BONE[1]);
+      s.put(25, 4, EYE);
+      s.line(5, 8, 1, f ? 3 : 5, P[2]);
+      const L = f ? [[7, 4], [11, 5], [17, 4], [21, 5]] : [[8, 5], [12, 4], [18, 5], [20, 4]];
+      L.forEach(([x, hgt]) => s.rect(x, 13, 2, hgt, P));
+    });
+    case 'mammoth': return paint(46, 38, (s) => {
+      const P = MAMM;
+      s.ell(20, 16, 15, 12, P, 0.25); s.ell(33, 12, 8, 8, P, 0.2);
+      s.rect(37, 16, 4, 12 + (f ? 1 : 0), P); s.rect(38, 27 + (f ? 1 : 0), 4, 3, P);
+      s.line(33, 20, 39, 24, BONE[0]); s.line(33, 21, 40, 26, BONE[2]); s.line(40, 24, 42, 20, BONE[0]);
+      s.put(35, 9, EYE);
+      s.ell(30, 11, 4, 6, P.slice(1).concat(['#1a0c06']));
+      const L = f ? [[9, 10], [16, 9], [24, 10], [30, 9]] : [[10, 9], [16, 10], [23, 9], [30, 10]];
+      L.forEach(([x, hgt]) => s.rect(x, 24, 5, hgt, P));
+    });
+    case 'trex': return paint(62, 50, (s) => {
+      const P = TREXR;
+      // tail
+      for (let i = 0; i < 12; i++) s.ell(4 + i * 1.6, 20 - i * 0.2 + (f ? 1 : 0), 4 - i * 0.15 + 1, 3, P, 0.1);
+      s.ell(26, 24, 14, 11, P, 0.12);
+      s.ell(26, 28, 9, 6, CREAM);
+      s.ell(38, 15, 6, 8, P);
+      s.ell(46, 10, 10, 7, P, 0.08);
+      s.rect(44, 12, 15, 5, P);
+      s.rect(46, 17, 12, 3, ['#86201c', '#6a1814', '#541410', '#3a0c08']);
+      for (let x = 46; x < 58; x += 2) { s.put(x, 17, BONE[0]); s.put(x + 1, 19, BONE[1]); }
+      s.rect(45, 20, 12, 3, P);
+      s.put(48, 8, '#f0d040'); s.put(49, 8, EYE);
+      s.line(36, 24, 40, 28, P[1], 2); s.put(41, 29, BONE[1]);
+      const lf = f ? 2 : 0;
+      s.rect(20 - lf, 33, 6, 10, P); s.rect(30 + lf, 33, 6, 10, P);
+      s.rect(18 - lf, 43, 9, 3, P); s.rect(29 + lf, 43, 9, 3, P);
+      [19, 22, 25].forEach(x => s.put(x - lf, 46, BONE[1])); [30, 33, 36].forEach(x => s.put(x + lf, 46, BONE[1]));
+      for (let i = 0; i < 6; i++) s.put(18 + i * 3, 14 + (i % 2), P[3]);
+    });
+    case 'hydra': return paint(62, 54, (s) => {
+      const P = TEAL;
+      const heads = [[10, 10 + (f ? 1 : 0)], [31, 5 + (f ? 0 : 1)], [52, 10 + (f ? 1 : 0)]];
+      heads.forEach(([hx, hy]) => {
+        for (let i = 0; i <= 10; i++) {
+          const t = i / 10;
+          const x = 31 + (hx - 31) * t + Math.sin(t * Math.PI) * (hx < 31 ? -4 : hx > 31 ? 4 : 0);
+          const y = 34 + (hy + 6 - 34) * t;
+          s.ell(x, y, 3.2, 3.2, P);
+        }
+      });
+      s.ell(31, 38, 18, 11, P, 0.12);
+      s.ell(31, 42, 12, 6, CREAM);
+      heads.forEach(([hx, hy]) => {
+        s.ell(hx, hy, 5, 4, P);
+        const dir = hx < 31 ? -1 : 1;
+        s.rect(dir > 0 ? hx + 2 : hx - 7, hy, 6, 3, P);
+        s.put(hx + dir, hy - 2, '#f0d040'); s.put(hx + dir * 2, hy - 2, EYE);
+        s.line(hx + dir * 7, hy + 2, hx + dir * 10, hy + 3, '#d83c3c');
+      });
+      for (let i = 0; i < 7; i++) s.put(20 + i * 3, 30 + (i % 2), P[3]);
+      const lf = f ? 1 : 0;
+      s.rect(18 - lf, 46, 5, 6, P); s.rect(40 + lf, 46, 5, 6, P);
+    });
+    case 'chariot': return paint(46, 32, (s) => {
+      const H = LEATHER;
+      // horse
+      s.ell(31, 15, 9, 5, H, 0.08); s.ell(40, 8, 3.5, 4, H); s.rect(41, 7, 4, 3, H); s.put(40, 6, EYE);
+      s.rect(37, 2, 3, 3, ['#3a2010', '#2a160a', '#1e1008', '#140a04']);
+      const L = f ? [[24, 8], [28, 7], [33, 8], [37, 7]] : [[25, 7], [27, 8], [34, 7], [36, 8]];
+      L.forEach(([x, hgt]) => s.rect(x, 18, 2, hgt, H));
+      s.line(17, 15, 23, 15, WOOD[2]);
+      // rider
+      s.ell(10, 6, 3.5, 3.5, SKIN); s.ell(10, 4, 4, 2.6, BRONZE); s.rect(7, 8, 7, 6, RED); s.put(12, 6, EYE);
+      // cart
+      s.rect(2, 12, 15, 9, BRONZE); s.rect(3, 13, 13, 2, RED);
+      s.ell(9, 23, 6, 6, WOOD); s.ell(9, 23, 3, 3, ['#3a2516', '#3a2516', '#2a1a0e', '#1a1008']);
+      for (let a = 0; a < 4; a++) s.line(9, 23, 9 + Math.cos(a * 0.8 + (f ? 0.4 : 0)) * 5, 23 + Math.sin(a * 0.8 + (f ? 0.4 : 0)) * 5, WOOD[0]);
+    });
   }
+  return null;
+}
+
+function wizard() {
+  return paint(26, 36, (s) => {
+    s.ell(12, 26, 8, 9, PURPLE, 0.05);
+    s.rect(5, 30, 14, 5, PURPLE);
+    s.ell(12, 13, 5, 5, SKIN);
+    s.ell(12, 18, 5, 5, WHITE, 0.1);
+    s.line(8, 9, 12, 0, PURPLE[1], 2); s.line(16, 9, 12, 0, PURPLE[2], 2);
+    for (let y = 2; y < 10; y++) s.line(12 - (y - 1) * 0.5, y, 12 + (y - 1) * 0.5, y, PURPLE[1 + (y > 6 ? 1 : 0)]);
+    s.rect(5, 9, 15, 2, PURPLE);
+    s.put(9, 4, '#f0d040'); s.put(14, 7, '#f0d040');
+    s.put(10, 13, EYE); s.put(14, 13, EYE);
+    s.line(22, 34, 22, 8, WOOD[1]); s.line(23, 34, 23, 8, WOOD[2]);
+    s.ell(22.5, 6, 2.6, 2.6, ['#e0fcff', '#7ae0ff', '#3aa0e0', '#1a60a0']);
+    s.ell(19, 22, 2, 2.5, SKIN);
+  });
+}
+
+// Items, icons and decor
+const ITEMS = {
+  club: () => paint(16, 16, (s) => { s.line(2, 14, 10, 6, WOOD[1], 2); s.ell(11, 5, 4, 4, WOOD, 0.2); s.put(10, 3, WOOD[0]); }),
+  axe: () => paint(16, 16, (s) => { s.line(3, 14, 11, 4, WOOD[1], 2); s.ell(10, 5, 5, 3.8, GREYS, 0.15); s.put(7, 4, GREYS[0]); }),
+  spear: () => paint(32, 8, (s) => { s.line(1, 3, 24, 3, WOOD[1]); s.line(1, 4, 24, 4, WOOD[2]); s.ell(27, 3.5, 4, 2.2, GREYS); s.put(25, 2, '#f0e8dc'); s.rect(22, 2, 2, 4, LEATHER); }),
+  rock: () => paint(14, 12, (s) => s.ell(7, 6, 6, 5, GREYS, 0.15)),
+  bolt: () => paint(12, 16, (s) => { s.line(8, 1, 4, 7, GOLD[1], 2); s.line(4, 7, 8, 8, GOLD[0], 2); s.line(8, 8, 3, 15, GOLD[1], 2); }),
+  gem_s: () => paint(8, 10, (s) => { const G = ['#d0f4ff', '#6ad0ff', '#2a8ae0', '#1a4aa0']; s.rect(2, 1, 3, 7, G); s.rect(1, 3, 5, 3, G); s.put(2, 2, '#ffffff'); }),
+  gem_m: () => paint(10, 12, (s) => { const G = ['#d8ffb0', '#88e05a', '#4aa83a', '#2a6a20']; s.rect(3, 1, 3, 9, G); s.rect(1, 3, 7, 5, G); s.put(3, 2, '#ffffff'); }),
+  gem_l: () => paint(12, 14, (s) => { const G = ['#ffd0e8', '#f070b0', '#c03a80', '#7a1a4a']; s.rect(4, 1, 3, 11, G); s.rect(2, 3, 7, 7, G); s.rect(1, 5, 9, 3, G); s.put(4, 2, '#ffffff'); }),
+  coin: () => paint(10, 10, (s) => { s.ell(5, 5, 4, 4, GOLD); s.put(5, 3, GOLD[2]); s.put(5, 4, GOLD[2]); s.put(5, 5, GOLD[2]); }),
+  meat: () => paint(16, 14, (s) => { s.line(1, 12, 6, 8, BONE[1], 2); s.ell(1.5, 12.5, 1.5, 1.5, BONE); s.ell(9, 6, 6, 5, RED, 0.1); s.ell(7, 4, 2, 1.4, ['#f4a090', '#f4a090', '#e07060', '#b8402e']); }),
+  magnet: () => paint(14, 14, (s) => { s.rect(2, 2, 4, 9, RED); s.rect(8, 2, 4, 9, RED); s.rect(2, 9, 10, 3, RED); s.rect(2, 1, 4, 3, STEEL); s.rect(8, 1, 4, 3, STEEL); }),
+  chest: () => paint(20, 16, (s) => { s.rect(1, 5, 18, 10, WOOD, 0.1); s.ell(10, 5, 9, 4, WOOD); s.rect(1, 8, 18, 1, BRONZE); s.rect(8, 7, 4, 4, GOLD); s.put(10, 9, EYE); }),
+  heart: () => paint(13, 12, (s) => { s.ell(3.5, 3.5, 3, 3, RED); s.ell(8.5, 3.5, 3, 3, RED); s.ell(6, 6, 5, 4, RED); s.line(3, 7, 6, 10, RED[1]); s.line(9, 7, 6, 10, RED[2]); s.put(3, 2, '#ffffff'); }),
+  heart_empty: () => paint(13, 12, (s) => { const D = ['#5a3a30', '#4a2e26', '#3a221c', '#2a1812']; s.ell(3.5, 3.5, 3, 3, D); s.ell(8.5, 3.5, 3, 3, D); s.ell(6, 6, 5, 4, D); s.line(3, 7, 6, 10, D[1]); s.line(9, 7, 6, 10, D[2]); }),
+  sandal: () => paint(14, 12, (s) => { s.ell(7, 8, 6, 2.6, LEATHER); s.line(4, 7, 8, 2, LEATHER[2]); s.line(10, 7, 8, 2, LEATHER[2]); s.put(8, 2, '#f0c060'); }),
+  totem: () => paint(12, 18, (s) => { s.rect(2, 2, 8, 15, WOOD, 0.1); s.rect(1, 1, 10, 2, RED); s.put(4, 5, EYE); s.put(7, 5, EYE); s.rect(4, 8, 4, 1, RED[2]); s.put(4, 12, EYE); s.put(7, 12, EYE); s.rect(4, 14, 4, 1, GOLD[1]); }),
+  flint: () => paint(12, 14, (s) => { for (let y = 0; y < 10; y++) s.line(6 - y * 0.5, y, 6 + y * 0.3, y, GREYS[y < 4 ? 0 : y < 7 ? 1 : 2]); s.rect(5, 10, 2, 4, LEATHER); }),
+  tusk: () => paint(14, 14, (s) => { for (let i = 0; i < 10; i++) s.ell(2 + i, 2 + i * 0.9 + Math.sin(i / 3) * 1.5, 1.8 - i * 0.05 + 0.6, 1.6, BONE); }),
+  lodestone: () => paint(13, 13, (s) => { s.ell(6.5, 6.5, 5.5, 5, GREYS, 0.15); s.put(5, 4, '#7ad0f4'); s.put(8, 7, '#7ad0f4'); s.put(4, 8, '#7ad0f4'); }),
+  skull: () => paint(12, 12, (s) => { s.ell(6, 5, 5, 4.5, BONE); s.rect(3, 8, 6, 3, BONE); s.ell(4, 5, 1.4, 1.4, [EYE, EYE, EYE, EYE]); s.ell(8, 5, 1.4, 1.4, [EYE, EYE, EYE, EYE]); s.put(6, 7, EYE); }),
+  lock: () => paint(12, 14, (s) => { s.ell(6, 4, 3.5, 3.5, GREYS); s.ell(6, 4, 1.6, 1.6, [null, null, null, null]); s.rect(1, 6, 10, 7, GOLD); s.put(6, 9, EYE); s.put(6, 10, EYE); }),
+  potion: () => paint(12, 15, (s) => { s.rect(5, 1, 2, 4, CREAM); s.ell(6, 9, 5, 5, ['#ff8a8a', '#e04040', '#a82020', '#6a1010']); s.put(4, 7, '#ffffff'); }),
+  star: () => paint(13, 13, (s) => { s.ell(6.5, 6.5, 2.5, 2.5, GOLD); for (let a = 0; a < 5; a++) { const an = -Math.PI / 2 + a * Math.PI * 2 / 5; s.line(6.5, 6.5, 6.5 + Math.cos(an) * 6, 6.5 + Math.sin(an) * 6, GOLD[1]); } }),
+  reroll: () => paint(13, 13, (s) => { for (let a = 0.6; a < 5.6; a += 0.12) s.put(6.5 + Math.cos(a) * 4.5, 6.5 + Math.sin(a) * 4.5, '#7ad0f4'); s.line(10, 3, 12, 5, '#7ad0f4'); s.line(10, 3, 9, 6, '#7ad0f4'); }),
+  boulder: () => paint(24, 18, (s) => { s.ell(12, 10, 11, 7, STONE, 0.12); s.ell(8, 8, 3, 2, [STONE[0], STONE[0], STONE[1], STONE[1]]); }),
+  fern: () => paint(20, 14, (s) => { for (let i = 0; i < 5; i++) { const a = -2.6 + i * 0.55; for (let r = 0; r < 9; r++) s.put(10 + Math.cos(a) * r, 13 + Math.sin(a) * r * 1.1, LEAF[r % 3]); } }),
+  bones: () => paint(18, 10, (s) => { s.line(1, 6, 12, 3, BONE[1]); s.line(1, 7, 12, 4, BONE[2]); s.ell(2, 6, 1.6, 1.6, BONE); s.ell(12, 3.5, 1.6, 1.6, BONE); s.ell(14, 7, 3, 2.2, BONE); s.put(14, 7, EYE); s.put(15, 7, EYE); }),
+  tree: () => paint(44, 56, (s) => { s.rect(19, 30, 6, 24, WOOD, 0.2); s.line(22, 30, 12, 20, WOOD[2], 2); s.line(22, 30, 32, 21, WOOD[2], 2); s.ell(22, 16, 20, 9, LEAF, 0.3); s.ell(11, 20, 9, 5, LEAF, 0.3); s.ell(33, 20, 9, 5, LEAF, 0.3); }),
+  column: () => paint(18, 44, (s) => { s.rect(1, 0, 16, 4, MARBLE); s.rect(3, 4, 12, 34, MARBLE); for (let x = 5; x < 14; x += 3) s.line(x, 5, x, 37, MARBLE[2]); s.rect(1, 38, 16, 5, MARBLE); }),
+  broken: () => paint(20, 18, (s) => { s.rect(3, 6, 12, 10, MARBLE); s.line(3, 6, 8, 2, MARBLE[1]); s.line(8, 2, 15, 6, MARBLE[1]); s.rect(5, 3, 8, 3, MARBLE); for (let x = 5; x < 14; x += 3) s.line(x, 7, x, 15, MARBLE[2]); s.ell(17, 15, 2.5, 2, MARBLE); }),
+  urn: () => paint(14, 18, (s) => { s.rect(4, 0, 6, 2, DINO); s.rect(5, 2, 4, 3, DINO); s.ell(7, 10, 6, 6, DINO); s.rect(3, 9, 8, 1, EYE); s.put(5, 11, EYE); s.put(9, 11, EYE); s.rect(4, 15, 6, 2, DINO); }),
+  cypress: () => paint(18, 48, (s) => { s.rect(8, 40, 3, 7, WOOD); s.ell(9, 22, 7, 20, DARKLEAF, 0.3); }),
+};
+
+const ANIM_ITEMS = {
+  flame: (f) => paint(14, 18, (s) => { s.ell(7, 11, 5, 6, FIRE); s.ell(7 + (f ? 1 : -1), 7, 2.4, 4, FIRE.slice(0, 1).concat(FIRE.slice(0, 3))); s.put(7 + (f ? -2 : 2), 2, FIRE[1]); }),
+  campfire: (f) => paint(22, 24, (s) => {
+    for (let i = 0; i < 7; i++) { const a = Math.PI + i * Math.PI / 6; s.ell(11 + Math.cos(a) * 8, 21 + Math.sin(a) * 2.5, 2.4, 1.9, GREYS); }
+    s.ell(11, 20, 8, 2.6, GREYS); s.line(4, 21, 17, 18, WOOD[1], 2); s.line(5, 18, 18, 21, WOOD[2], 2);
+    s.ell(11, 13 + (f ? 1 : 0), 5, 6 + (f ? -1 : 0), FIRE); s.ell(11 + (f ? 1 : 0), 14, 2.6, 3.5, [FIRE[0], FIRE[0], FIRE[1], FIRE[2]]);
+    s.put(9 + (f ? 2 : 0), 4, FIRE[1]); s.put(13 - (f ? 2 : 0), 3, FIRE[0]);
+  }),
+  brazier: (f) => paint(16, 28, (s) => {
+    s.rect(7, 12, 3, 14, BRONZE); s.rect(3, 25, 11, 2, BRONZE); s.ell(8.5, 11, 6, 3, BRONZE);
+    s.ell(8.5, 6 + (f ? 1 : 0), 4, 5, FIRE); s.ell(8.5 + (f ? 1 : -1), 7, 2, 3, [FIRE[0], FIRE[0], FIRE[1], FIRE[2]]);
+  }),
+};
+
+// Cave-art paintings scattered on the Stone Age ground (no outline, drawn like ochre paint)
+const PAINTINGS = {
+  handprint: () => paint(12, 14, (s) => {
+    const c = '#9a3a1c';
+    s.ell(6, 9, 4, 4, [c, c, c, c]);
+    [[2, 2], [4, 1], [6, 1], [8, 2]].forEach(([x, y]) => s.line(x + 0.5, y, x + 0.5, 6, c));
+    s.line(10, 8, 11, 5, c);
+  }, { noOutline: true }),
+  deer: () => paint(22, 14, (s) => {
+    const c = '#7a2a14';
+    s.line(3, 7, 15, 6, c, 2); s.line(15, 6, 18, 3, c, 2);
+    s.line(18, 3, 17, 0, c); s.line(18, 3, 21, 0, c); s.line(17, 1, 15, 0, c);
+    [[4, 1], [7, -1], [12, 1], [14, -1]].forEach(([x, d]) => s.line(x, 8, x + d, 13, c));
+    s.line(3, 7, 1, 5, c);
+  }, { noOutline: true }),
+  hunters: () => paint(24, 14, (s) => {
+    const c = '#5a2010';
+    [[3, 0], [11, 1], [19, 0]].forEach(([x, f]) => {
+      s.put(x, 1, c); s.put(x + 1, 1, c); s.line(x, 2, x, 7, c); s.line(x, 7, x - 2 + f, 12, c); s.line(x, 7, x + 2 - f, 12, c);
+      s.line(x, 4, x + 4, 1, c);
+    });
+  }, { noOutline: true }),
+};
+
+let cache = null;
+export function buildDefaultSprites() {
+  if (cache) return cache;
+  const out = {};
+  const add = (key, grids) => { out[key] = toSprite(grids); };
+  for (const [k, o] of Object.entries(CHAR_LOOKS)) { seed = 101; add(k, [human(o, 0), human(o, 1)]); }
+  for (const k of ['wolf', 'raptor', 'sabertooth', 'mammoth', 'trex', 'hydra', 'chariot']) { seed = 202; add(k, [quad(k, 0), quad(k, 1)]); }
+  seed = 303; add('wizard', [wizard()]);
+  for (const [k, fn] of Object.entries(ITEMS)) { seed = 404; add(k, [fn()]); }
+  for (const [k, fn] of Object.entries(ANIM_ITEMS)) { seed = 505; add(k, [fn(0), fn(1)]); }
+  for (const [k, fn] of Object.entries(PAINTINGS)) { seed = 606; add(k, [fn()]); }
+  cache = out;
   return out;
 }
 
-function drawGrid(ctx, grid, ox) {
-  grid.forEach((row, y) => row.forEach((c, x) => {
-    if (!c) return;
-    ctx.fillStyle = c;
-    ctx.fillRect(ox + x, y, 1, 1);
-  }));
+export const SPRITE_GROUPS = {
+  Characters: ['caveman', 'hunter', 'shaman', 'wizard'],
+  'Stone Age enemies': ['rival', 'wolf', 'raptor', 'sabertooth', 'mammoth', 'trex'],
+  'Roman enemies': ['legionary', 'spearman', 'gladiator', 'centurion', 'chariot', 'hydra', 'timecop'],
+  Weapons: ['club', 'axe', 'spear', 'flame', 'rock', 'bolt'],
+  Items: ['gem_s', 'gem_m', 'gem_l', 'coin', 'meat', 'magnet', 'chest', 'potion', 'star', 'reroll', 'skull', 'lock'],
+  Icons: ['heart', 'heart_empty', 'sandal', 'totem', 'flint', 'tusk', 'lodestone'],
+  Scenery: ['boulder', 'fern', 'bones', 'tree', 'campfire', 'handprint', 'deer', 'hunters', 'column', 'broken', 'urn', 'cypress', 'brazier'],
+};
+
+export function getSprite(key, overrides = {}) {
+  return overrides[key] || buildDefaultSprites()[key];
 }
 
-export function generateTextures(scene) {
-  for (const [key, frames] of Object.entries(SPRITES)) {
-    const grids = frames.map(f => parse(f, SWAPS[key]));
-    const fw = Math.max(...grids.map(g => g[0].length));
-    const fh = Math.max(...grids.map(g => g.length));
-    const canvas = document.createElement('canvas');
-    canvas.width = fw * grids.length;
-    canvas.height = fh;
-    const ctx = canvas.getContext('2d');
-    grids.forEach((g, i) => drawGrid(ctx, g, i * fw + Math.floor((fw - g[0].length) / 2)));
+export function spriteToCanvas(sp, frameIndex = null) {
+  const frames = sp.frames;
+  const h = frames[0].length;
+  const w = Math.max(...frames.map(f => Math.max(...f.map(r => r.length))));
+  const n = frameIndex === null ? frames.length : 1;
+  const c = document.createElement('canvas');
+  c.width = w * n; c.height = h;
+  const ctx = c.getContext('2d');
+  const list = frameIndex === null ? frames : [frames[frameIndex]];
+  list.forEach((rows, fi) => rows.forEach((row, y) => [...row].forEach((ch, x) => {
+    if (ch === '.') return;
+    const col = sp.pal[CHARS.indexOf(ch)];
+    if (!col) return;
+    ctx.fillStyle = col; ctx.fillRect(fi * w + x, y, 1, 1);
+  })));
+  return { canvas: c, w, h, n };
+}
+
+export { CHARS };
+
+// ---------------------------------------------------------------------------
+// Textures for Phaser
+export function generateTextures(scene, overrides = {}) {
+  const all = { ...buildDefaultSprites(), ...overrides };
+  for (const [key, sp] of Object.entries(all)) {
+    if (!sp || !sp.frames || !sp.frames.length) continue;
+    const { canvas, w, h, n } = spriteToCanvas(sp);
+    if (scene.textures.exists(key)) scene.textures.remove(key);
     const tex = scene.textures.addCanvas(key, canvas);
-    grids.forEach((_, i) => tex.add(i, 0, i * fw, 0, fw, fh));
+    for (let i = 0; i < n; i++) tex.add(i, 0, i * w, 0, w, h);
   }
-  makeGround(scene, 'ground_stone', ['#5f8a3c', '#56803a', '#6a9644', '#4e7434'], ['#7aa84c', '#8a6a3a', '#3e6a30']);
-  makeGround(scene, 'ground_roman', ['#d8b878', '#d0ae6c', '#e0c286', '#c8a462'], ['#b89058', '#ecd49a', '#a88048'], true);
+  makeCaveGround(scene);
+  makeMosaicGround(scene);
   makeSimple(scene, 'px', 2, 2, (ctx) => { ctx.fillStyle = '#fff'; ctx.fillRect(0, 0, 2, 2); });
   makeSimple(scene, 'shadow', 16, 6, (ctx) => {
-    ctx.fillStyle = 'rgba(0,0,0,0.28)';
+    ctx.fillStyle = 'rgba(40,16,6,0.32)';
     ctx.fillRect(3, 0, 10, 6); ctx.fillRect(1, 1, 14, 4); ctx.fillRect(0, 2, 16, 2);
   });
   makeSimple(scene, 'portal', 40, 56, (ctx) => {
@@ -343,8 +421,8 @@ export function generateTextures(scene) {
       ctx.fillStyle = c;
       const rx = 20 - i * 3.5, ry = 28 - i * 5;
       for (let y = -ry; y <= ry; y++) {
-        const w = Math.round(rx * Math.sqrt(1 - (y * y) / (ry * ry)));
-        ctx.fillRect(20 - w, 28 + y, w * 2, 1);
+        const ww = Math.round(rx * Math.sqrt(1 - (y * y) / (ry * ry)));
+        ctx.fillRect(20 - ww, 28 + y, ww * 2, 1);
       }
     });
   });
@@ -355,39 +433,78 @@ export function generateTextures(scene) {
       ctx.fillRect(Math.round(32 + Math.cos(r) * 30), Math.round(32 + Math.sin(r) * 30), 2, 2);
     }
   });
+  // Soft light used to cut holes in the boss-fight darkness
+  makeSimple(scene, 'light', 256, 256, (ctx) => {
+    const g = ctx.createRadialGradient(128, 128, 0, 128, 128, 128);
+    g.addColorStop(0, 'rgba(255,255,255,1)'); g.addColorStop(0.5, 'rgba(255,255,255,0.8)'); g.addColorStop(1, 'rgba(255,255,255,0)');
+    ctx.fillStyle = g; ctx.fillRect(0, 0, 256, 256);
+  });
+  makeSimple(scene, 'darkness', 1000, 1700, (ctx) => {
+    ctx.fillStyle = '#06040e'; ctx.fillRect(0, 0, 1000, 1700);
+    ctx.globalCompositeOperation = 'destination-out';
+    const g = ctx.createRadialGradient(500, 850, 0, 500, 850, 200);
+    g.addColorStop(0, 'rgba(0,0,0,1)'); g.addColorStop(0.45, 'rgba(0,0,0,0.85)'); g.addColorStop(1, 'rgba(0,0,0,0)');
+    ctx.fillStyle = g; ctx.fillRect(0, 0, 1000, 1700);
+  });
+  makeSimple(scene, 'glow', 64, 64, (ctx) => {
+    const g = ctx.createRadialGradient(32, 32, 0, 32, 32, 32);
+    g.addColorStop(0, 'rgba(255,170,70,0.55)'); g.addColorStop(1, 'rgba(255,120,40,0)');
+    ctx.fillStyle = g; ctx.fillRect(0, 0, 64, 64);
+  });
 }
 
 function makeSimple(scene, key, w, h, draw) {
+  if (scene.textures.exists(key)) scene.textures.remove(key);
   const c = document.createElement('canvas');
   c.width = w; c.height = h;
   draw(c.getContext('2d'));
   scene.textures.addCanvas(key, c);
 }
 
-function makeGround(scene, key, base, specks, paved) {
-  const S = 128;
-  const c = document.createElement('canvas');
-  c.width = S; c.height = S;
-  const ctx = c.getContext('2d');
-  let seed = key.length * 977;
-  const rnd = () => { seed = (seed * 16807) % 2147483647; return seed / 2147483647; };
-  for (let y = 0; y < S; y += 4) for (let x = 0; x < S; x += 4) {
-    ctx.fillStyle = base[Math.floor(rnd() * base.length)];
-    ctx.fillRect(x, y, 4, 4);
-  }
-  if (paved) {
-    ctx.fillStyle = 'rgba(120,90,50,0.35)';
-    for (let y = 0; y < S; y += 32) {
-      ctx.fillRect(0, y, S, 2);
-      const off = (y / 32) % 2 ? 16 : 0;
-      for (let x = off; x < S; x += 32) ctx.fillRect(x, y, 2, 32);
+// Ochre cave floor: warm specks, cracks and dust
+function makeCaveGround(scene) {
+  makeSimple(scene, 'ground_cave', 192, 192, (ctx) => {
+    let s = 9001;
+    const r = () => { s = (s * 16807) % 2147483647; return s / 2147483647; };
+    ctx.fillStyle = '#c49a64'; ctx.fillRect(0, 0, 192, 192);
+    const specks = ['#ba9058', '#cea672', '#b0864e', '#d6b282', '#a87c48'];
+    for (let i = 0; i < 9000; i++) {
+      ctx.fillStyle = specks[Math.floor(r() * specks.length)];
+      ctx.fillRect(Math.floor(r() * 192), Math.floor(r() * 192), 1, 1 + Math.floor(r() * 2));
     }
-  }
-  for (let i = 0; i < 70; i++) {
-    ctx.fillStyle = specks[Math.floor(rnd() * specks.length)];
-    const x = Math.floor(rnd() * S / 2) * 2, y = Math.floor(rnd() * S / 2) * 2;
-    if (!paved && rnd() < 0.5) { ctx.fillRect(x, y, 2, 4); ctx.fillRect(x + 2, y + 2, 2, 2); }
-    else ctx.fillRect(x, y, 2, 2);
-  }
-  scene.textures.addCanvas(key, c);
+    ctx.fillStyle = 'rgba(110,64,34,0.35)';
+    for (let i = 0; i < 6; i++) {
+      let x = 20 + r() * 150, y = 20 + r() * 150;
+      for (let j = 0; j < 24; j++) { ctx.fillRect(Math.floor(x), Math.floor(y), 1, 1); x += r() * 2 - 0.6; y += r() * 2 - 0.9; }
+    }
+    ctx.fillStyle = 'rgba(240,210,160,0.25)';
+    for (let i = 0; i < 30; i++) ctx.fillRect(Math.floor(r() * 190), Math.floor(r() * 190), 2, 1);
+  });
+}
+
+// Roman mosaic floor: small tesserae, a border band and a diamond in each panel
+function makeMosaicGround(scene) {
+  makeSimple(scene, 'ground_mosaic', 192, 192, (ctx) => {
+    let s = 4242;
+    const r = () => { s = (s * 16807) % 2147483647; return s / 2147483647; };
+    const T = 3;
+    const cream = ['#e8dcbc', '#e0d2b0', '#ecdec0', '#dccca8'];
+    const terra = ['#b8582e', '#a84a26', '#c0643a'];
+    const blue = ['#3a5a8a', '#2e4a76', '#46689a'];
+    const ink = ['#3a2a20', '#2e2018'];
+    ctx.fillStyle = '#8a7a64'; ctx.fillRect(0, 0, 192, 192);
+    for (let y = 0; y < 192; y += T) for (let x = 0; x < 192; x += T) {
+      const px = x % 96, py = y % 96;
+      const edge = Math.min(px, py, 95 - px, 95 - py);
+      const cx = Math.abs(px - 48), cy = Math.abs(py - 48);
+      let set = cream;
+      if (edge < 6) set = terra;
+      else if (edge < 9) set = ink;
+      else if (cx + cy < 18) set = blue;
+      else if (cx + cy < 21) set = ink;
+      else if ((cx + cy) % 24 < 3 && cx + cy < 40) set = terra;
+      ctx.fillStyle = set[Math.floor(r() * set.length)];
+      ctx.fillRect(x, y, T - 1, T - 1);
+    }
+  });
 }

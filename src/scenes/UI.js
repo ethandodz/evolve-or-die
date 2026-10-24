@@ -5,7 +5,12 @@ import { WEAPONS, PASSIVES, AGES } from '../data.js';
 import { W, H, text, button, panel, settingsPanel, COLORS, fmtTime, FONT } from '../ui.js';
 import { controls } from '../controls.js';
 
-const AGE_TIME_TEST = new URLSearchParams(location.search).has('test') ? 60 : 300;
+import { BAL } from '../data.js';
+
+const AGE_TIME_TEST = new URLSearchParams(location.search).has('test') ? 60 : BAL.ageLength;
+
+// Scale an image so it fits in a box
+const fit = (img, size) => { const f = img.frame; return img.setScale(Math.min(size / f.width, size / f.height)); };
 
 export default class UI extends Phaser.Scene {
   constructor() { super('UI'); }
@@ -16,8 +21,10 @@ export default class UI extends Phaser.Scene {
     this.ready = true;
 
     // XP bar
-    this.xpBg = this.add.rectangle(0, 0, W, 16, 0x120c18).setOrigin(0, 0);
-    this.xpFill = this.add.rectangle(2, 2, 0, 12, 0x5ac8f0).setOrigin(0, 0);
+    this.xpBg = this.add.rectangle(0, 0, W, 16, 0x1e1009).setOrigin(0, 0).setStrokeStyle(2, 0xc89a5a);
+    this.xpFill = this.add.rectangle(2, 2, 0, 12, 0xd0601e).setOrigin(0, 0);
+    // Stone tablet behind the timer
+    panel(this, W / 2, 50, 130, 44);
     this.xpShine = this.add.rectangle(2, 2, 0, 3, 0xffffff, 0.35).setOrigin(0, 0);
     this.lvText = text(this, 8, 9, 'LV 1', 8, '#ffffff', 0);
 
@@ -40,7 +47,7 @@ export default class UI extends Phaser.Scene {
     this.slots = [];
     for (let row = 0; row < 2; row++) for (let i = 0; i < 3; i++) {
       const x = 22 + i * 34, y = 82 + row * 34;
-      const bg = this.add.rectangle(x, y, 30, 30, 0x120c18, 0.7).setStrokeStyle(2, row ? 0x7a48b0 : 0x8a5a2e);
+      const bg = this.add.rectangle(x, y, 30, 30, 0x1e1009, 0.7).setStrokeStyle(2, row ? 0x7a48b0 : 0x8a5a2e);
       const ic = this.add.image(x, y, 'club').setScale(1.6).setVisible(false);
       const lv = this.add.text(x + 14, y + 14, '', { fontFamily: FONT, fontSize: '8px', color: '#ffffff', stroke: '#120c18', strokeThickness: 3 }).setOrigin(1, 1);
       this.slots.push({ bg, ic, lv });
@@ -51,7 +58,7 @@ export default class UI extends Phaser.Scene {
 
     // Boss bar
     this.bossBox = this.add.container(W / 2, 196).setVisible(false);
-    const bb = this.add.rectangle(0, 0, 364, 20, 0x120c18).setStrokeStyle(2, 0xe8c070);
+    const bb = this.add.rectangle(0, 0, 364, 20, 0x1e1009).setStrokeStyle(2, 0xe8c070);
     this.bossFill = this.add.rectangle(-180, 0, 360, 14, 0xd83c3c).setOrigin(0, 0.5);
     this.bossName = text(this, 0, -20, '', 10, '#ffffff');
     this.bossBox.add([bb, this.bossFill, this.bossName]);
@@ -122,7 +129,7 @@ export default class UI extends Phaser.Scene {
 
     while (this.hearts.length < p.maxHearts) {
       const i = this.hearts.length;
-      this.hearts.push(this.add.image(20 + (i % 8) * 22, 36 + Math.floor(i / 8) * 20, 'heart').setScale(2.4));
+      this.hearts.push(this.add.image(18 + (i % 8) * 22, 34 + Math.floor(i / 8) * 20, 'heart').setScale(1.6));
     }
     this.hearts.forEach((h, i) => {
       h.setVisible(i < p.maxHearts);
@@ -148,7 +155,7 @@ export default class UI extends Phaser.Scene {
       if (i < 3) { const w = g.weapons[i]; if (w) { icon = WEAPONS[w.key].icon; lvl = w.level; } }
       else { const k = g.passiveOrder[i - 3]; if (k) { icon = PASSIVES[k].icon; lvl = g.passives[k]; } }
       s.ic.setVisible(!!icon);
-      if (icon) s.ic.setTexture(icon, 0);
+      if (icon) fit(s.ic.setTexture(icon, 0), 24);
       s.lv.setText(icon ? String(lvl) : '');
     }
 
@@ -277,8 +284,8 @@ export default class UI extends Phaser.Scene {
     };
     draw(false);
     card.add(bg);
-    card.add(this.add.rectangle(x - w / 2 + 50, y, 70, 70, 0x120c18));
-    card.add(this.add.image(x - w / 2 + 50, y, icon, 0).setScale(icon === 'spear' ? 2 : 4));
+    card.add(this.add.rectangle(x - w / 2 + 50, y, 70, 70, 0x1e1009));
+    card.add(fit(this.add.image(x - w / 2 + 50, y, icon, 0), 60));
     card.add(text(this, x - w / 2 + 100, y - 30, name.toUpperCase(), 12, '#ffffff', 0));
     if (tag) card.add(text(this, x + w / 2 - 12, y - 30, tag, 8, tagColor, 1));
     const dt = this.add.text(x - w / 2 + 100, y + 8, desc, {
@@ -318,7 +325,7 @@ export default class UI extends Phaser.Scene {
       g.fillStyle(0x0c0810, 1).fillRect(W / 2 - 183, y - 41, 366, 86);
       g.fillStyle(0x2e2240, 1).fillRect(W / 2 - 180, y - 38, 360, 80);
       c.add(g);
-      c.add(this.add.image(W / 2 - 145, y, it.icon, 0).setScale(it.icon === 'spear' ? 1.6 : 3.4));
+      c.add(fit(this.add.image(W / 2 - 145, y, it.icon, 0), 52));
       c.add(text(this, W / 2 - 108, y - 18, it.name.toUpperCase(), 10, '#ffffff', 0));
       c.add(this.add.text(W / 2 - 108, y + 10, it.blurb, { fontFamily: FONT, fontSize: '8px', color: '#d0c0e0', wordWrap: { width: 150 }, lineSpacing: 4 }).setOrigin(0, 0.5));
       const b = button(this, W / 2 + 125, y, 96, 44, `${it.cost}`, () => {
@@ -354,8 +361,8 @@ export default class UI extends Phaser.Scene {
     t.setScale(0.4);
     this.tweens.add({ targets: t, scale: 1, duration: 400, ease: 'Back.out' });
     c.add(t);
-    if (r.won) c.add(this.add.sprite(W / 2, 255, 'caveman', 0).setScale(5));
-    else c.add(this.add.sprite(W / 2, 255, 'caveman', 0).setScale(5).setAngle(90).setTint(0x8080a0));
+    if (r.won) c.add(this.add.sprite(W / 2, 255, this.g.charDef.sprite, 0).setScale(3.4));
+    else c.add(this.add.sprite(W / 2, 255, this.g.charDef.sprite, 0).setScale(3.4).setAngle(90).setTint(0x8080a0));
     const rows = [
       ['TIME SURVIVED', fmtTime(r.time)],
       ['KILLS', String(r.kills)],
@@ -373,7 +380,7 @@ export default class UI extends Phaser.Scene {
       this.closeModal();
       save.runs++;
       this.scene.stop('Game');
-      this.scene.start('Game', { character: 'caveman' });
+      this.scene.start('Game', { character: this.g.character });
     }, { size: 16, color: COLORS.green, hi: COLORS.greenHi }));
     c.add(button(this, W / 2, 650, 200, 46, 'MENU', () => {
       this.closeModal();

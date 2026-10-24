@@ -6,6 +6,7 @@ import { loadConfig, saveConfig, resetConfig, baseConfig, weaponStats, takeUpdat
 import { BEHAVIORS, PASSIVE_EFFECTS, BOSS_ATTACKS, MUSIC, GROUNDS } from '../content/defaults.js';
 import { buildDefaultSprites, getSprite, spriteToCanvas, SPRITE_GROUPS, CHARS } from '../art.js';
 import { PixelEditor } from './pixel.js';
+import { renderConverter } from './convert.js';
 
 let cfg = loadConfig();
 const state = { tab: 'characters', sel: {}, updated: takeUpdateNotice() };
@@ -135,7 +136,7 @@ function uniqueKey(name, taken) {
 // Layout
 const TABS = [
   ['characters', 'Characters'], ['enemies', 'Enemies'], ['weapons', 'Weapons'], ['passives', 'Passives'],
-  ['ages', 'Ages'], ['shop', 'Shop'], ['balance', 'Balance'], ['art', 'Pixel Art'], ['requests', 'Requests'],
+  ['ages', 'Ages'], ['shop', 'Shop'], ['balance', 'Balance'], ['art', 'Pixel Art'], ['convert', 'Image → Sprite'], ['requests', 'Requests'],
 ];
 const TAB_NAMES = Object.fromEntries(TABS);
 
@@ -162,7 +163,7 @@ function render() {
   );
   renderWarnings();
   const main = document.getElementById('main');
-  ({ characters: renderCharacters, enemies: renderEnemies, weapons: renderWeapons, passives: renderPassives, ages: renderAges, shop: renderShop, balance: renderBalance, art: renderArt, requests: renderRequests })[state.tab](main);
+  ({ characters: renderCharacters, enemies: renderEnemies, weapons: renderWeapons, passives: renderPassives, ages: renderAges, shop: renderShop, balance: renderBalance, art: renderArt, convert: renderConvert, requests: renderRequests })[state.tab](main);
 }
 
 function listPanel(items, selKey, onPick, actions) {
@@ -528,6 +529,10 @@ function renderArt(main) {
     onDelete: buildDefaultSprites()[key] ? null : () => { if (!confirm(`Delete sprite ${key}?`)) return; delete cfg.sprites[key]; state.sel.art = null; changed(true); },
   });
   ed.mount();
+}
+
+function renderConvert(main) {
+  renderConverter(main, { cfg, changed, h, allSprites, uniqueKey, openSprite: (k) => { state.tab = 'art'; state.sel.art = k; render(); } });
 }
 
 function newSprite() {

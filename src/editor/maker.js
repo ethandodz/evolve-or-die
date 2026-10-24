@@ -4,8 +4,9 @@
 // pixel art with the Image → Sprite converter and saved as a game character.
 import { convert } from './convert.js';
 
-const W = 360, H = 500;
+const W = 360, H = 456;
 const TOP = 64, HEAD = 1.2;                      // room above for hair and hats; chibi head scale
+const HIP = 270, LEG = 0.72;                     // legs are squashed up toward the hips
 
 // --- shape helpers ------------------------------------------------------------------
 // Smooth closed path through points; [x, y, 1] marks a sharp corner
@@ -125,6 +126,7 @@ export function drawCharacter(ctx, L) {
   ctx.clearRect(0, 0, W, H);
   ctx.translate(0, TOP);
   // the head is drawn bigger, growing up and out from the chin
+  const shortLegs = (fn) => { ctx.save(); ctx.translate(0, HIP); ctx.scale(1, LEG); ctx.translate(0, -HIP); fn(); ctx.restore(); };
   const bigHead = (fn) => { ctx.save(); ctx.translate(HX, HY + 60); ctx.scale(HEAD, HEAD); ctx.translate(-HX, -(HY + 60)); fn(); ctx.restore(); };
   const skin = L.skin, hair = L.hairColor, oc = L.outfitColor, tc = L.trimColor;
   const of = OUTFITS[L.outfit] || OUTFITS.wanderer;
@@ -137,17 +139,21 @@ export function drawCharacter(ctx, L) {
 
   // legs: pants, bare skin or robe skirt, then boots
   const legC = of.legs === 'bare' ? skin : of.legs === 'robe' ? oc : L.outfit === 'knight' ? '#7a808c' : tc;
-  for (const k of ['thighL', 'thighR', 'shinL', 'shinR']) paint(ctx, BODY[k], legC);
-  if (of.legs === 'pants') for (const [x, y] of [[124, 290], [236, 286]]) stroke(ctx, `M${x - 10},${y - 8} q8 10 18 6`, shade(legC, -0.5), 2.6);
-  drawBoots(ctx, L);
+  shortLegs(() => {
+    for (const k of ['thighL', 'thighR', 'shinL', 'shinR']) paint(ctx, BODY[k], legC);
+    if (of.legs === 'pants') for (const [x, y] of [[124, 290], [236, 286]]) stroke(ctx, `M${x - 10},${y - 8} q8 10 18 6`, shade(legC, -0.5), 2.6);
+    drawBoots(ctx, L);
+  });
 
   // torso and outfit
   const torsoC = of.sleeves === 'none' ? skin : oc;
   const torso = paint(ctx, BODY.torso, torsoC);
   if (of.legs === 'robe') {
-    const skirt = paint(ctx, B([[106, 258], [254, 256], [276, 300], [300, 340, 1], [250, 330], [214, 344], [180, 330], [146, 346], [104, 334], [70, 340, 1], [90, 296]]), oc);
-    within(ctx, skirt, () => { for (const [x, y] of [[120, 300], [200, 316], [250, 300], [160, 330]]) star(ctx, x, y, 7, tc); });
-  } else paint(ctx, BODY.hips, of.legs === 'bare' ? (L.outfit === 'pelt' ? oc : tc) : legC, { line: true });
+    shortLegs(() => {
+      const skirt = paint(ctx, B([[106, 258], [254, 256], [276, 300], [300, 340, 1], [250, 330], [214, 344], [180, 330], [146, 346], [104, 334], [70, 340, 1], [90, 296]]), oc);
+      within(ctx, skirt, () => { for (const [x, y] of [[120, 300], [200, 316], [250, 300], [160, 330]]) star(ctx, x, y, 7, tc); });
+    });
+  } else shortLegs(() => paint(ctx, BODY.hips, of.legs === 'bare' ? (L.outfit === 'pelt' ? oc : tc) : legC, { line: true }));
   outfitDetails(ctx, L, torso);
   paint(ctx, BODY.belt, L.outfit === 'wizard' || L.outfit === 'knight' ? tc : L.outfit === 'pelt' ? '#6e4a2a' : shade(tc, -0.2));
   if (L.outfit !== 'pelt') paint(ctx, E(186, 262, 9, 8), '#e8c050');

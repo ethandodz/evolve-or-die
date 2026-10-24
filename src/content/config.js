@@ -1,23 +1,30 @@
 // Loads game content: defaults, then any saved edits from the editor on this device.
 import { DEFAULT_CONFIG } from './defaults.js';
+// Edits that were exported from the editor and committed to the repo (shared with everyone)
+import CUSTOM from './custom.json';
 
 export const CONFIG_KEY = 'eod-config-v1';
 
 const clone = (o) => JSON.parse(JSON.stringify(o));
 
-// Objects merge key by key; arrays and plain values are replaced
-function merge(base, over) {
-  if (over === undefined) return base;
-  if (Array.isArray(base) || Array.isArray(over) || typeof base !== 'object' || base === null || typeof over !== 'object' || over === null) return over;
-  const out = { ...base };
-  for (const k of Object.keys(over)) out[k] = merge(base[k], over[k]);
-  return out;
+// The base everyone gets: committed custom content if there is any, else the defaults
+export function baseConfig() {
+  return CUSTOM && Object.keys(CUSTOM).length ? fillMissing(clone(CUSTOM)) : clone(DEFAULT_CONFIG);
+}
+
+// Saved configs are full snapshots (so deletions stick). New balance knobs and
+// missing sections are filled in from the defaults.
+function fillMissing(cfg) {
+  const d = clone(DEFAULT_CONFIG);
+  for (const k of Object.keys(d)) if (cfg[k] === undefined) cfg[k] = d[k];
+  cfg.balance = { ...d.balance, ...cfg.balance };
+  return cfg;
 }
 
 export function loadConfig() {
   let saved = null;
   try { saved = JSON.parse(localStorage.getItem(CONFIG_KEY) || 'null'); } catch { saved = null; }
-  return saved ? merge(clone(DEFAULT_CONFIG), saved) : clone(DEFAULT_CONFIG);
+  return saved ? fillMissing(saved) : baseConfig();
 }
 
 export function saveConfig(cfg) {

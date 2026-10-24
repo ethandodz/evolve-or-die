@@ -270,13 +270,15 @@ export default class Game extends Phaser.Scene {
     if (t > 110 && r < Math.min(0.04, 0.01 + (t - 110) / 6000)) return this.age.elite;
     if (t > 40 && r < Math.min(0.2, 0.05 + (t - 40) / 900)) return this.age.medium;
     // Basics unlock in order: first one from the start, then the others
-    const b = this.age.basic;
+    const b = this.age.basic && this.age.basic.length ? this.age.basic : [this.age.medium];
     if (t < 20) return b[0];
     if (t < 60) return pick([b[0], b[1], b[1]]);
     return pick(b);
   }
 
   spawnEnemy(key, ox, oy) {
+    // Content comes from the editor, so fall back safely if a reference is missing
+    if (!ENEMIES[key]) key = Object.keys(ENEMIES).find(k => !ENEMIES[k].boss) || Object.keys(ENEMIES)[0];
     const def = ENEMIES[key];
     const p = this.player;
     if (ox === undefined) { const a = rand(0, TAU); ox = Math.cos(a) * SPAWN_DIST; oy = Math.sin(a) * SPAWN_DIST; }

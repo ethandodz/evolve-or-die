@@ -116,7 +116,8 @@ export class PixelEditor {
     this.previewDark = h('canvas', { style: 'background:#1a1410;border:2px solid var(--line);border-radius:6px;image-rendering:pixelated' });
     this.speed = this.speed || 4;
     const right = h('div', {},
-      h('h3', { style: 'margin-top:0' }, 'COLORS'),
+      o.requests ? this.requestBox() : null,
+      h('h3', { style: o.requests ? '' : 'margin-top:0' }, 'COLORS'),
       h('div', { class: 'note' }, 'Tap a color to draw with it. Change it with the picker below and every pixel of that color updates.'),
       this.paletteEl,
       h('div', { class: 'row' },
@@ -141,6 +142,22 @@ export class PixelEditor {
 
     this.container.append(header, h('div', { class: 'pixel' }, left, right));
     this.draw(); this.drawPalette(); this.drawFrames(); this.animate();
+  }
+
+  // Typed requests for Claude to redraw this sprite
+  requestBox() {
+    const r = this.opts.requests;
+    const input = h('textarea', { rows: 3, placeholder: 'Describe what you want changed, e.g. "give him a bone necklace and a red headband"', style: 'width:100%' });
+    const add = () => { const t = input.value.trim(); if (!t) return; r.add(t); this.mount(); };
+    return h('div', { class: 'request' },
+      h('h3', { style: 'margin-top:0' }, 'ASK CLAUDE TO CHANGE IT'),
+      h('div', { class: 'field' }, input),
+      h('div', { class: 'row', style: 'margin-top:6px' },
+        h('button', { class: 'btn small primary', onclick: add }, '+ Add request'),
+        h('span', { class: 'note' }, 'Then send Claude your export from the Requests tab.')),
+      r.list().length ? h('ul', { class: 'reqlist' }, r.list().map(q => h('li', {}, h('span', {}, q.text),
+        h('button', { class: 'btn small', title: 'Remove', onclick: () => { r.remove(q.id); this.mount(); } }, '✕')))) : null,
+    );
   }
 
   cur() { return this.frames[this.frame]; }

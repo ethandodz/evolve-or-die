@@ -2,13 +2,13 @@
 // balance and pixel art. Changes save on this device and the game picks them up.
 import '@fontsource/press-start-2p';
 import './editor.css';
-import { loadConfig, saveConfig, resetConfig, baseConfig, weaponStats } from '../content/config.js';
+import { loadConfig, saveConfig, resetConfig, baseConfig, weaponStats, takeUpdateNotice, getBackup } from '../content/config.js';
 import { BEHAVIORS, PASSIVE_EFFECTS, BOSS_ATTACKS, MUSIC, GROUNDS } from '../content/defaults.js';
 import { buildDefaultSprites, getSprite, spriteToCanvas, SPRITE_GROUPS, CHARS } from '../art.js';
 import { PixelEditor } from './pixel.js';
 
 let cfg = loadConfig();
-const state = { tab: 'characters', sel: {} };
+const state = { tab: 'characters', sel: {}, updated: takeUpdateNotice() };
 
 // ---------------------------------------------------------------------------
 // Tiny DOM helpers
@@ -135,8 +135,9 @@ function uniqueKey(name, taken) {
 // Layout
 const TABS = [
   ['characters', 'Characters'], ['enemies', 'Enemies'], ['weapons', 'Weapons'], ['passives', 'Passives'],
-  ['ages', 'Ages'], ['shop', 'Shop'], ['balance', 'Balance'], ['art', 'Pixel Art'],
+  ['ages', 'Ages'], ['shop', 'Shop'], ['balance', 'Balance'], ['art', 'Pixel Art'], ['requests', 'Requests'],
 ];
+const TAB_NAMES = Object.fromEntries(TABS);
 
 function render() {
   app.replaceChildren(
@@ -146,17 +147,22 @@ function render() {
       h('span', { class: 'spacer' }),
       h('button', { class: 'btn primary', onclick: () => window.open('./?test', '_blank') }, '▶ Play test (short ages)'),
       h('button', { class: 'btn', onclick: () => window.open('./', '_blank') }, '▶ Play'),
+      h('button', { class: 'btn', onclick: askClaude }, '💬 Ask Claude'),
       h('button', { class: 'btn', onclick: exportConfig }, 'Export'),
       h('button', { class: 'btn', onclick: importConfig }, 'Import'),
       h('button', { class: 'btn danger', onclick: resetAll }, 'Reset all'),
     ),
-    h('nav', { class: 'tabs' }, TABS.map(([k, label]) => h('button', { class: state.tab === k ? 'active' : '', onclick: () => { state.tab = k; render(); } }, label))),
+    h('nav', { class: 'tabs' }, TABS.map(([k, label]) => h('button', { class: state.tab === k ? 'active' : '', onclick: () => { state.tab = k; render(); } },
+      k === 'requests' && cfg.requests.length ? `${label} (${cfg.requests.length})` : label))),
+    state.updated ? h('div', { class: 'banner' }, '✨ Claude\'s latest changes are loaded.',
+      getBackup() ? h('button', { class: 'btn small', onclick: restoreBackup }, 'Go back to my previous version') : null,
+      h('button', { class: 'btn small', onclick: () => { state.updated = false; render(); } }, 'OK')) : '',
     h('div', { id: 'warnings' }),
     h('main', { id: 'main' }),
   );
   renderWarnings();
   const main = document.getElementById('main');
-  ({ characters: renderCharacters, enemies: renderEnemies, weapons: renderWeapons, passives: renderPassives, ages: renderAges, shop: renderShop, balance: renderBalance, art: renderArt })[state.tab](main);
+  ({ characters: renderCharacters, enemies: renderEnemies, weapons: renderWeapons, passives: renderPassives, ages: renderAges, shop: renderShop, balance: renderBalance, art: renderArt, requests: renderRequests })[state.tab](main);
 }
 
 function listPanel(items, selKey, onPick, actions) {
@@ -514,6 +520,11 @@ function renderArt(main) {
       if (!confirm('Go back to the original sprite?')) return;
       delete cfg.sprites[key]; changed(true);
     },
+    requests: {
+      list: () => cfg.requests.filter(r => r.target === `Sprite: ${key}`),
+      add: (text) => addRequest(`Sprite: ${key}`, text),
+      remove: removeRequest,
+    },
     onDelete: buildDefaultSprites()[key] ? null : () => { if (!confirm(`Delete sprite ${key}?`)) return; delete cfg.sprites[key]; state.sel.art = null; changed(true); },
   });
   ed.mount();
@@ -552,10 +563,77 @@ function renderWarnings() {
 }
 
 // ---------------------------------------------------------------------------
+// Requests for Claude: typed change requests that travel in the export file
+function addRequest(target, text) {
+  cfg.requests.push({ id: Date.now().toString(36) + Math.random().toString(36).slice(2, 6), target, text, at: new Date().toISOString().slice(0, 10) });
+  changed();
+}
+function removeRequest(id) {
+  cfg.requests = cfg.requests.filter(r => r.id !== id);
+  changed();
+}
+
+// What the person is looking at right now, as a request target
+function currentTarget() {
+  const key = state.sel[state.tab];
+  if (state.tab === 'art') return key ? `Sprite: ${key}` : 'Pixel Art';
+  if (state.tab === 'requests') return state.reqTarget || 'Whole game';
+  if (state.tab === 'balance' || !key) return TAB_NAMES[state.tab];
+  return `${TAB_NAMES[state.tab]}: ${key}`;
+}
+
+function askClaude() {
+  state.reqTarget = currentTarget();
+  state.tab = 'requests';
+  render();
+  document.getElementById('reqText')?.focus();
+}
+
+function renderRequests(main) {
+  const targets = ['Whole game', ...TABS.filter(([k]) => k !== 'requests').map(([, l]) => l),
+    ...cfg.characters.map(c => `Characters: ${c.key}`), ...Object.keys(cfg.enemies).map(k => `Enemies: ${k}`),
+    ...Object.keys(cfg.weapons).map(k => `Weapons: ${k}`), ...Object.keys(cfg.passives).map(k => `Passives: ${k}`),
+    ...Object.keys(allSprites()).map(k => `Sprite: ${k}`)];
+  const target = state.reqTarget || 'Whole game';
+  if (!targets.includes(target)) targets.unshift(target);
+  const pick = h('select', { onchange: (e) => { state.reqTarget = e.target.value; } }, targets.map(t => h('option', { value: t, selected: t === target }, t)));
+  const text = h('textarea', { id: 'reqText', rows: 4, placeholder: 'Describe the change, e.g. "Make the T-Rex green with a bone crown" or "Add a slingshot weapon that fires 3 stones"' });
+  const add = () => { const t = text.value.trim(); if (!t) return; addRequest(pick.value, t); state.reqTarget = pick.value; render(); };
+  const asText = () => cfg.requests.map((r, i) => `${i + 1}. [${r.target}] ${r.text}`).join('\n');
+  main.append(h('div', { class: 'form', style: 'grid-column: 1 / -1' },
+    h('h2', {}, 'Ask Claude'),
+    h('div', { class: 'sub' }, 'Type changes you want Claude to make: redraw a sprite, change how something works, add something new. ' +
+      'When you are ready, press Export and send the file to Claude in your project chat. Claude makes the changes and pushes an update, and the game loads it for everyone.'),
+    h('div', { class: 'grid', style: 'grid-template-columns: minmax(0, 260px) 1fr' },
+      field('What it is about', pick), field('What should change', text)),
+    h('div', { class: 'row', style: 'margin-top:10px' }, h('button', { class: 'btn primary', onclick: add }, '+ Add request')),
+    h('h3', {}, `YOUR REQUESTS (${cfg.requests.length})`),
+    cfg.requests.length
+      ? h('ul', { class: 'reqlist' }, cfg.requests.map(r => h('li', {},
+          h('div', {}, h('span', { class: 'target' }, r.target), r.text),
+          h('button', { class: 'btn small', title: 'Remove', onclick: () => { removeRequest(r.id); render(); } }, '✕'))))
+      : h('div', { class: 'note' }, 'No requests yet.'),
+    cfg.requests.length ? h('div', { class: 'row', style: 'margin-top:12px' },
+      h('button', { class: 'btn primary', onclick: exportConfig }, '⬇ Export to send to Claude'),
+      h('button', { class: 'btn', onclick: async (e) => {
+        try { await navigator.clipboard.writeText(asText()); e.target.textContent = 'Copied!'; } catch { prompt('Copy this:', asText()); }
+      } }, 'Copy as text')) : null,
+    h('p', { class: 'note' }, 'Requests that only need words (like "make wolves faster") can be copied as text and pasted in chat. ' +
+      'Send the export file when you also changed things in the editor, so Claude starts from your version.'),
+  ));
+}
+
+function restoreBackup() {
+  const b = getBackup(); if (!b) return;
+  if (!confirm('Go back to the version you had before Claude\'s update? Claude\'s new changes will be replaced on this device.')) return;
+  cfg = b; saveConfig(cfg); cfg = loadConfig(); state.updated = false; render();
+}
+
+// ---------------------------------------------------------------------------
 // Export / import / reset
 function exportConfig() {
   const blob = new Blob([JSON.stringify(cfg, null, 2)], { type: 'application/json' });
-  const a = h('a', { href: URL.createObjectURL(blob), download: 'evolve-or-die-config.json' });
+  const a = h('a', { href: URL.createObjectURL(blob), download: `evolve-or-die-config-${new Date().toISOString().slice(0, 10)}.json` });
   document.body.append(a); a.click(); a.remove();
 }
 function importConfig() {

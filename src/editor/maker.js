@@ -91,7 +91,7 @@ const OUTFITS = {
   knight: { name: 'Knight tabard', sleeves: 'long', legs: 'pants', colors: ['#2e5aa8', '#f2c440'] },
   tunic: { name: 'Hunter tunic', sleeves: 'short', legs: 'pants', colors: ['#5e8a3a', '#8a5a30'] },
 };
-const HAIRS = { spiky: 'Spiky', wild: 'Wild mane', short: 'Short', long: 'Long', mohawk: 'Mohawk', topknot: 'Topknot', bald: 'Bald' };
+const HAIRS = { spiky: 'Swept', wild: 'Wild mane', short: 'Short', long: 'Long', mohawk: 'Mohawk', topknot: 'Topknot', bald: 'Bald' };
 const EYES = { big: 'Big & bright', fierce: 'Fierce', calm: 'Calm', old: 'Old & wise' };
 const MOUTHS = { smile: 'Smile', grin: 'Grin', shout: 'Battle shout', frown: 'Serious' };
 const BEARDS = { none: 'None', stubble: 'Stubble', full: 'Full beard', long: 'Long beard' };
@@ -361,11 +361,51 @@ function drawHair(ctx, L) {
   }
   let p;
   if (h === 'spiky') {
-    p = paint(ctx, B([[HX - 70, HY + 22], [HX - 74, HY - 18], [HX - 100, HY - 36, 1], [HX - 68, HY - 50], [HX - 84, HY - 92, 1], [HX - 42, HY - 74], [HX - 38, HY - 122, 1], [HX - 6, HY - 82], [HX + 18, HY - 128, 1], [HX + 30, HY - 84], [HX + 72, HY - 114, 1], [HX + 60, HY - 70], [HX + 104, HY - 80, 1], [HX + 76, HY - 46], [HX + 100, HY - 28, 1], [HX + 70, HY - 12], [HX + 72, HY + 22], [HX + 60, HY - 6], [HX + 50, HY - 20, 1], [HX + 36, HY - 4], [HX + 20, HY - 28, 1], [HX + 4, HY - 6], [HX - 14, HY - 28, 1], [HX - 26, HY - 4], [HX - 44, HY - 24, 1], [HX - 58, HY]]), c);
-    strands(ctx, p, c, [HX - 60, HY - 10], [HX + 60, HY - 10], 8);
+    // swept locks: a cap, long locks flowing back over the crown, then bangs over the brow
+    const lock = (j) => paint(ctx, limb(j), c, { lw: 3 });
+    const vein = (j) => stroke(ctx, 'M' + j.slice(0, -1).map(([x, y]) => `${x} ${y}`).join(' L'), shade(c, -0.35), 2.2);
+    const back = [
+      [[HX + 20, HY - 48, 46], [HX - 30, HY - 76, 34], [HX - 84, HY - 70, 20], [HX - 116, HY - 40, 4]],
+      [[HX - 20, HY - 30, 40], [HX - 64, HY - 36, 28], [HX - 98, HY - 8, 14], [HX - 106, HY + 24, 3]],
+      [[HX + 44, HY - 64, 44], [HX + 10, HY - 104, 32], [HX - 44, HY - 116, 18], [HX - 92, HY - 100, 4]],
+      [[HX + 56, HY - 70, 34], [HX + 50, HY - 112, 22], [HX + 20, HY - 136, 4]],
+      [[HX + 62, HY - 44, 30], [HX + 90, HY - 62, 18], [HX + 108, HY - 84, 3]],
+    ];
+    back.forEach(lock);
+    p = paint(ctx, B([[HX - 74, HY - 16], [HX - 76, HY - 50], [HX - 42, HY - 84], [HX + 10, HY - 92], [HX + 58, HY - 76], [HX + 76, HY - 46], [HX + 74, HY - 16], [HX, HY - 42]]), c);
+    back.forEach(vein);
+    const bangs = [
+      [[HX - 46, HY - 52, 36], [HX - 62, HY - 18, 24], [HX - 70, HY + 28, 3]],
+      [[HX + 58, HY - 50, 32], [HX + 68, HY - 16, 22], [HX + 60, HY + 26, 3]],
+      [[HX - 8, HY - 62, 40], [HX - 18, HY - 30, 26], [HX - 42, HY - 2, 3]],
+      [[HX + 30, HY - 60, 38], [HX + 30, HY - 30, 24], [HX + 12, HY + 2, 3]],
+    ];
+    bangs.forEach(lock); bangs.forEach(vein);
+    ctx.globalAlpha = 0.45; stroke(ctx, `M${HX - 52} ${HY - 60} Q${HX - 4} ${HY - 92} ${HX + 46} ${HY - 66}`, shade(c, 0.6), 7); ctx.globalAlpha = 1;
   } else if (h === 'wild') {
-    p = paint(ctx, B([[HX - 66, HY + 50], [HX - 96, HY + 30, 1], [HX - 80, HY - 6], [HX - 108, HY - 30, 1], [HX - 76, HY - 54], [HX - 92, HY - 96, 1], [HX - 44, HY - 82], [HX - 30, HY - 120, 1], [HX, HY - 88], [HX + 30, HY - 120, 1], [HX + 44, HY - 82], [HX + 92, HY - 96, 1], [HX + 76, HY - 54], [HX + 108, HY - 30, 1], [HX + 80, HY - 6], [HX + 96, HY + 30, 1], [HX + 66, HY + 50], [HX + 62, HY - 10], [HX + 40, HY - 20, 1], [HX + 20, HY - 6], [HX, HY - 26, 1], [HX - 20, HY - 6], [HX - 40, HY - 22, 1], [HX - 62, HY - 10]]), c);
-    strands(ctx, p, c, [HX - 70, HY], [HX + 70, HY], 9);
+    // shaggy mane: heavy locks tumbling down both sides, messy bangs on top
+    const lock = (j) => paint(ctx, limb(j), c, { lw: 3 });
+    const vein = (j) => stroke(ctx, 'M' + j.slice(0, -1).map(([x, y]) => `${x} ${y}`).join(' L'), shade(c, -0.35), 2.2);
+    const back = [
+      [[HX - 50, HY - 60, 50], [HX - 92, HY - 30, 40], [HX - 104, HY + 20, 26], [HX - 88, HY + 62, 4]],
+      [[HX + 50, HY - 60, 50], [HX + 92, HY - 30, 40], [HX + 104, HY + 20, 26], [HX + 92, HY + 60, 4]],
+      [[HX - 30, HY - 70, 46], [HX - 70, HY - 96, 30], [HX - 110, HY - 80, 4]],
+      [[HX + 30, HY - 70, 46], [HX + 66, HY - 104, 30], [HX + 108, HY - 92, 4]],
+      [[HX, HY - 70, 50], [HX - 10, HY - 112, 30], [HX - 40, HY - 130, 4]],
+      [[HX + 20, HY - 70, 40], [HX + 36, HY - 116, 24], [HX + 22, HY - 140, 3]],
+    ];
+    back.forEach(lock);
+    p = paint(ctx, B([[HX - 76, HY - 10], [HX - 78, HY - 52], [HX - 42, HY - 88], [HX, HY - 94], [HX + 44, HY - 88], [HX + 78, HY - 52], [HX + 76, HY - 10], [HX, HY - 40]]), c);
+    back.forEach(vein);
+    const bangs = [
+      [[HX - 56, HY - 50, 34], [HX - 72, HY - 6, 26], [HX - 64, HY + 40, 4]],
+      [[HX + 56, HY - 50, 34], [HX + 72, HY - 6, 26], [HX + 66, HY + 40, 4]],
+      [[HX - 24, HY - 64, 36], [HX - 30, HY - 30, 24], [HX - 46, HY - 6, 3]],
+      [[HX + 14, HY - 66, 36], [HX + 6, HY - 32, 24], [HX - 6, HY - 6, 3]],
+      [[HX + 44, HY - 60, 32], [HX + 44, HY - 30, 20], [HX + 30, HY - 8, 3]],
+    ];
+    bangs.forEach(lock); bangs.forEach(vein);
+    ctx.globalAlpha = 0.4; stroke(ctx, `M${HX - 56} ${HY - 62} Q${HX} ${HY - 96} ${HX + 54} ${HY - 64}`, shade(c, 0.6), 7); ctx.globalAlpha = 1;
   } else if (h === 'short' || h === 'long' || h === 'topknot') {
     if (h === 'topknot') { paint(ctx, E(HX - 6, HY - 78, 24, 20), c); paint(ctx, B([[HX - 22, HY - 62], [HX + 12, HY - 62], [HX + 12, HY - 54], [HX - 22, HY - 54]]), '#c0402c'); }
     p = paint(ctx, B([[HX - 68, HY + (h === 'long' ? 40 : 6)], [HX - 72, HY - 34], [HX - 40, HY - 68], [HX, HY - 76], [HX + 40, HY - 68], [HX + 72, HY - 34], [HX + 68, HY + (h === 'long' ? 40 : 6)], [HX + 58, HY - 14], [HX + 30, HY - 26, 1], [HX + 10, HY - 12], [HX - 10, HY - 30, 1], [HX - 30, HY - 14], [HX - 58, HY - 16]]), c);

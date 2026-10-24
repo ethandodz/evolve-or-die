@@ -4,9 +4,9 @@
 // pixel art with the Image → Sprite converter and saved as a game character.
 import { convert } from './convert.js';
 
-const W = 360, H = 456;
+const W = 360, H = 440;
 const TOP = 64, HEAD = 1.2;                      // room above for hair and hats; chibi head scale
-const HIP = 270, LEG = 0.72;                     // legs are squashed up toward the hips
+const HIP = 270, LEG = 0.6, BOOTW = 1.18;                     // legs are squashed up toward the hips
 
 // --- shape helpers ------------------------------------------------------------------
 // Smooth closed path through points; [x, y, 1] marks a sharp corner
@@ -69,8 +69,8 @@ const FIST = [52, 252];                         // back fist, grips the weapon
 const BODY = {
   torso: B([[112, 196], [150, 186], [210, 186], [250, 196], [262, 232], [252, 262], [200, 274], [140, 272], [110, 258], [100, 226]]),
   belt: B([[110, 248], [180, 254], [252, 246], [256, 268, 1], [180, 278], [106, 272, 1]]),
-  thighL: limb([[150, 272, 60], [112, 300, 52], [92, 318, 46]]),
-  thighR: limb([[212, 272, 60], [250, 290, 52], [266, 302, 46]]),
+  thighL: limb([[150, 272, 74], [112, 300, 68], [92, 318, 62]]),
+  thighR: limb([[212, 272, 74], [250, 290, 68], [266, 302, 62]]),
   hips: B([[110, 266], [180, 272], [252, 264], [262, 292], [214, 300], [180, 290], [146, 302], [104, 296]]),
   armL: limb([[124, 204, 48], [86, 234, 42], [68, 248, 38]]),
   upperL: limb([[124, 204, 48], [98, 226, 44]]),
@@ -78,8 +78,8 @@ const BODY = {
   upperR: limb([[240, 204, 48], [268, 214, 44]]),
   bootL: B([[64, 310], [120, 310], [116, 352], [112, 390], [120, 410], [112, 428], [38, 430], [26, 414], [44, 398], [66, 388], [62, 350]]),
   bootR: B([[236, 296], [294, 296], [292, 340], [290, 378], [322, 394], [340, 412], [332, 430], [230, 430], [224, 410], [238, 382], [240, 340]]),
-  shinL: limb([[92, 318, 44], [86, 360, 38], [80, 392, 36]]),
-  shinR: limb([[264, 304, 44], [264, 350, 38], [262, 388, 36]]),
+  shinL: limb([[92, 318, 60], [86, 360, 56], [80, 392, 54]]),
+  shinR: limb([[264, 304, 60], [264, 350, 56], [262, 388, 54]]),
 };
 
 // --- parts ----------------------------------------------------------------------------
@@ -235,6 +235,16 @@ function outfitDetails(ctx, L, torso) {
 function drawBoots(ctx, L) {
   const c = L.bootColor, skin = L.skin;
   for (const side of ['L', 'R']) {
+    // boots are drawn a little wider than their outlines so the legs read chunky
+    const cx = side === 'L' ? 80 : 270;
+    ctx.save(); ctx.translate(cx, 0); ctx.scale(BOOTW, 1); ctx.translate(-cx, 0);
+    drawBoot(ctx, L, side, c, skin);
+    ctx.restore();
+  }
+}
+
+function drawBoot(ctx, L, side, c, skin) {
+  {
     const s = BODY['boot' + side];
     if (L.boots === 'sandals') {
       paint(ctx, BODY['shin' + side], skin);
@@ -244,7 +254,7 @@ function drawBoots(ctx, L) {
       paint(ctx, sole, c);
       const x0 = side === 'L' ? 70 : 240;
       for (let i = 0; i < 4; i++) stroke(ctx, `M${x0} ${330 + i * 22} l${side === 'L' ? 44 : 50} 8`, c, 5);
-      continue;
+      return;
     }
     const boot = paint(ctx, s, L.boots === 'greaves' ? '#b8bcc8' : c);
     within(ctx, boot, () => {

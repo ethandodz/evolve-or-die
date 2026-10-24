@@ -96,10 +96,10 @@ function canvas(w, h) {
       const r = p.ramp;
       // Selective outline: edge of this part where it sits on top of something drawn earlier
       const nb = [[1, 0], [-1, 0], [0, 1], [0, -1]].map(([dx, dy]) => (inside(x + dx, y + dy) ? part[y + dy][x + dx] : -1));
-      if (!p.opts.noLine && nb.some(n => n >= 0 && n < id && parts[n].ramp)) { out[y][x] = r[3]; continue; }
+      if (!p.opts.noLine && nb.some(n => n >= 0 && n < id && parts[n].ramp && (parts[n].ramp !== r || p.opts.line))) { out[y][x] = r[3]; continue; }
       // Cel shading: lit from the top left
-      const same = (dx, dy) => api.has(id, x + dx, y + dy);
-      const depth = p.opts.shade ?? 2;
+      const same = (dx, dy) => { const q = inside(x + dx, y + dy) ? part[y + dy][x + dx] : -1; return q === id || (q >= 0 && !p.opts.line && parts[q].ramp === r && !parts[q].opts.line); };
+      const depth = p.opts.shade ?? 3;
       let c = r[1];
       if (!same(depth, depth) || !same(depth + 1, 0) || !same(0, depth + 1)) c = r[2];
       else if (!same(-1, -1) || !same(-1, 0) || !same(0, -1)) c = r[0];
@@ -116,88 +116,134 @@ function canvas(w, h) {
   return api;
 }
 
-// Gaia-style eye: heavy lid line, big iris, dark pupil, sparkle, white either side
-function eye(s, x, y, iris, lid = 0) {
+// Draws on a canvas in "logical" units scaled by U, so the same layout gains pixels.
+// dot() paints a logical block; px() paints one real pixel for fine detail.
+function scaled(s, U) {
+  const k = (v) => v * U;
+  const n = Math.max(1, Math.round(U));
+  return {
+    U, w: s.w, h: s.h, pattern: s.pattern, has: s.has, finish: s.finish, px: s.dot,
+    ell: (cx, cy, rx, ry, r, o) => s.ell(k(cx), k(cy), k(rx), k(ry), r, o),
+    rect: (x, y, w, h, r, o) => s.rect(k(x), k(y), k(w), k(h), r, o),
+    poly: (pts, r, o) => s.poly(pts.map(([x, y]) => [k(x), k(y)]), r, o),
+    bar: (x0, y0, x1, y1, t, r, o) => s.bar(k(x0), k(y0), k(x1), k(y1), k(t), r, o),
+    spikes: (cx, cy, r, tips, ramp, o) => s.spikes(k(cx), k(cy), k(r), tips.map(([a, l, w]) => [a, k(l), w]), ramp, o),
+    dot: (x, y, c) => { for (let dy = 0; dy < n; dy++) for (let dx = 0; dx < n; dx++) s.dot(Math.round(k(x)) + dx, Math.round(k(y)) + dy, c); },
+  };
+}
+
+// Gaia-style eye in real pixels (7x6): heavy lid, big iris, pupil, sparkle, lash flick
+function eye(s, x, y, iris, lid, side) {
   const P = '#140a10', W = '#ffffff';
   const rows = [
-    'PPPPP',
-    lid ? 'PiiiW' : 'WiiiW',
-    'WsDDW',
-    'WiDDW',
-    '.lll.',
+    '.PPPPPP',
+    lid ? 'PPiiiPP' : 'PWiiiiW',
+    'PWisDDW',
+    'PWiDDiW',
+    '.WiiiiW',
+    '..lll..',
   ];
   rows.forEach((row, dy) => [...row].forEach((ch, dx) => {
     const c = { P, W, s: W, i: iris[1], D: iris[3], l: iris[0] }[ch];
-    if (c) s.dot(x + dx, y - 1 + dy, c);
+    const xx = side > 0 ? x + 6 - dx : x + dx;                 // mirror for the right eye
+    if (c) s.px(xx, y + dy, c);
   }));
+  s.px(side > 0 ? x + 7 : x - 1, y, P);                        // outer lash
 }
 
 const BROWN_EYE = ['#d09a5a', '#8a5428', '#4a2410', '#24100a'];
 const GREEN_EYE = ['#b0d070', '#7a9a3a', '#3e5a1a', '#22300e'];
 
 // One body for every caveman look. o = options, f = walk frame (0/1).
-// 48x58 canvas; head is ~45% of the height, arms and legs are short and chunky.
+// Logical layout is 60x60, drawn at U=1.6 (96x96 real pixels). Action stance:
+// legs spread, both arms out to the sides, club raised in the right hand.
+export const U = 1.6;
 export function chibi(o, f = 0) {
-  const s = canvas(48, 58);
-  const b = f ? 1 : 0;              // body bob
-  const cx = 22, hy = 18 + b;       // head centre
+  const s = scaled(canvas(Math.round(60 * U), Math.round(60 * U)), U);
+  const b = f ? 0.6 : 0;            // body bob
+  const cx = 28, hy = 18 + b;       // head centre
   const skin = o.skin, hair = o.hair, out = o.outfit;
+  const ar = f ? 0.8 : 0;           // arm swing
 
   // --- back layers -----------------------------------------------------------
   if (o.backHair) o.backHair(s, cx, hy, hair);
   else s.spikes(cx, hy - 1, 11, [[-110, 7], [-80, 6], [100, 6], [125, 7]], hair);
 
-  // club behind the body (held in the right hand, raised over the shoulder)
-  const hx = 34, hy2 = 39 + b;      // right hand
-  if (o.club) o.club(s, hx, hy2);
+  // legs spread wide, one foot lifting on the step
+  const lift = f ? [-1.6, 0] : [0, -1.6];
+  const legs = o.legs || skin, feet = o.feet || R.furBrown;
+  s.bar(cx - 4, 41 + b, cx - 10, 50.5 + lift[0], 6.2, legs);
+  s.bar(cx + 4, 41 + b, cx + 10, 50.5 + lift[1], 6.2, legs);
+  [[-11.8, lift[0]], [11.8, lift[1]]].forEach(([dx, l]) => {
+    const id = s.ell(cx + dx, 52.6 + l, 5, 2.8, feet);
+    s.pattern(id, (x, y) => (x - y) % 4 === 0 && s.has(id, x, y - 1), feet[2]);   // wrap lacing
+  });
 
-  // legs (short), with a walking step
-  const lA = f ? -1 : 1, lB = -lA;
-  s.rect(15, 44 + b + Math.min(0, lA), 6, 8 - Math.abs(lA), o.legs || skin);
-  s.rect(24, 44 + b + Math.min(0, lB), 6, 8 - Math.abs(lB), o.legs || skin);
-  // feet / foot wraps
-  s.ell(17.5, 52.5 + Math.min(0, lA), 4.5, 2.6, o.feet || R.furBrown);
-  s.ell(27, 52.5 + Math.min(0, lB), 4.5, 2.6, o.feet || R.furBrown);
-
-  // back arm (viewer's left)
-  s.ell(11.5, 36 + b, 3.4, 5.5, skin);
-  s.ell(11.5, 41 + b, 3, 2.6, skin);
-
-  // torso: skin first, then the outfit over it
-  s.ell(cx, 37 + b, 9.5, 8.5, skin);
+  // torso: skin, then the outfit over it
+  s.ell(cx, 36 + b, 10.2, 8.6, skin);
   if (out) out(s, cx, b);
 
-  // front arm holding the club
-  s.ell(32, 35 + b, 3.4, 5, skin);
-  s.ell(hx, hy2, 3.2, 3, skin);
+  // back arm out to the left with a fist
+  s.ell(cx - 9.5, 32 + b, 4.4, 4, skin);
+  s.bar(cx - 10.5, 32.5 + b, cx - 16.5, 36 + b + ar, 6.2, skin);
+  s.ell(cx - 18.4, 37.6 + b + ar, 4, 3.7, skin);
+  if (o.wrist) s.bar(cx - 15.6, 34.3 + b + ar, cx - 14.4, 37.6 + b + ar, 1.4, o.wrist, { noLine: true });
+
+  // club, then the right arm reaching out to grip it
+  const hx = cx + 18, hy2 = 35.5 + b - ar;
+  if (o.club) o.club(s, hx, hy2);
+  s.ell(cx + 9.5, 32 + b, 4.4, 4, skin);
+  s.bar(cx + 10.5, 32.5 + b, hx - 1.5, hy2, 6.2, skin);
+  s.ell(hx, hy2, 4, 3.7, skin);
   if (o.clubFront) o.clubFront(s, hx, hy2);
-  if (o.wrist) s.rect(30, 37 + b, 5, 1.6, o.wrist);
+  if (o.wrist) s.bar(hx - 4.4, hy2 - 2, hx - 3.6, hy2 + 1.8, 1.4, o.wrist, { noLine: true });
+  // knuckles
+  const P = (x, y, c) => s.px(Math.round(x * U), Math.round(y * U), c);
+  for (let i = 0; i < 3; i++) { P(cx - 19.8, 36.4 + b + ar + i * 1, skin[3]); P(hx + 1.6, hy2 - 1 + i, skin[3]); }
 
   // --- head -------------------------------------------------------------------
-  s.ell(cx - 10, hy + 2, 2.2, 3, skin);            // ear
-  s.ell(cx, hy + 1, 11, 10.5, skin);               // face
-  s.ell(cx + 1, hy + 9, 6, 2.5, skin, { noLine: true }); // softer chin
+  s.ell(cx - 10.4, hy + 2, 2.4, 3.2, skin);          // ear
+  s.ell(cx, hy + 1, 11, 10.5, skin, { line: true });  // face (keeps its jaw line)
+  s.ell(cx + 1, hy + 9, 6, 2.5, skin, { noLine: true });
   if (o.beard) o.beard(s, cx, hy);
-  // front hair (spiky Gaia fringe)
   if (o.frontHair) o.frontHair(s, cx, hy, hair);
   if (o.headband) o.headband(s, cx, hy);
 
-  // face details
-  const ey = hy + 2;
+  // face details in real pixels
+  const X = (v) => Math.round(v * U);
+  const ey = X(hy + 1.6);
+  const iris = o.eyes || BROWN_EYE;
+  eye(s, X(cx - 9), ey, iris, o.lid, -1);
+  eye(s, X(cx + 2), ey, iris, o.lid, 1);
   if (!o.noBrows) {
-    const brow = hair[3];
-    const angry = o.brow === 'angry';
-    for (let i = 0; i < 5; i++) { s.dot(cx - 8 + i, ey - 4 + (angry ? (i >> 1) : 0), brow); s.dot(cx + 2 + i, ey - 4 + (angry ? 2 - ((i + 1) >> 1) : 0), brow); }
+    const brow = hair[3], angry = o.brow === 'angry';
+    for (let i = 0; i < 8; i++) {
+      const tilt = angry ? Math.floor(i / 3) : (i === 0 || i === 7 ? 1 : 0);
+      s.px(X(cx - 9.5) + i, ey - 4 + tilt, brow); s.px(X(cx - 9.5) + i, ey - 3 + tilt, brow);
+      s.px(X(cx + 7.5) - i, ey - 4 + tilt, brow); s.px(X(cx + 7.5) - i, ey - 3 + tilt, brow);
+    }
   }
-  eye(s, cx - 8, ey, o.eyes || BROWN_EYE, o.lid);
-  eye(s, cx + 2, ey, o.eyes || BROWN_EYE, o.lid);
-  // nose + mouth
-  s.dot(cx, ey + 4, skin[2]);
-  if (o.mouth === 'grin') { for (let i = -2; i <= 2; i++) s.dot(cx + i, ey + 7, '#5a2018'); s.dot(cx - 1, ey + 7, '#ffffff'); s.dot(cx + 1, ey + 7, '#ffffff'); }
-  else if (o.mouth === 'open') { s.dot(cx, ey + 7, '#5a2018'); s.dot(cx + 1, ey + 7, '#5a2018'); s.dot(cx, ey + 8, '#a03c30'); s.dot(cx + 1, ey + 8, '#5a2018'); }
-  else { s.dot(cx - 1, ey + 7, skin[3]); s.dot(cx, ey + 7, skin[3]); s.dot(cx + 1, ey + 6, skin[3]); }
-  if (o.blush) { s.dot(cx - 7, ey + 5, '#f08a7a'); s.dot(cx - 6, ey + 5, '#f08a7a'); s.dot(cx + 5, ey + 5, '#f08a7a'); s.dot(cx + 6, ey + 5, '#f08a7a'); }
-  if (o.paint) o.paint(s, cx, ey);
+  // nose
+  const nx = X(cx + 0.4), ny = ey + 8;
+  s.px(nx, ny, skin[2]); s.px(nx + 1, ny, skin[2]); s.px(nx + 1, ny - 1, skin[2]);
+  // mouth
+  const mx = X(cx), my = ey + 12;
+  const D = '#4a1810', T = '#ffffff', L = '#b84a3a';
+  if (o.mouth === 'grin') {
+    for (let i = -4; i <= 4; i++) s.px(mx + i, my, D);
+    for (let i = -3; i <= 3; i++) s.px(mx + i, my + 1, i % 3 === 0 ? D : T);
+    for (let i = -2; i <= 2; i++) s.px(mx + i, my + 2, D);
+    s.px(mx - 5, my - 1, D); s.px(mx + 5, my - 1, D);
+  } else if (o.mouth === 'open') {
+    for (let i = -2; i <= 2; i++) { s.px(mx + i, my, D); s.px(mx + i, my + 2, D); }
+    for (let i = -2; i <= 2; i++) s.px(mx + i, my + 1, i ? L : D);
+    s.px(mx - 1, my, T); s.px(mx + 1, my, T);
+  } else {
+    for (let i = -3; i <= 2; i++) s.px(mx + i, my, skin[3]);
+    s.px(mx + 3, my - 1, skin[3]);
+  }
+  if (o.blush) for (const bx of [X(cx - 8.5), X(cx + 4.5)]) for (let i = 0; i < 4; i++) { s.px(bx + i, ey + 8, '#f08a7a'); if (i % 2) s.px(bx + i, ey + 9, '#e87868'); }
+  if (o.paint) o.paint(s, cx, hy + 1.6);
   if (o.extra) o.extra(s, cx, hy, b);
   return s.finish();
 }
@@ -254,7 +300,12 @@ function stoneClub() {
 }
 
 // hair strands: thin darker lines that follow the spikes
-const strands = (id, s, hair) => s.pattern(id, (x, y) => (x * 2 + y) % 7 === 0 && s.has(id, x, y + 2) && s.has(id, x + 2, y), hair[2]);
+const HEADX = 28 * 1.6;
+const strands = (id, s, hair) => {
+  // strand lines fan out from the middle of the head; shine near the tops
+  s.pattern(id, (x, y) => { const t = x < HEADX ? x + Math.floor(y / 2) : x - Math.floor(y / 2); return ((t % 7) + 7) % 7 === 0 && s.has(id, x, y + 2) && s.has(id, x, y - 1); }, hair[2]);
+  s.pattern(id, (x, y) => { const t = x < HEADX ? x + Math.floor(y / 2) : x - Math.floor(y / 2); return ((t % 7) + 7) % 7 === 3 && !s.has(id, x, y - 3) && s.has(id, x, y + 2); }, hair[0]);
+};
 
 // fringe: downward spikes across the forehead
 const fringe = (tips) => (s, cx, hy, hair) => {

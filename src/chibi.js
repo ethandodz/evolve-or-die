@@ -18,6 +18,10 @@ export const R = {
   leather: ['#a87a54', '#86593a', '#643e26', '#341e10'],
   wood: ['#b08050', '#8a5e36', '#664224', '#331e0e'],
   woodDark: ['#8a6444', '#6a4a30', '#4c3220', '#24160c'],
+  robe: ['#9a72d0', '#7450aa', '#523482', '#24123e'],
+  hairWhite: ['#ffffff', '#e6e4ec', '#bcb8c8', '#6e6a7c'],
+  gold: ['#fff0a0', '#f0c840', '#c08a20', '#5e400c'],
+  crystal: ['#e8fcff', '#7ae0ff', '#3aa0e0', '#163e7a'],
   bone: ['#fffaea', '#ece0c2', '#c8b894', '#6e604a'],
   stone: ['#c8c4bc', '#a29e96', '#7a766e', '#3a3832'],
   red: ['#f07058', '#d04434', '#a02c22', '#4e1410'],
@@ -181,7 +185,7 @@ export function chibi(o, f = 0) {
   const b = f ? 0.7 : 0;            // bob
   const cx = 29;                    // body centre
   const hx = cx + 1.5, hy = 16 + b; // head centre (turned toward the right)
-  const skin = o.skin, hair = o.hair, out = o.outfit;
+  const skin = o.skin, hair = o.hair, out = o.outfit, arm = o.sleeve || skin;
   const legs = o.legs || skin, feet = o.feet || R.furBrown;
   const X = (v) => Math.round(v * U);
 
@@ -205,8 +209,8 @@ export function chibi(o, f = 0) {
 
   // front arm reaching out to the right with an open palm
   const px = cx + 20, py = 32 + b + (f ? -0.6 : 0);
-  s.ell(cx + 8, 31.4 + b, 4.2, 3.9, skin);
-  s.bar(cx + 9, 32 + b, px - 3, py + 0.8, 5.6, skin);
+  s.ell(cx + 8, 31.4 + b, 4.2, 3.9, arm);
+  s.bar(cx + 9, 32 + b, px - 3, py + 0.8, 5.6, arm);
   s.ell(px - 0.6, py, 3.2, 4, skin);                                   // palm
   [[-1.4, -7.6], [0.6, -8], [2.4, -7.2], [3.8, -5.4]].forEach(([dx, dy]) => s.bar(px + dx * 0.55, py - 2.5, px + dx, py + dy, 1.7, skin, { noLine: true }));
   s.bar(px - 2.4, py + 0.8, px - 5, py - 3.2, 1.8, skin, { noLine: true }); // thumb
@@ -216,9 +220,9 @@ export function chibi(o, f = 0) {
   // back arm: elbow down and out to the left, fist at chest height, club raised up and back
   const fx = cx - 17, fy = 32.6 + b - (f ? 0.6 : 0);
   if (o.club) o.club(mirror(s, fx), fx, fy);
-  s.ell(cx - 8, 31.6 + b, 4.2, 3.9, skin);
-  s.bar(cx - 9, 32.4 + b, cx - 13, 36.4 + b, 5.6, skin);               // upper arm
-  s.bar(cx - 13, 36.4 + b, fx, fy + 1, 5.2, skin);                     // forearm
+  s.ell(cx - 8, 31.6 + b, 4.2, 3.9, arm);
+  s.bar(cx - 9, 32.4 + b, cx - 13, 36.4 + b, 5.6, arm);                // upper arm
+  s.bar(cx - 13, 36.4 + b, fx, fy + 1, 5.2, arm);                      // forearm
   s.ell(fx, fy, 3.8, 3.6, skin);                                       // fist
   if (o.clubFront) o.clubFront(mirror(s, fx), fx, fy);
   if (o.wrist) s.bar(fx + 1.4, fy + 2.4, fx + 3.6, fy + 4.2, 1.4, o.wrist, { noLine: true });
@@ -446,6 +450,54 @@ export const LOOKS = {
     clubFront: (s, hx, hy) => { s.rect(hx + 1, hy - 7, 4, 1.4, R.teal, { noLine: true }); },
     wrist: R.teal,
     feet: R.leather,
+  },
+};
+
+// Shopkeeper wizard in the same lunge pose: starry purple robe, bent pointed hat,
+// long white beard, crystal staff raised back and a spell sparkling in the open hand.
+const robeStars = (id, s) => s.pattern(id, (x, y) => (x * 5 + y * 11) % 37 === 0 && s.has(id, x, y - 1) && s.has(id, x, y + 1), R.gold[0]);
+LOOKS.wizard = {
+  name: 'Wizard',
+  skin: R.skinLight, hair: R.hairWhite, eyes: ['#a8e8ff', '#3a9ad8', '#1a5a9a', '#0c2a4a'], lid: 1,
+  sleeve: R.robe, legs: R.robe, feet: R.leather, wrist: R.gold,
+  backHair: (s, cx, hy, hair) => {
+    s.ell(cx - 7, hy + 4, 6, 7, hair);                                         // white hair at the sides
+    s.ell(cx + 8, hy + 3, 4, 6, hair);
+  },
+  beard: (s, cx, hy) => {
+    const id = s.poly([[cx - 11, hy + 1], [cx - 9, hy + 12], [cx - 5, hy + 19], [cx - 1, hy + 24], [cx + 2, hy + 19], [cx + 6, hy + 21], [cx + 8, hy + 12], [cx + 10, hy + 1], [cx + 6, hy + 8], [cx - 6, hy + 8]], R.hairWhite);
+    s.pattern(id, (x, y) => (x + Math.floor(y / 4)) % 5 === 0 && s.has(id, x, y - 2) && s.has(id, x, y + 2), R.hairWhite[2]);
+    s.poly([[cx - 6, hy + 7.4], [cx + 6, hy + 7.4], [cx + 7, hy + 9.6], [cx + 2, hy + 8.6], [cx - 3, hy + 8.6], [cx - 8, hy + 10]], R.hairWhite); // moustache
+  },
+  frontHair: (s, cx, hy) => {
+    // tall hat with a crooked tip bending back, wide brim, gold band and stars
+    const cone = s.poly([[cx - 9, hy - 5], [cx - 5, hy - 11], [cx - 4.5, hy - 13.5], [cx - 9, hy - 15.6], [cx - 15, hy - 13.6], [cx - 9, hy - 12.4], [cx - 8, hy - 10], [cx - 1, hy - 12.6], [cx + 4, hy - 9.4], [cx + 9, hy - 5]], R.robe);
+    robeStars(cone, s);
+    s.ell(cx, hy - 4.5, 15, 3, R.robe);
+    s.rect(cx - 8.5, hy - 8.6, 17, 2.2, R.gold, { noLine: true });
+    s.dot(cx - 3, hy - 11, R.gold[0]); s.dot(cx - 11, hy - 13.6, R.gold[0]);
+  },
+  outfit: (s, cx, b) => {
+    // robe flaring over the lunging legs, with a gold rope belt and trim
+    const id = s.poly([[cx - 10, 30 + b], [cx + 10, 30 + b], [cx + 15, 47 + b], [cx + 9, 49.5 + b], [cx + 3, 47.5 + b], [cx - 3, 49 + b], [cx - 9, 47.5 + b], [cx - 15, 49 + b]], R.robe);
+    robeStars(id, s);
+    s.rect(cx - 10, 40 + b, 20, 1.8, R.gold, { noLine: true });
+    s.bar(cx + 3, 41 + b, cx + 4.5, 46 + b, 1.4, R.gold, { noLine: true });
+    s.ell(cx + 4.6, 46.6 + b, 1.2, 1.2, R.gold);
+    s.poly([[cx - 4, 30 + b], [cx + 4, 30 + b], [cx, 34 + b]], R.robe);     // collar
+  },
+  club: (s, hx, hy) => {
+    // gnarled staff with a glowing crystal held in a forked top
+    s.bar(hx - 3, hy + 11, hx + 8, hy - 20, 2.8, R.wood);
+    s.bar(hx + 8, hy - 20, hx + 6, hy - 25, 1.6, R.wood);
+    s.bar(hx + 8, hy - 20, hx + 12, hy - 24, 1.6, R.wood);
+    s.ell(hx + 9, hy - 24.5, 2.8, 3.4, R.crystal);
+    s.dot(hx + 8, hy - 26, '#ffffff');
+  },
+  extra: (s, cx, hy, b) => {
+    // spell sparkles above the open palm
+    const px = 49 + 0, py = 22 + b;
+    [[0, 0, '#ffffff'], [-1, 0, R.crystal[1]], [1, 0, R.crystal[1]], [0, -1, R.crystal[1]], [0, 1, R.crystal[1]], [4, 3, R.gold[0]], [-4, 4, R.crystal[0]], [3, -4, R.crystal[0]]].forEach(([dx, dy, c]) => s.dot(px + dx, py + dy, c));
   },
 };
 

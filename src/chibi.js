@@ -30,7 +30,7 @@ export const R = {
   white: ['#ffffff', '#ffffff', '#d8dce8', '#6a6e80'],
 };
 
-function canvas(w, h) {
+export function canvas(w, h) {
   const part = Array.from({ length: h }, () => Array(w).fill(-1));
   const flat = Array.from({ length: h }, () => Array(w).fill(null));
   const parts = [];
@@ -138,7 +138,7 @@ function scaled(s, U) {
 
 // Gaia-style eye in real pixels (7x6): heavy lid, big iris, pupil, sparkle, lash flick.
 // The far eye in a 3/4 view is narrower (drops a white column).
-function eye(s, x, y, iris, lid, side, narrow = false) {
+export function eye(s, x, y, iris, lid, side, narrow = false) {
   const P = '#140a10', W = '#ffffff';
   let rows = [
     '.PPPPPP',

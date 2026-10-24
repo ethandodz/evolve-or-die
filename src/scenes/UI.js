@@ -72,13 +72,18 @@ export default class UI extends Phaser.Scene {
     });
     this.input.on('pointermove', (ptr) => {
       if (!this.joyActive || ptr.id !== this.joyId) return;
-      const dx = ptr.x - this.joyX, dy = ptr.y - this.joyY;
-      const d = Math.hypot(dx, dy);
+      let dx = ptr.x - this.joyX, dy = ptr.y - this.joyY;
+      let d = Math.hypot(dx, dy);
       const max = 50;
-      const k = d > max ? max / d : 1;
-      controls.x = (dx * k) / max; controls.y = (dy * k) / max;
-      if (d < 6) { controls.x = 0; controls.y = 0; }
-      this.drawJoy(this.joyX + dx * k, this.joyY + dy * k);
+      // The base follows the finger when it slides past the edge
+      if (d > max) {
+        this.joyX = ptr.x - (dx / d) * max; this.joyY = ptr.y - (dy / d) * max;
+        dx = ptr.x - this.joyX; dy = ptr.y - this.joyY; d = max;
+      }
+      // Small dead zone, then full speed after a short push
+      const power = d < 8 ? 0 : Math.min(1, (d - 8) / 14);
+      controls.x = d ? (dx / d) * power : 0; controls.y = d ? (dy / d) * power : 0;
+      this.drawJoy(this.joyX + dx, this.joyY + dy);
     });
     const release = (ptr) => {
       if (ptr.id !== this.joyId) return;

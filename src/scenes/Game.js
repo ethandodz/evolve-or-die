@@ -85,7 +85,7 @@ export default class Game extends Phaser.Scene {
     this.player.hearts = this.player.maxHearts;
     this.addWeapon('club');
 
-    this.cameras.main.startFollow(this.player.spr, true, 0.2, 0.2);
+    this.cameras.main.startFollow(this.player.spr, true, 0.45, 0.45);
 
     this.keys = this.input.keyboard.addKeys('W,A,S,D,UP,DOWN,LEFT,RIGHT');
     this.input.keyboard.on('keydown-ESC', () => this.ui && this.ui.togglePause());
@@ -945,7 +945,7 @@ export default class Game extends Phaser.Scene {
     this.stats.area = 1 + 0.1 * (p.tusk || 0);
     this.stats.count = p.totem || 0;
     this.stats.pickup = 80 * (1 + 0.35 * (p.magnet || 0));
-    this.stats.speed = 128 * (1 + 0.1 * (p.sandals || 0));
+    this.stats.speed = 140 * (1 + 0.1 * (p.sandals || 0));
     this.player.maxHearts = 5 + (p.heart || 0) + this.bonusHearts;
     this.player.hearts = Math.min(this.player.hearts, this.player.maxHearts);
   }

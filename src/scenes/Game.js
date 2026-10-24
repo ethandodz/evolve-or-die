@@ -74,7 +74,7 @@ export default class Game extends Phaser.Scene {
       x: 0, y: 0, r: 10, hearts: 5, maxHearts: 5, inv: 0, facing: 1, aim: 0, moving: false,
     };
     this.player.shadow = this.add.image(0, 0, 'shadow').setScale(1.6, 1.4).setDepth(-2e7);
-    this.player.spr = this.add.sprite(0, 0, this.charDef.sprite, 0).setScale(1.5).setOrigin(0.5, 0.85);
+    this.player.spr = this.add.sprite(0, 0, this.charDef.sprite, 0).setScale(this.charDef.scale || 1.5).setOrigin(0.5, 0.85);
     this.fx = this.add.container(0, 0).setDepth(1e7 + 1);
 
     this.stats = {};

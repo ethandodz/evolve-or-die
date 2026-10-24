@@ -12,7 +12,7 @@ const SIZES = [['Item', 14], ['Small', 24], ['Character', 34], ['Big beast', 46]
 const S = {
   img: null, name: 'my_sprite',
   size: 34, method: 'smooth', bg: 'auto', tol: 28, colors: 12, palette: 'own',
-  bright: 0, contrast: 0, sat: 0, warm: 0, clean: true, outline: true, flip: false, frames: 'bob',
+  bright: 0, contrast: 0, sat: 0, warm: 0, clean: true, main: true, outline: true, flip: false, frames: 'bob',
   replace: '', saved: null,
 };
 
@@ -78,7 +78,7 @@ export function renderConverter(main, { cfg, changed, h, allSprites, uniqueKey, 
       slider('sat', 'Color strength', -100, 100),
       slider('warm', 'Warm ochre tint', 0, 100),
     ),
-    h('div', { class: 'row' }, tick('outline', 'Dark outline'), tick('clean', 'Clean up stray pixels'), tick('flip', 'Face the other way')),
+    h('div', { class: 'row' }, tick('outline', 'Dark outline'), tick('clean', 'Clean up stray pixels'), tick('main', 'Only keep the main shape'), tick('flip', 'Face the other way')),
     choice('frames', 'Animation', [['bob', 'Walk bob (2 frames)'], ['still', 'Still']], 'Characters and enemies flip between 2 frames as they move.'),
   );
 
@@ -194,6 +194,8 @@ export function convert(img, o, gamePal = []) {
   for (let i = 3; i < px.length; i += 4) if (px[i] < 128) see++;
   if (o.bg === 'auto' && see < W * H * 0.02) removeBackground(px, W, H, o.tol);
 
+  if (o.main) keepBiggest(px, W, H);
+
   // 3. Trim to the picture
   let x0 = W, y0 = H, x1 = -1, y1 = -1;
   for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) if (px[(y * W + x) * 4 + 3] >= 128) {
@@ -260,6 +262,29 @@ function removeBackground(px, W, H, tol) {
     if (x > 0) stack.push(i - 1); if (x < W - 1) stack.push(i + 1);
     if (y > 0) stack.push(i - W); if (y < H - 1) stack.push(i + W);
   }
+}
+
+// Drop separate bits (a hand poking in at the edge, specks) and keep the biggest shape
+function keepBiggest(px, W, H) {
+  const label = new Int32Array(W * H).fill(-1);
+  let best = -1, bestN = 0, id = 0;
+  for (let s = 0; s < W * H; s++) {
+    if (label[s] >= 0 || px[s * 4 + 3] < 128) continue;
+    let n = 0; const stack = [s]; label[s] = id;
+    while (stack.length) {
+      const i = stack.pop(); n++;
+      const x = i % W, y = (i / W) | 0;
+      for (let dy = -1; dy <= 1; dy++) for (let dx = -1; dx <= 1; dx++) {
+        const nx = x + dx, ny = y + dy, j = ny * W + nx;
+        if (nx < 0 || ny < 0 || nx >= W || ny >= H || label[j] >= 0 || px[j * 4 + 3] < 128) continue;
+        label[j] = id; stack.push(j);
+      }
+    }
+    if (n > bestN) { bestN = n; best = id; }
+    id++;
+  }
+  if (id < 2) return;
+  for (let i = 0; i < W * H; i++) if (label[i] >= 0 && label[i] !== best) px[i * 4 + 3] = 0;
 }
 
 // Average each block; a pixel is solid if at least half the block is

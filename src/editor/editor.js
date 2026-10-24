@@ -7,6 +7,7 @@ import { BEHAVIORS, PASSIVE_EFFECTS, BOSS_ATTACKS, MUSIC, GROUNDS } from '../con
 import { buildDefaultSprites, getSprite, spriteToCanvas, SPRITE_GROUPS, CHARS } from '../art.js';
 import { PixelEditor } from './pixel.js';
 import { renderConverter } from './convert.js';
+import { renderMaker } from './maker.js';
 
 let cfg = loadConfig();
 const state = { tab: 'characters', sel: {}, updated: takeUpdateNotice() };
@@ -136,7 +137,7 @@ function uniqueKey(name, taken) {
 // Layout
 const TABS = [
   ['characters', 'Characters'], ['enemies', 'Enemies'], ['weapons', 'Weapons'], ['passives', 'Passives'],
-  ['ages', 'Ages'], ['shop', 'Shop'], ['balance', 'Balance'], ['art', 'Pixel Art'], ['convert', 'Image → Sprite'], ['requests', 'Requests'],
+  ['ages', 'Ages'], ['shop', 'Shop'], ['balance', 'Balance'], ['maker', 'Character Maker'], ['art', 'Pixel Art'], ['convert', 'Image → Sprite'], ['requests', 'Requests'],
 ];
 const TAB_NAMES = Object.fromEntries(TABS);
 
@@ -163,7 +164,7 @@ function render() {
   );
   renderWarnings();
   const main = document.getElementById('main');
-  ({ characters: renderCharacters, enemies: renderEnemies, weapons: renderWeapons, passives: renderPassives, ages: renderAges, shop: renderShop, balance: renderBalance, art: renderArt, convert: renderConvert, requests: renderRequests })[state.tab](main);
+  ({ characters: renderCharacters, enemies: renderEnemies, weapons: renderWeapons, passives: renderPassives, ages: renderAges, shop: renderShop, balance: renderBalance, maker: (m) => renderMaker(m, { cfg, changed, h, uniqueKey }), art: renderArt, convert: renderConvert, requests: renderRequests })[state.tab](main);
 }
 
 function listPanel(items, selKey, onPick, actions) {

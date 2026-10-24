@@ -103,7 +103,8 @@ export default class Title extends Phaser.Scene {
       c.add(g);
       cards.push({ ch, g, x, y });
       const open = isOpen(ch);
-      const spr = this.add.sprite(x, y - 18, this.textures.exists(ch.sprite) ? ch.sprite : 'caveman', 0).setScale(2.6);
+      const spr = this.add.sprite(x, y - 18, this.textures.exists(ch.sprite) ? ch.sprite : 'caveman', 0);
+      spr.setScale(Math.min(2.6, 92 / spr.height));       // big detailed sprites fit the card
       if (!open) spr.setTintFill(0x140a06);
       else this.tweens.add({ targets: spr, y: y - 23, yoyo: true, repeat: -1, duration: 500 + i * 40 });
       c.add(spr);

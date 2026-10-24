@@ -132,3 +132,15 @@ table.stats input { width: 100%; min-width: 50px; background: #140a05; border: 1
 .convert input[type=range] { width: 100%; }
 .convert .pv { image-rendering: pixelated; border: 2px solid var(--line); border-radius: 6px; max-width: 100%; }
 .convert select { background: #140a05; border: 2px solid var(--line); border-radius: 6px; padding: 6px 8px; max-width: 100%; }
+
+/* Character Maker */
+.makerGrid { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 18px; }
+@media (max-width: 900px) { .makerGrid { grid-template-columns: 1fr; } }
+.maker .controls { display: flex; flex-direction: column; gap: 10px; }
+.maker .controls h3 { margin: 10px 0 0; }
+.maker .pv { image-rendering: pixelated; border: 2px solid var(--line); border-radius: 6px; max-width: 100%; }
+.maker .pv.smooth { image-rendering: auto; width: 150px; background: #e8d2a8; }
+.maker select { background: #140a05; border: 2px solid var(--line); border-radius: 6px; padding: 6px 8px; max-width: 100%; }
+.swatchPick { display: inline-flex; align-items: center; gap: 6px; font-size: 13px; color: var(--muted); }
+.swatchPick input[type=color] { width: 40px; height: 30px; background: #140a05; border: 2px solid var(--line); border-radius: 6px; padding: 1px; }
+.maker .swatch { width: 26px; height: 26px; padding: 0; }

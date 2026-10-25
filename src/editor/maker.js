@@ -43,15 +43,47 @@ export function shade(hex, k) {
   return '#' + [f(n >> 16), f((n >> 8) & 255), f(n & 255)].map(v => v.toString(16).padStart(2, '0')).join('');
 }
 
+// How parts are finished: soft (toy gradient), flat (bold flat cartoon), cel (anime hard shadow), book (storybook wash)
+let RENDER = 'soft';
+export function setRender(r) { RENDER = r; }
 // Paints a part lit from the top left, with a darker edge line so parts read apart
 function paint(ctx, s, color, o = {}) {
   const p = new Path2D(s.d);
   const [x0, y0, x1, y1] = s.box, w = x1 - x0, h = y1 - y0, m = Math.max(w, h);
+  if (RENDER === 'flat') {
+    ctx.fillStyle = color; ctx.fill(p);
+    within(ctx, p, () => { ctx.fillStyle = shade(color, -0.18); ctx.fillRect(x0 + w * 0.62, y0, w, h * 2); });
+    if (o.line !== false) { ctx.lineWidth = 5.5; ctx.lineJoin = 'round'; ctx.strokeStyle = '#1a1014'; ctx.stroke(p); }
+    return p;
+  }
+  if (RENDER === 'cel') {
+    ctx.fillStyle = shade(color, -0.3); ctx.fill(p);
+    within(ctx, p, () => {
+      ctx.fillStyle = color; ctx.translate(-w * 0.1, -h * 0.1); ctx.fill(p);
+    });
+    within(ctx, p, () => { ctx.fillStyle = shade(color, 0.35); ctx.beginPath(); ctx.ellipse(x0 + w * 0.3, y0 + h * 0.2, w * 0.14, h * 0.07, -0.5, 0, Math.PI * 2); ctx.fill(); });
+    if (o.line !== false) { ctx.lineWidth = 2.6; ctx.lineJoin = 'round'; ctx.strokeStyle = shade(color, -0.75); ctx.stroke(p); }
+    return p;
+  }
+  if (RENDER === 'book') {
+    const g = ctx.createLinearGradient(x0, y0, x1, y1);
+    g.addColorStop(0, shade(mute(color), 0.25)); g.addColorStop(1, shade(mute(color), -0.2));
+    ctx.fillStyle = g; ctx.fill(p);
+    within(ctx, p, () => { ctx.globalAlpha = 0.12; ctx.strokeStyle = '#3a2410'; ctx.lineWidth = 1.4; for (let i = -h; i < w; i += 7) { ctx.beginPath(); ctx.moveTo(x0 + i, y1); ctx.lineTo(x0 + i + h, y0); ctx.stroke(); } ctx.globalAlpha = 1; });
+    if (o.line !== false) { ctx.lineWidth = 2.4; ctx.lineJoin = 'round'; ctx.strokeStyle = '#4a2c18'; ctx.stroke(p); }
+    return p;
+  }
   const g = ctx.createRadialGradient(x0 + w * 0.32, y0 + h * 0.25, m * 0.04, x0 + w * 0.45, y0 + h * 0.45, m * 0.78);
   g.addColorStop(0, shade(color, o.shine ?? 0.3)); g.addColorStop(0.45, color); g.addColorStop(1, shade(color, -0.42));
   ctx.fillStyle = g; ctx.fill(p);
   if (o.line !== false) { ctx.lineWidth = o.lw || 3.4; ctx.lineJoin = 'round'; ctx.strokeStyle = shade(color, -0.62); ctx.stroke(p); }
   return p;
+}
+// Pulls a color toward warm grey for the storybook look
+function mute(hex) {
+  const n = parseInt(hex.slice(1), 16), r = n >> 16, g = (n >> 8) & 255, b = n & 255, l = (r + g + b) / 3;
+  const f = (v, t) => Math.round(v * 0.72 + t * 0.28);
+  return '#' + [f(r, l + 14), f(g, l + 6), f(b, l - 10)].map(v => Math.max(0, Math.min(255, v)).toString(16).padStart(2, '0')).join('');
 }
 // Draws inside a part only (patterns, folds)
 function within(ctx, p, fn) { ctx.save(); ctx.clip(p); fn(); ctx.restore(); }

@@ -120,3 +120,27 @@ table.stats input { width: 100%; min-width: 50px; background: #140a05; border: 1
 .reqlist li { display: flex; gap: 8px; align-items: flex-start; justify-content: space-between; background: var(--panel2); border: 1px solid var(--line); border-radius: 6px; padding: 6px 8px; font-size: 14px; }
 .reqlist li .target { color: var(--ochre-hi); font-size: 12px; display: block; }
 .banner { margin: 10px 16px 0; padding: 10px 12px; border: 2px solid #7a9a3a; background: #26300f; border-radius: 6px; font-size: 14px; display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+
+/* Image to sprite */
+.convertGrid { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 16px; }
+@media (max-width: 900px) { .convertGrid { grid-template-columns: 1fr; } }
+.drop { border: 2px dashed var(--ochre); border-radius: 8px; padding: 16px; text-align: center; cursor: pointer; background: #24150b; color: var(--muted); margin-bottom: 12px; }
+.drop.over { background: #3a2410; border-color: var(--ochre-hi); }
+.drop img { max-width: 100%; max-height: 220px; display: block; margin: 0 auto 8px; image-rendering: auto; }
+.convert .controls { display: flex; flex-direction: column; gap: 14px; }
+.convert .val { color: var(--ochre-hi); }
+.convert input[type=range] { width: 100%; }
+.convert .pv { image-rendering: pixelated; border: 2px solid var(--line); border-radius: 6px; max-width: 100%; }
+.convert select { background: #140a05; border: 2px solid var(--line); border-radius: 6px; padding: 6px 8px; max-width: 100%; }
+
+/* Character Maker */
+.makerGrid { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 18px; }
+@media (max-width: 900px) { .makerGrid { grid-template-columns: 1fr; } }
+.maker .controls { display: flex; flex-direction: column; gap: 10px; }
+.maker .controls h3 { margin: 10px 0 0; }
+.maker .pv { image-rendering: pixelated; border: 2px solid var(--line); border-radius: 6px; max-width: 100%; }
+.maker .pv.smooth { image-rendering: auto; width: 150px; background: #e8d2a8; }
+.maker select { background: #140a05; border: 2px solid var(--line); border-radius: 6px; padding: 6px 8px; max-width: 100%; }
+.swatchPick { display: inline-flex; align-items: center; gap: 6px; font-size: 13px; color: var(--muted); }
+.swatchPick input[type=color] { width: 40px; height: 30px; background: #140a05; border: 2px solid var(--line); border-radius: 6px; padding: 1px; }
+.maker .swatch { width: 26px; height: 26px; padding: 0; }

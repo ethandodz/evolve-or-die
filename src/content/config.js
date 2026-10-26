@@ -21,10 +21,33 @@ export function baseConfig() {
 // missing sections are filled in from the defaults.
 function fillMissing(cfg) {
   const d = clone(DEFAULT_CONFIG);
+  const seen = cfg.contentVersion || 1;
   for (const k of Object.keys(d)) if (cfg[k] === undefined) cfg[k] = d[k];
   if (!Array.isArray(cfg.requests)) cfg.requests = [];
   cfg.balance = { ...d.balance, ...cfg.balance };
+  if (seen < d.contentVersion) addNewContent(cfg, d);
   return cfg;
+}
+
+// Saved edits are full snapshots, so built-in content added later (new enemies, ages,
+// characters, fields) is merged in once. Nothing the player changed is overwritten.
+function addNewContent(cfg, d) {
+  for (const k of ['enemies', 'weapons', 'passives']) {
+    for (const [key, val] of Object.entries(d[k])) {
+      if (!cfg[k][key]) cfg[k][key] = val;
+      else for (const [f, v] of Object.entries(val)) if (cfg[k][key][f] === undefined) cfg[k][key][f] = v;
+    }
+  }
+  for (const k of ['ages', 'characters']) {
+    for (const val of d[k]) {
+      const have = cfg[k].find(x => x.key === val.key);
+      if (!have) cfg[k].push(val);
+      else for (const [f, v] of Object.entries(val)) if (have[f] === undefined) have[f] = v;
+    }
+  }
+  // Old default that the faster start replaced
+  if (cfg.balance.spawnBase === 1.1) cfg.balance.spawnBase = d.balance.spawnBase;
+  cfg.contentVersion = d.contentVersion;
 }
 
 export function loadConfig() {

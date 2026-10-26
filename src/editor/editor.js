@@ -3,7 +3,7 @@
 import '@fontsource/press-start-2p';
 import './editor.css';
 import { loadConfig, saveConfig, resetConfig, baseConfig, weaponStats, takeUpdateNotice, getBackup } from '../content/config.js';
-import { BEHAVIORS, PASSIVE_EFFECTS, BOSS_ATTACKS, MUSIC, GROUNDS } from '../content/defaults.js';
+import { BEHAVIORS, PASSIVE_EFFECTS, BOSS_ATTACKS, MUSIC, GROUNDS, ENEMY_AI } from '../content/defaults.js';
 import { buildDefaultSprites, getSprite, spriteToCanvas, SPRITE_GROUPS, CHARS } from '../art.js';
 import { PixelEditor } from './pixel.js';
 
@@ -273,6 +273,10 @@ function renderEnemies(main) {
       color(e, 'color', 'Hit particle color'),
       check(e, 'heavy', 'Heavy (hard to knock back)'),
       check(e, 'boss', 'Boss'),
+      sel(e, 'ai', 'Special move', ENEMY_AI.map(a => [a, { '': 'None (just walks at you)', charge: 'Charge (aims, then dashes)', shield: 'Shield (blocks hits until broken)', split: 'Split (breaks into smaller enemies)', zigzag: 'Zigzag (weaves side to side)' }[a] || a])),
+      num(e, 'shield', 'Shield hits', 'For Shield: hits before it breaks'),
+      sel(e, 'splitInto', 'Splits into', Object.entries(E).filter(([, x]) => !x.boss).map(([kk, x]) => [kk, x.name])),
+      num(e, 'splitCount', 'Split count', 'For Split: how many'),
     ),
   ));
 }
@@ -413,7 +417,7 @@ function renderAges(main) {
     h('h2', {}, a.name), h('div', { class: 'sub' }, `Age ${i + 1} of ${A.length}. Ages play in this order; the last one is endless.`),
     h('div', { class: 'grid' },
       txt(a, 'name', 'Name', null, { upper: true }),
-      sel(a, 'ground', 'Ground style', GROUNDS.map(g => [g, { cave: 'Cave painting (ochre rock)', mosaic: 'Roman mosaic' }[g] || g])),
+      sel(a, 'ground', 'Ground style', GROUNDS.map(g => [g, { cave: 'Cave painting (ochre rock)', mosaic: 'Roman mosaic', tapestry: 'Medieval tapestry' }[g] || g])),
       color(a, 'bg', 'Background color'),
       check(a, 'paintings', 'Cave paintings on the ground'),
       num(a, 'hpMul', 'Enemy health multiplier', 'Stone Age is 1'),
@@ -427,14 +431,16 @@ function renderAges(main) {
       sel(a, 'medium', 'Medium enemy (after 40s)', enemyOpts),
       sel(a, 'elite', 'Elite enemy (after 110s, also the mini-boss)', enemyOpts),
       sel(a, 'stampede', 'Stampede enemy', enemyOpts),
+      txt(a, 'stampedeName', 'Stampede warning', null, { upper: true }),
     ),
+    field('Special enemies (rare, after 45s)', multiChips(a.specials = a.specials || [], enemyOpts, () => changed(), false)),
     h('h3', {}, 'BOSS'),
     h('div', { class: 'grid' },
       sel(a, 'boss', 'Boss', bossOpts.length ? bossOpts : [['', 'Mark an enemy as Boss first']]),
       txt(a, 'bossName', 'Boss name on screen', null, { upper: true }),
     ),
     field('Attack pattern (repeats in order). Click a step to remove it.', orderedList(a.bossAttacks, BOSS_ATTACKS, () => changed())),
-    h('div', { class: 'note', style: 'margin-top:6px' }, 'charge = dash at you, stomp = shockwave ring, rocks = falling rocks, lunge = 3 bite lines, pools = poison puddles, summon = calls 10 enemies.'),
+    h('div', { class: 'note', style: 'margin-top:6px' }, 'charge = dash at you, stomp = shockwave ring, rocks = falling rocks, lunge = 3 bite lines, pools = poison puddles, summon = calls 10 enemies, breath = wide fire cone, meteors = burning rocks.'),
     h('h3', {}, 'SCENERY'),
     field('Things scattered on the ground (campfires and braziers light up boss fights)', multiChips(a.decor, scenery.map(k => [k, k]), () => changed(), true)),
   ));
@@ -475,6 +481,10 @@ function renderBalance(main) {
     ['hpGrowth', 'Enemy health growth', 'Health doubles about every this many seconds'],
     ['miniBossHp', 'Mini-boss health multiplier'], ['stampedeSize', 'Stampede size'],
     ['critChance', 'Critical hit chance', '0.08 = 8%'], ['coinChance', 'Coin drop chance'], ['meatChance', 'Healing meat drop chance'], ['magnetChance', 'Magnet drop chance'],
+    ['xpEarly', 'Early level discount', '0.45 = first level costs 45%, normal by level 6'], ['giftWeaponAt', 'Free 2nd weapon at', 'Part of the first age, 0.2 = 1 minute in. 0 = off'],
+    ['earlyLoot', 'Early boss loot', 'Loot multiplier when the boss is summoned right away'],
+    ['eliteChance', 'Glowing elite chance', 'After 45s'], ['specialChance', 'Special enemy chance', 'After 45s'],
+    ['hitStop', 'Hit freeze', '1 = on, 0 = off'],
     ['xpBase', 'XP for level 2'], ['xpPer', 'Extra XP per level'], ['xpCurve', 'XP curve', 'Higher = later levels take much longer'],
     ['bossDarkness', 'Boss fight darkness', '0 = off, 1 = pitch black'],
   ];

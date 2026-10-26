@@ -150,6 +150,27 @@ class Audio8 {
       case 'bosskill':
         this.noise(1.5, 0.5, 1200); [60, 64, 67, 72, 76, 79, 84].forEach((m, i) => this.tone(NOTE(m), 0.3, 'square', 0.12, null, 0.3 + i * 0.09));
         break;
+      case 'spark':
+        if (!this.throttle(name, 60)) return;
+        [88, 93, 100].forEach((m, i) => this.tone(NOTE(m), 0.08, 'triangle', 0.1, null, i * 0.04));
+        break;
+      case 'clang':
+        if (!this.throttle(name, 70)) return;
+        this.tone(1400 * r, 0.12, 'square', 0.06, 900); this.noise(0.05, 0.15, 5000, 0, null, 'highpass');
+        break;
+      case 'break':
+        this.noise(0.25, 0.3, 2000); this.tone(600, 0.2, 'square', 0.1, 150);
+        break;
+      case 'dash':
+        if (!this.throttle(name, 120)) return;
+        this.noise(0.25, 0.2, 700, 0, null, 'bandpass'); this.tone(180, 0.2, 'sawtooth', 0.08, 90);
+        break;
+      case 'gift':
+        [67, 71, 74, 79, 83, 86].forEach((m, i) => this.tone(NOTE(m), 0.18, 'triangle', 0.14, null, i * 0.07));
+        break;
+      case 'revive':
+        this.tone(200, 1.0, 'triangle', 0.25, 1200); [72, 76, 79, 84].forEach((m, i) => this.tone(NOTE(m), 0.3, 'square', 0.12, null, 0.4 + i * 0.1));
+        break;
       case 'death':
         [67, 63, 60, 55, 48].forEach((m, i) => this.tone(NOTE(m), 0.3, 'square', 0.15, null, i * 0.18));
         break;
@@ -245,6 +266,31 @@ const TRACKS = {
       69 - 68 - 65 - 64 - 65 - 68 - 64 - - -`),
     bass: pat(rep('40 40 - 40 41 - 40 - 40 40 - 40 44 - 41 -', 4)),
     drums: pat(rep('k s k s k s k s k s k s k s s s', 4)),
+  },
+  // Middle Ages: lute-like triangle lead in Dorian over a drone
+  medieval: {
+    bpm: 104, len: 64, leadWave: 'triangle',
+    lead: pat(`
+      62 - 64 65 67 - 65 - 64 - 62 - 60 - 62 -
+      65 - 67 69 71 - 69 - 67 - - - 65 - - -
+      62 - 64 65 67 - 69 - 71 - 72 - 71 - 69 -
+      67 - 65 - 64 - 60 - 62 - - - - - - -`),
+    bass: pat(`
+      38 - - - 45 - - - 38 - - - 45 - - -
+      41 - - - 48 - - - 43 - - - 48 - - -
+      38 - - - 45 - - - 43 - - - 47 - - -
+      36 - - - 43 - - - 38 - - - 45 - - -`),
+    drums: pat(rep('t - - h t - h - t - - h t h t -', 4)),
+  },
+  medievalBoss: {
+    bpm: 146, len: 64, leadWave: 'sawtooth', bassWave: 'square', leadLen: 1,
+    lead: pat(`
+      62 62 65 - 62 62 68 - 67 - 65 - 62 - 61 -
+      62 62 65 - 62 62 69 - 68 - 67 - 65 - 62 -
+      74 - 72 - 70 - 69 - 67 - 65 - 64 - 62 -
+      61 - 62 - 64 - 65 - 67 - 68 - 69 - - -`),
+    bass: pat(rep('38 - 38 38 - 38 41 - 38 - 38 38 - 44 43 -', 4)),
+    drums: pat(rep('k h s h k k s h k h s h k s s s', 4)),
   },
   police: {
     bpm: 160, len: 32, leadWave: 'square', leadLen: 2,

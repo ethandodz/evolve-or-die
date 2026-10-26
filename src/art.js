@@ -96,6 +96,13 @@ const DARKLEAF = ['#4a6a3a', '#344e2a', '#22361c', '#142210'];
 const GOLD = ['#fff0a0', '#f0c040', '#b88420', '#7a5410'];
 const BONE = ['#f6eed4', '#ddd2b4', '#aca084', '#7a705a'];
 const MARBLE = ['#fbf8f0', '#e4ded2', '#bab2a4', '#8c8476'];
+const DARKSTEEL = ['#6a6a7c', '#4a4a5c', '#32323e', '#1e1e28'];
+const SACK = ['#c8a878', '#a8885a', '#806440', '#5a442a'];
+const SLIME = ['#a8f08a', '#6ad04a', '#3e9a2e', '#22601a'];
+const TROLL = ['#8aa86a', '#6a8a4a', '#4a6632', '#2e4220'];
+const DRAGON = ['#f0704a', '#d0482a', '#9a2e1c', '#601a10'];
+const WING = ['#c84a5a', '#9a3044', '#6a1e30', '#40101c'];
+const GREEN = ['#5aa05a', '#3e7e3e', '#2a5a2a', '#183a18'];
 const EYE = '#160c08';
 
 // ---------------------------------------------------------------------------
@@ -111,6 +118,8 @@ function human(o, f) {
     s.rect(6 + lx, 26 + oy + (f ? -1 : 0), 4, 2, boot); s.rect(13 - lx, 26 + oy + (f ? 0 : -1), 4, 2, boot);
     if (o.cape) s.ell(8, 18 + oy, 5, 7, o.cape);
     s.ell(11.5, 18 + oy, 6, 6, o.body, o.bodyTex || 0);
+    if (o.halves) { for (let y = 12; y < 24; y++) for (let x = 12; x < 18; x++) if ((x - 11.5) ** 2 / 36 + (y - 18) ** 2 / 36 <= 1) s.put(x, y + oy, o.halves[(x + y) % 3 ? 1 : 2]); }
+    if (o.tabard) { s.rect(9, 13 + oy, 6, 9, o.tabard); s.put(11, 16 + oy, '#f0d040'); s.put(12, 16 + oy, '#f0d040'); s.put(11, 17 + oy, '#f0d040'); s.put(12, 15 + oy, '#f0d040'); }
     if (o.spots) [[9, 16], [13, 19], [10, 20], [14, 16]].forEach(([x, y]) => s.put(x, y + oy, o.body[3]));
     if (o.belt) s.rect(6, 21 + oy, 12, 1, o.belt);
     if (o.badge) s.put(9, 16 + oy, '#f0d040');
@@ -129,6 +138,12 @@ function human(o, f) {
       if (o.plume) { s.ell(11.5, 0 + oy, 6, 2.6, o.plume, 0.1); s.rect(8, 1 + oy, 7, 2, o.plume); }
       if (o.grill) for (let y = 7; y < 12; y += 2) s.rect(12, y + oy, 5, 1, o.helmet);
     }
+    if (o.jesterHat) {
+      s.ell(7, 3 + oy, 3.5, 3, o.jesterHat[0], 0); s.ell(16, 3 + oy, 3.5, 3, o.jesterHat[1], 0);
+      s.rect(6, 4 + oy, 12, 3, o.jesterHat[0]);
+      s.put(4, 1 + oy, '#f0d040'); s.put(19, 1 + oy, '#f0d040');
+    }
+    if (o.hood) { s.ell(11.5, 6 + oy, 6.5, 5, o.hood); s.rect(5, 6 + oy, 3, 7, o.hood); }
     if (o.cap) { s.rect(6, 3 + oy, 12, 3, o.cap); s.rect(12, 6 + oy, 7, 1, ['#1a1a1a', '#1a1a1a', '#101010', '#080808']); s.put(11, 4 + oy, '#f0d040'); }
     if (o.paint) { s.put(10, 9 + oy, '#e8e0d0'); s.put(10, 10 + oy, '#e8e0d0'); s.put(15, 9 + oy, '#e8e0d0'); }
     if (!o.grill) { s.put(14, 8 + oy, EYE); s.put(13, 8 + oy, '#f4ece0'); }
@@ -150,6 +165,11 @@ const CHAR_LOOKS = {
   spearman: { skin: SKIN, helmet: STEEL, body: BLUE, belt: '#3a2a20', spear: true, boots: LEATHER },
   gladiator: { skin: SKIN2, helmet: BRONZE, grill: true, body: SKIN2, arms: SKIN2, belt: '#8a5a2e', trident: true, legs: SKIN2, boots: LEATHER },
   centurion: { skin: SKIN, helmet: BRONZE, plume: RED, body: RED, cape: ['#a83a2a', '#86281c', '#5e1a12', '#3a0e0a'], belt: '#f0c060', sword: true, boots: LEATHER },
+  knight: { skin: SKIN, helmet: STEEL, plume: BLUE, body: STEEL, bodyTex: 0.25, tabard: BLUE, belt: '#f0c060', sword: true, legs: STEEL, boots: LEATHER },
+  peasant: { skin: SKIN, hair: HAIR, beard: HAIR, body: SACK, belt: '#5a3a20', trident: true, legs: SACK, boots: LEATHER },
+  footman: { skin: SKIN, helmet: STEEL, body: STEEL, bodyTex: 0.3, shield: BLUE, sword: true, belt: '#3a2a20', legs: LEATHER, boots: LEATHER },
+  jester: { skin: SKIN, jesterHat: [RED, PURPLE], body: RED, halves: PURPLE, legs: PURPLE, boots: RED },
+  blackknight: { skin: SKIN2, helmet: DARKSTEEL, grill: true, plume: RED, body: DARKSTEEL, bodyTex: 0.25, cape: ['#a83a2a', '#86281c', '#5e1a12', '#3a0e0a'], shield: DARKSTEEL, sword: true, legs: DARKSTEEL, boots: DARKSTEEL },
   timecop: { skin: SKIN, cap: NAVY, body: BLUE, badge: true, belt: '#1a1a2a', legs: NAVY, boots: ['#2a2a2a', '#1a1a1a', '#101010', '#080808'] },
 };
 
@@ -238,6 +258,80 @@ function quad(kind, f) {
       const lf = f ? 1 : 0;
       s.rect(18 - lf, 46, 5, 6, P); s.rect(40 + lf, 46, 5, 6, P);
     });
+    case 'golem': return paint(30, 32, (s) => {
+      const P = GREYS;
+      const b = f ? 1 : 0;
+      s.ell(9 - b, 27, 4, 4, P, 0.2); s.ell(21 + b, 27, 4, 4, P, 0.2);
+      s.ell(15, 18, 10, 9, STONE, 0.25);
+      s.ell(4, 16 + b, 4, 5, P, 0.2); s.ell(26, 16 - b, 4, 5, P, 0.2);
+      s.ell(15, 7, 6, 5, STONE, 0.2);
+      s.put(13, 7, '#7ad0f4'); s.put(17, 7, '#7ad0f4'); s.put(14, 7, '#c0f0ff'); s.put(18, 7, '#c0f0ff');
+      s.line(11, 15, 14, 20, P[3]); s.line(18, 14, 16, 22, P[3]);
+    });
+    case 'pebble': return paint(14, 12, (s) => {
+      s.ell(7, 6 + (f ? 1 : 0), 6, 4.5, STONE, 0.2);
+      s.put(5, 5 + (f ? 1 : 0), EYE); s.put(9, 5 + (f ? 1 : 0), EYE);
+      s.rect(4, 10, 2, 1, GREYS); s.rect(8 + (f ? 1 : 0), 10, 2, 1, GREYS);
+    });
+    case 'testudo': return paint(38, 30, (s) => {
+      const lf = f ? 1 : 0;
+      for (let i = 0; i < 4; i++) { s.rect(5 + i * 8 + (i % 2 ? lf : -lf), 22, 2, 5, SKIN); s.rect(4 + i * 8 + (i % 2 ? lf : -lf), 26, 4, 2, LEATHER); }
+      for (let r = 0; r < 2; r++) for (let c = 0; c < 4; c++) {
+        const x = 2 + c * 8.5, y = 3 + r * 9;
+        s.rect(x, y, 8, 10, RED);
+        s.rect(x + 3, y + 3, 2, 3, BRONZE);
+      }
+      for (let c = 0; c < 4; c++) s.rect(2 + c * 8.5, 0, 8, 3, RED);
+    });
+    case 'slime': return paint(32, 26, (s) => {
+      const sq = f ? 1 : 0;
+      s.ell(16, 15 + sq, 14 + sq, 10 - sq, SLIME, 0.06);
+      s.ell(10, 9 + sq, 3, 2, ['#e0ffd0', '#e0ffd0', SLIME[0], SLIME[0]]);
+      s.ell(12, 14 + sq, 2.4, 3, [EYE, EYE, EYE, EYE]); s.ell(20, 14 + sq, 2.4, 3, [EYE, EYE, EYE, EYE]);
+      s.put(12, 13 + sq, '#ffffff'); s.put(20, 13 + sq, '#ffffff');
+      s.line(14, 19 + sq, 18, 19 + sq, SLIME[3]);
+    });
+    case 'slimelet': return paint(16, 13, (s) => {
+      const sq = f ? 1 : 0;
+      s.ell(8, 7 + sq, 7 + sq, 5 - sq, SLIME, 0.05);
+      s.put(6, 7 + sq, EYE); s.put(10, 7 + sq, EYE); s.put(5, 4 + sq, '#e0ffd0');
+    });
+    case 'troll': return paint(44, 42, (s) => {
+      const P = TROLL;
+      const lf = f ? 2 : 0;
+      s.rect(13 - lf, 30, 7, 10, P); s.rect(25 + lf, 30, 7, 10, P);
+      s.ell(22, 22, 15, 12, P, 0.12);
+      s.ell(22, 26, 9, 6, SACK, 0.15);
+      s.ell(22, 9, 8, 7, P);
+      s.put(19, 8, '#f0d040'); s.put(25, 8, '#f0d040');
+      s.put(20, 13, BONE[0]); s.put(24, 13, BONE[0]);
+      s.rect(4, 16 - lf, 5, 14, P); s.rect(35, 16 + lf, 5, 14, P);
+      s.line(38, 30 + lf, 42, 8, WOOD[2], 3); s.ell(41, 7, 4, 5, WOOD, 0.2);
+    });
+    case 'dragon': return paint(68, 56, (s) => {
+      const P = DRAGON;
+      const fl = f ? 3 : 0;
+      // wings
+      for (const [dir, cx] of [[-1, 18], [1, 44]]) {
+        for (let i = 0; i < 14; i++) s.line(cx, 20, cx + dir * (6 + i * 1.2), 2 + fl + i * 1.1, WING[i % 3 ? 1 : 2]);
+        s.line(cx, 20, cx + dir * 22, 2 + fl, WING[3], 2);
+      }
+      // tail
+      for (let i = 0; i < 12; i++) s.ell(18 - i * 1.4, 40 + i * 0.5, 4 - i * 0.2 + 0.8, 3, P, 0.08);
+      s.ell(31, 34, 14, 12, P, 0.1);
+      s.ell(31, 38, 8, 7, GOLD.slice(1).concat(['#7a5410']));
+      s.ell(45, 20, 5, 8, P);
+      s.ell(50, 11, 8, 6, P);
+      s.rect(52, 12, 12, 5, P);
+      s.put(53, 9, '#f0d040'); s.put(54, 9, EYE);
+      s.line(47, 5, 44, 0, BONE[1]); s.line(51, 5, 50, 0, BONE[1]);
+      for (let x = 54; x < 64; x += 2) s.put(x, 17, BONE[0]);
+      s.put(64, 14, FIRE[1]); s.put(65, 13, FIRE[0]); s.put(66, 15, FIRE[2]);
+      for (let i = 0; i < 6; i++) s.put(22 + i * 3, 23 + (i % 2), P[3]);
+      const lf = f ? 2 : 0;
+      s.rect(23 - lf, 44, 6, 8, P); s.rect(35 + lf, 44, 6, 8, P);
+      s.rect(21 - lf, 52, 9, 3, P); s.rect(33 + lf, 52, 9, 3, P);
+    });
     case 'chariot': return paint(46, 32, (s) => {
       const H = LEATHER;
       // horse
@@ -307,6 +401,18 @@ const ITEMS = {
   column: () => paint(18, 44, (s) => { s.rect(1, 0, 16, 4, MARBLE); s.rect(3, 4, 12, 34, MARBLE); for (let x = 5; x < 14; x += 3) s.line(x, 5, x, 37, MARBLE[2]); s.rect(1, 38, 16, 5, MARBLE); }),
   broken: () => paint(20, 18, (s) => { s.rect(3, 6, 12, 10, MARBLE); s.line(3, 6, 8, 2, MARBLE[1]); s.line(8, 2, 15, 6, MARBLE[1]); s.rect(5, 3, 8, 3, MARBLE); for (let x = 5; x < 14; x += 3) s.line(x, 7, x, 15, MARBLE[2]); s.ell(17, 15, 2.5, 2, MARBLE); }),
   urn: () => paint(14, 18, (s) => { s.rect(4, 0, 6, 2, DINO); s.rect(5, 2, 4, 3, DINO); s.ell(7, 10, 6, 6, DINO); s.rect(3, 9, 8, 1, EYE); s.put(5, 11, EYE); s.put(9, 11, EYE); s.rect(4, 15, 6, 2, DINO); }),
+  spark: () => paint(14, 14, (s) => {
+    const S = ['#fffbe0', '#ffe060', '#ffa020', '#c05a10'];
+    s.line(6.5, 0, 6.5, 12, S[1]); s.line(0, 6.5, 12, 6.5, S[1]);
+    s.ell(6.5, 6.5, 3.2, 3.2, S); s.put(6, 5, '#ffffff'); s.put(2, 2, S[2]); s.put(11, 11, S[2]); s.put(11, 2, S[2]); s.put(2, 11, S[2]);
+  }),
+  crystal: () => paint(12, 16, (s) => { const C = ['#e0fcff', '#7ae0ff', '#3aa0e0', '#1a60a0']; for (let y = 0; y < 14; y++) { const w = y < 5 ? y : 14 - y; s.line(6 - w * 0.6, y, 6 + w * 0.6, y, C[y < 4 ? 0 : y < 8 ? 1 : 2]); } s.put(5, 4, '#ffffff'); }),
+  feather: () => paint(14, 16, (s) => { for (let i = 0; i < 11; i++) s.ell(4 + i * 0.7, 13 - i * 1.1, 2.6 - Math.abs(i - 5) * 0.2, 1.5, FIRE, 0.1); s.line(2, 15, 11, 2, FIRE[3]); }),
+  idol: () => paint(12, 16, (s) => { s.ell(6, 4, 4, 4, GOLD); s.rect(3, 7, 6, 7, GOLD); s.rect(2, 13, 8, 2, GOLD); s.put(4, 4, EYE); s.put(7, 4, EYE); s.put(5, 10, GOLD[3]); s.put(6, 10, GOLD[3]); }),
+  banner: () => paint(18, 46, (s) => { s.line(4, 2, 4, 44, WOOD[1], 2); s.ell(4.5, 1.5, 1.6, 1.6, GOLD); s.rect(6, 4, 10, 20, RED); s.rect(6, 4, 10, 2, GOLD); s.put(10, 12, '#f0d040'); s.put(11, 12, '#f0d040'); s.put(10, 13, '#f0d040'); s.put(11, 11, '#f0d040'); s.line(6, 24, 11, 28, RED[1]); s.line(16, 24, 11, 28, RED[2]); }),
+  haybale: () => paint(22, 16, (s) => { s.ell(11, 9, 10, 6, GOLD.slice(1).concat(['#5a3a10']), 0.3); s.rect(4, 6, 1, 8, LEATHER); s.rect(17, 6, 1, 8, LEATHER); }),
+  shrub: () => paint(18, 14, (s) => { s.ell(9, 8, 8, 5, GREEN, 0.25); s.ell(5, 6, 4, 3, GREEN, 0.2); s.put(12, 6, '#d84a4a'); s.put(7, 9, '#d84a4a'); }),
+  gravestone: () => paint(14, 18, (s) => { s.ell(7, 6, 5.5, 5, GREYS); s.rect(2, 6, 11, 10, GREYS, 0.1); s.line(7, 4, 7, 11, GREYS[3]); s.line(5, 6, 9, 6, GREYS[3]); s.ell(7, 16, 6, 1.5, GREEN); }),
   cypress: () => paint(18, 48, (s) => { s.rect(8, 40, 3, 7, WOOD); s.ell(9, 22, 7, 20, DARKLEAF, 0.3); }),
 };
 
@@ -317,6 +423,10 @@ const ANIM_ITEMS = {
     s.ell(11, 20, 8, 2.6, GREYS); s.line(4, 21, 17, 18, WOOD[1], 2); s.line(5, 18, 18, 21, WOOD[2], 2);
     s.ell(11, 13 + (f ? 1 : 0), 5, 6 + (f ? -1 : 0), FIRE); s.ell(11 + (f ? 1 : 0), 14, 2.6, 3.5, [FIRE[0], FIRE[0], FIRE[1], FIRE[2]]);
     s.put(9 + (f ? 2 : 0), 4, FIRE[1]); s.put(13 - (f ? 2 : 0), 3, FIRE[0]);
+  }),
+  torch: (f) => paint(12, 34, (s) => {
+    s.line(6, 12, 6, 32, WOOD[1], 1); s.line(5, 12, 5, 32, WOOD[2], 1); s.rect(3, 11, 6, 2, GREYS);
+    s.ell(5.5, 6 + (f ? 1 : 0), 3.5, 5, FIRE); s.ell(5.5 + (f ? 1 : -1), 7, 1.6, 2.6, [FIRE[0], FIRE[0], FIRE[1], FIRE[2]]);
   }),
   brazier: (f) => paint(16, 28, (s) => {
     s.rect(7, 12, 3, 14, BRONZE); s.rect(3, 25, 11, 2, BRONZE); s.ell(8.5, 11, 6, 3, BRONZE);
@@ -354,7 +464,7 @@ export function buildDefaultSprites() {
   const out = {};
   const add = (key, grids) => { out[key] = toSprite(grids); };
   for (const [k, o] of Object.entries(CHAR_LOOKS)) { seed = 101; add(k, [human(o, 0), human(o, 1)]); }
-  for (const k of ['wolf', 'raptor', 'sabertooth', 'mammoth', 'trex', 'hydra', 'chariot']) { seed = 202; add(k, [quad(k, 0), quad(k, 1)]); }
+  for (const k of ['wolf', 'raptor', 'sabertooth', 'mammoth', 'trex', 'hydra', 'chariot', 'golem', 'pebble', 'testudo', 'slime', 'slimelet', 'troll', 'dragon']) { seed = 202; add(k, [quad(k, 0), quad(k, 1)]); }
   seed = 303; add('wizard', [wizard()]);
   for (const [k, fn] of Object.entries(ITEMS)) { seed = 404; add(k, [fn()]); }
   for (const [k, fn] of Object.entries(ANIM_ITEMS)) { seed = 505; add(k, [fn(0), fn(1)]); }
@@ -364,13 +474,14 @@ export function buildDefaultSprites() {
 }
 
 export const SPRITE_GROUPS = {
-  Characters: ['caveman', 'hunter', 'shaman', 'wizard'],
-  'Stone Age enemies': ['rival', 'wolf', 'raptor', 'sabertooth', 'mammoth', 'trex'],
-  'Roman enemies': ['legionary', 'spearman', 'gladiator', 'centurion', 'chariot', 'hydra', 'timecop'],
+  Characters: ['caveman', 'hunter', 'shaman', 'knight', 'wizard'],
+  'Stone Age enemies': ['rival', 'wolf', 'raptor', 'sabertooth', 'golem', 'pebble', 'mammoth', 'trex'],
+  'Roman enemies': ['legionary', 'spearman', 'gladiator', 'centurion', 'testudo', 'chariot', 'hydra', 'timecop'],
+  'Medieval enemies': ['peasant', 'footman', 'jester', 'blackknight', 'slime', 'slimelet', 'troll', 'dragon'],
   Weapons: ['club', 'axe', 'spear', 'flame', 'rock', 'bolt'],
-  Items: ['gem_s', 'gem_m', 'gem_l', 'coin', 'meat', 'magnet', 'chest', 'potion', 'star', 'reroll', 'skull', 'lock'],
+  Items: ['gem_s', 'gem_m', 'gem_l', 'coin', 'spark', 'meat', 'magnet', 'chest', 'potion', 'star', 'reroll', 'skull', 'lock', 'crystal', 'feather', 'idol'],
   Icons: ['heart', 'heart_empty', 'sandal', 'totem', 'flint', 'tusk', 'lodestone'],
-  Scenery: ['boulder', 'fern', 'bones', 'tree', 'campfire', 'handprint', 'deer', 'hunters', 'column', 'broken', 'urn', 'cypress', 'brazier'],
+  Scenery: ['boulder', 'fern', 'bones', 'tree', 'campfire', 'handprint', 'deer', 'hunters', 'column', 'broken', 'urn', 'cypress', 'brazier', 'banner', 'haybale', 'shrub', 'torch', 'gravestone'],
 };
 
 export function getSprite(key, overrides = {}) {
@@ -410,6 +521,7 @@ export function generateTextures(scene, overrides = {}) {
   }
   makeCaveGround(scene);
   makeMosaicGround(scene);
+  makeTapestryGround(scene);
   makeSimple(scene, 'px', 2, 2, (ctx) => { ctx.fillStyle = '#fff'; ctx.fillRect(0, 0, 2, 2); });
   makeSimple(scene, 'shadow', 16, 6, (ctx) => {
     ctx.fillStyle = 'rgba(40,16,6,0.32)';
@@ -505,6 +617,30 @@ function makeMosaicGround(scene) {
       else if ((cx + cy) % 24 < 3 && cx + cy < 40) set = terra;
       ctx.fillStyle = set[Math.floor(r() * set.length)];
       ctx.fillRect(x, y, T - 1, T - 1);
+    }
+  });
+}
+
+// Medieval tapestry: woven wool threads, a gold lattice and little fleur shapes
+function makeTapestryGround(scene) {
+  makeSimple(scene, 'ground_tapestry', 192, 192, (ctx) => {
+    let s = 777;
+    const r = () => { s = (s * 16807) % 2147483647; return s / 2147483647; };
+    const red = ['#7a2e2a', '#722a26', '#80342e', '#6a2622'];
+    const green = ['#3e5a34', '#36502e', '#46623a'];
+    const gold = ['#c8a050', '#b89040', '#d4ac5c'];
+    for (let y = 0; y < 192; y++) for (let x = 0; x < 192; x++) {
+      const px = x % 48, py = y % 48;
+      const d1 = Math.abs(((px + py) % 48) - 24), d2 = Math.abs(((px - py + 96) % 48) - 24);
+      const cx = Math.abs(px - 24), cy = Math.abs(py - 24);
+      let set = red;
+      if (Math.min(d1, d2) > 22) set = gold;
+      else if (cx + cy < 6 || (cx < 2 && cy < 10) || (cy < 2 && cx < 10)) set = green;
+      // Woven look: alternate thread shading
+      const c = set[Math.floor(r() * set.length)];
+      ctx.fillStyle = c; ctx.fillRect(x, y, 1, 1);
+      if ((x + (y >> 1)) % 4 === 0) { ctx.fillStyle = 'rgba(0,0,0,0.12)'; ctx.fillRect(x, y, 1, 1); }
+      if ((y + (x >> 1)) % 6 === 0) { ctx.fillStyle = 'rgba(255,230,200,0.06)'; ctx.fillRect(x, y, 1, 1); }
     }
   });
 }

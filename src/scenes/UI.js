@@ -5,9 +5,6 @@ import { WEAPONS, PASSIVES, AGES } from '../data.js';
 import { W, H, text, button, panel, settingsPanel, COLORS, fmtTime, FONT } from '../ui.js';
 import { controls } from '../controls.js';
 
-import { BAL } from '../data.js';
-
-const AGE_TIME_TEST = new URLSearchParams(location.search).has('test') ? 60 : BAL.ageLength;
 
 // Scale an image so it fits in a box
 const fit = (img, size) => { const f = img.frame; return img.setScale(Math.min(size / f.width, size / f.height)); };
@@ -42,6 +39,8 @@ export default class UI extends Phaser.Scene {
     this.coinText = text(this, W - 90, 82, '0', 10, '#f2c84b', 0);
     this.add.image(W - 104, 104, 'skull').setScale(1.6);
     this.killText = text(this, W - 90, 104, '0', 10, '#ffffff', 0);
+    this.add.image(W - 104, 124, 'spark').setScale(1.4);
+    this.sparkText = text(this, W - 90, 124, '0', 10, '#ffe060', 0);
 
     // Weapon and passive slots
     this.slots = [];
@@ -54,7 +53,9 @@ export default class UI extends Phaser.Scene {
     }
 
     // Summon boss button
-    this.summon = button(this, W - 80, 148, 140, 44, 'SUMMON', () => this.g.summonBoss(), { size: 10, color: COLORS.red, hi: COLORS.redHi, icon: 'skull', iconScale: 2 });
+    this.summon = button(this, W - 80, 160, 140, 44, 'SUMMON', () => this.g.summonBoss(), { size: 10, color: COLORS.red, hi: COLORS.redHi, icon: 'skull', iconScale: 2 });
+
+    this.lootText = text(this, W - 80, 192, '', 8, '#f2c84b');
 
     // Boss bar
     this.bossBox = this.add.container(W / 2, 196).setVisible(false);
@@ -136,7 +137,7 @@ export default class UI extends Phaser.Scene {
       h.setTexture(i < p.hearts ? 'heart' : 'heart_empty');
     });
 
-    const left = AGE_TIME_TEST - g.ageTime;
+    const left = g.ageLen - g.ageTime;
     if (g.bossDead && !g.endless) { this.timer.setText('--:--').setColor('#e8c070'); }
     else if (g.endless) { this.timer.setText(fmtTime(g.totalTime)).setColor('#7ad0f4'); }
     else if (g.boss) { this.timer.setText('BOSS!').setColor('#d83c3c'); }
@@ -148,6 +149,7 @@ export default class UI extends Phaser.Scene {
 
     this.coinText.setText(String(g.coins));
     this.killText.setText(String(g.kills));
+    this.sparkText.setText(String(g.sparks));
 
     for (let i = 0; i < 6; i++) {
       const s = this.slots[i];
@@ -161,7 +163,13 @@ export default class UI extends Phaser.Scene {
 
     const canSummon = g.canSummon();
     this.summon.setVisible(canSummon);
-    if (canSummon) this.summon.setScale(left < 30 ? 1 + Math.sin(g.totalTime * 8) * 0.04 : 1);
+    this.lootText.setVisible(canSummon);
+    if (canSummon) {
+      this.summon.setScale(left < 30 ? 1 + Math.sin(g.totalTime * 8) * 0.04 : 1);
+      const m = g.currentLootMul();
+      this.lootText.setText(m > 1 ? `LOOT x${m.toFixed(1)}` : 'LOOT x1');
+      this.lootText.setColor(m >= 2 ? '#f2c84b' : m > 1 ? '#e8c070' : '#a090b0');
+    }
 
     const b = g.boss;
     this.bossBox.setVisible(!!b);
@@ -221,14 +229,14 @@ export default class UI extends Phaser.Scene {
   }
 
   // ------------------------------------------------------------------
-  showLevelUp(choices) {
+  showLevelUp(choices, opt = {}) {
     const c = this.openModal();
     c.kind = 'levelup';
-    const title = text(this, W / 2, 150, 'LEVEL UP!', 30, '#f2c84b');
+    const title = text(this, W / 2, 150, opt.title || 'LEVEL UP!', 30, opt.title ? '#7ad0f4' : '#f2c84b');
     title.setScale(0.3);
     this.tweens.add({ targets: title, scale: 1, duration: 350, ease: 'Back.out' });
     c.add(title);
-    c.add(text(this, W / 2, 192, `LEVEL ${this.g.level - this.g.pendingLevels + 1}`, 10, '#ffffff'));
+    c.add(text(this, W / 2, 192, opt.sub || `LEVEL ${this.g.level - this.g.pendingLevels + 1}`, 10, '#ffffff'));
     const cards = this.add.container(0, 0);
     c.add(cards);
     const build = (list) => {
@@ -254,7 +262,7 @@ export default class UI extends Phaser.Scene {
       rr.setDisabled(this.g.rerolls <= 0);
     }, { color: COLORS.purple, hi: COLORS.purpleHi, size: 12, icon: 'reroll' });
     rr.setDisabled(this.g.rerolls <= 0);
-    c.add(rr);
+    if (!opt.noReroll) c.add(rr); else rr.destroy();
   }
 
   choiceCard(ch, x, y, onPick) {
@@ -308,61 +316,110 @@ export default class UI extends Phaser.Scene {
   showShop(items) {
     const c = this.openModal();
     c.kind = 'shop';
-    c.add(panel(this, W / 2, H / 2, 410, 680, 0x22163a));
-    const wiz = this.add.sprite(W / 2, 138, 'wizard', 0).setScale(5);
-    this.tweens.add({ targets: wiz, y: 132, yoyo: true, repeat: -1, duration: 800 });
+    c.add(panel(this, W / 2, H / 2, 410, 720, 0x22163a));
+    const wiz = this.add.sprite(W / 2, 112, 'wizard', 0).setScale(4.4);
+    this.tweens.add({ targets: wiz, y: 106, yoyo: true, repeat: -1, duration: 800 });
     c.add(wiz);
-    c.add(text(this, W / 2, 208, 'THE TIME WIZARD', 14, '#c08aff'));
-    c.add(text(this, W / 2, 234, '"Coins are no good where\nyou are going. Spend them!"', 8, '#d0c0e0'));
-    const coinT = text(this, W / 2 + 10, 272, `${this.g.coins}`, 14, '#f2c84b', 0);
-    c.add(this.add.image(W / 2 - 8, 272, 'coin').setScale(2.5));
+    c.add(text(this, W / 2, 174, 'THE TIME WIZARD', 14, '#c08aff'));
+    c.add(text(this, W / 2, 198, '"Coins are no good where\nyou are going. Spend them!"', 8, '#d0c0e0'));
+    const coinT = text(this, W / 2 + 10, 232, `${this.g.coins}`, 14, '#f2c84b', 0);
+    c.add(this.add.image(W / 2 - 8, 232, 'coin').setScale(2.5));
     c.add(coinT);
-    const msg = text(this, W / 2, 640, '', 8, '#7ad0f4');
+    const msg = text(this, W / 2, 652, '', 8, '#7ad0f4');
     c.add(msg);
-    items.forEach((it, i) => {
-      const y = 350 + i * 96;
-      const g = this.add.graphics();
-      g.fillStyle(0x0c0810, 1).fillRect(W / 2 - 183, y - 41, 366, 86);
-      g.fillStyle(0x2e2240, 1).fillRect(W / 2 - 180, y - 38, 360, 80);
-      c.add(g);
-      c.add(fit(this.add.image(W / 2 - 145, y, it.icon, 0), 52));
-      c.add(text(this, W / 2 - 108, y - 18, it.name.toUpperCase(), 10, '#ffffff', 0));
-      c.add(this.add.text(W / 2 - 108, y + 10, it.blurb, { fontFamily: FONT, fontSize: '8px', color: '#d0c0e0', wordWrap: { width: 150 }, lineSpacing: 4 }).setOrigin(0, 0.5));
-      const b = button(this, W / 2 + 125, y, 96, 44, `${it.cost}`, () => {
-        if (it.sold) return;
-        if (!this.g.buyItem(it)) { audio.play('deny'); msg.setText('Not enough coins!').setColor('#ff7070'); return; }
-        audio.play('buy');
-        it.sold = true;
-        b.label.setText('SOLD');
-        b.setDisabled(true);
-        coinT.setText(`${this.g.coins}`);
-        msg.setText(it.result || `Bought ${it.name}`).setColor('#7ad0f4');
-        refresh();
-      }, { size: 10, color: COLORS.green, hi: COLORS.greenHi, icon: 'coin', iconScale: 1.6 });
-      b.item = it;
-      c.add(b);
-      it.btn = b;
-    });
-    const refresh = () => items.forEach(it => { if (!it.sold) it.btn.setAlpha(this.g.coins >= it.cost ? 1 : 0.55); });
-    refresh();
-    c.add(button(this, W / 2, 700, 220, 48, 'LEAVE', () => {
+    const rows = this.add.container(0, 0);
+    c.add(rows);
+    let list = items;
+    const refresh = () => {
+      coinT.setText(`${this.g.coins}`);
+      list.forEach(it => { if (!it.sold && it.btn) it.btn.setAlpha(this.g.coins >= it.cost ? 1 : 0.55); });
+      rr.label.setText(`REROLL ${this.g.shopRerollCost()}`);
+      rr.setAlpha(this.g.coins >= this.g.shopRerollCost() ? 1 : 0.55);
+    };
+    const buy = (it, choice) => {
+      if (!this.g.buyItem(it, choice)) { audio.play('deny'); msg.setText('Not enough coins!').setColor('#ff7070'); return; }
+      audio.play('buy');
+      it.sold = true;
+      it.btn.label.setText('SOLD');
+      it.btn.setDisabled(true);
+      msg.setText(it.result || `Bought ${it.name}`).setColor('#7ad0f4');
+      refresh();
+    };
+    const build = () => {
+      rows.removeAll(true);
+      list.forEach((it, i) => {
+        const y = 300 + i * 88;
+        const g = this.add.graphics();
+        g.fillStyle(0x0c0810, 1).fillRect(W / 2 - 183, y - 39, 366, 82);
+        g.fillStyle(it.rare ? 0x3e2a18 : 0x2e2240, 1).fillRect(W / 2 - 180, y - 36, 360, 76);
+        if (it.rare) g.lineStyle(2, 0xf2c84b, 1).strokeRect(W / 2 - 180, y - 36, 360, 76);
+        rows.add(g);
+        rows.add(fit(this.add.image(W / 2 - 145, y, it.icon, 0), 48));
+        rows.add(text(this, W / 2 - 108, y - 18, it.name.toUpperCase(), 10, it.rare ? '#f2c84b' : '#ffffff', 0));
+        if (it.rare) rows.add(text(this, W / 2 + 172, y - 28, 'RARE', 6, '#f2c84b', 1));
+        rows.add(this.add.text(W / 2 - 108, y + 10, it.blurb, { fontFamily: FONT, fontSize: '8px', color: '#d0c0e0', wordWrap: { width: 150 }, lineSpacing: 4 }).setOrigin(0, 0.5));
+        const b = button(this, W / 2 + 125, y, 96, 44, it.sold ? 'SOLD' : `${it.cost}`, () => {
+          if (it.sold) return;
+          if (this.g.coins < it.cost) { audio.play('deny'); msg.setText('Not enough coins!').setColor('#ff7070'); return; }
+          // Weapon upgrade: you choose which weapon
+          const opts = it.id === 'upgrade' ? this.g.upgradableWeapons() : [];
+          if (opts.length > 1) this.pickWeapon(opts, (key) => buy(it, key));
+          else buy(it);
+        }, { size: 10, color: COLORS.green, hi: COLORS.greenHi, icon: 'coin', iconScale: 1.6 });
+        if (it.sold) b.setDisabled(true);
+        rows.add(b);
+        it.btn = b;
+      });
+    };
+    const rr = button(this, W / 2 - 100, 700, 180, 46, 'REROLL', () => {
+      const next = this.g.rerollShop();
+      if (!next) { audio.play('deny'); msg.setText('Not enough coins!').setColor('#ff7070'); return; }
+      // The wizard brings out new stock
+      items.length = 0; items.push(...next);
+      list = items;
+      build();
+      msg.setText('The wizard shuffles his wares...').setColor('#c08aff');
+      refresh();
+    }, { color: COLORS.purple, hi: COLORS.purpleHi, size: 10, icon: 'reroll', iconScale: 1.6 });
+    c.add(rr);
+    c.add(button(this, W / 2 + 100, 700, 180, 46, 'LEAVE', () => {
       this.closeModal();
       this.g.closeShop();
-    }, { color: COLORS.purple, hi: COLORS.purpleHi }));
+    }, { color: COLORS.button, hi: COLORS.buttonHi }));
+    build();
+    refresh();
+  }
+
+  // Small pop-up to choose which weapon gets the upgrade
+  pickWeapon(opts, onPick) {
+    const c = this.add.container(0, 0).setDepth(200);
+    c.add(this.add.rectangle(W / 2, H / 2, W, H, 0x000000, 0.6).setInteractive());
+    const h = 120 + opts.length * 64;
+    c.add(panel(this, W / 2, H / 2, 320, h, 0x2e2240));
+    c.add(text(this, W / 2, H / 2 - h / 2 + 30, 'UPGRADE WHICH?', 12, '#f2c84b'));
+    opts.forEach((w, i) => {
+      const y = H / 2 - h / 2 + 80 + i * 64;
+      const d = WEAPONS[w.key];
+      const b = button(this, W / 2, y, 260, 50, `${d.name.toUpperCase()}\nLV ${w.level} > ${w.level + 1}`, () => { c.destroy(); onPick(w.key); }, { size: 8, icon: d.icon, iconScale: 1.6 });
+      c.add(b);
+    });
+    c.add(button(this, W / 2, H / 2 + h / 2 - 30, 140, 36, 'CANCEL', () => c.destroy(), { size: 10, color: COLORS.grey, hi: COLORS.button }));
+    this.modal.add(c);
   }
 
   // ------------------------------------------------------------------
   showResults(r) {
     const c = this.openModal();
     c.kind = 'results';
-    c.add(panel(this, W / 2, H / 2, 400, 600));
+    c.add(panel(this, W / 2, H / 2, 400, 720));
     const title = r.won ? (r.title || 'VICTORY') : 'YOU DIED';
-    const t = text(this, W / 2, 175, title, 26, r.won ? '#f2c84b' : '#d83c3c');
+    const t = text(this, W / 2, 95, title, 26, r.won ? '#f2c84b' : '#d83c3c');
     t.setScale(0.4);
     this.tweens.add({ targets: t, scale: 1, duration: 400, ease: 'Back.out' });
     c.add(t);
-    if (r.won) c.add(this.add.sprite(W / 2, 255, this.g.charDef.sprite, 0).setScale(3.4));
-    else c.add(this.add.sprite(W / 2, 255, this.g.charDef.sprite, 0).setScale(3.4).setAngle(90).setTint(0x8080a0));
+    if (r.daily) c.add(text(this, W / 2, 128, r.dailyNew ? 'DAILY CHALLENGE - NEW BEST!' : 'DAILY CHALLENGE', 8, '#7ad0f4'));
+    if (r.won) c.add(this.add.sprite(W / 2, 175, this.g.charDef.sprite, 0).setScale(3));
+    else c.add(this.add.sprite(W / 2, 175, this.g.charDef.sprite, 0).setScale(3).setAngle(90).setTint(0x8080a0));
     const rows = [
       ['TIME SURVIVED', fmtTime(r.time)],
       ['KILLS', String(r.kills)],
@@ -370,19 +427,41 @@ export default class UI extends Phaser.Scene {
       ['AGE REACHED', r.age],
     ];
     rows.forEach(([k, v], i) => {
-      const y = 330 + i * 34;
+      const y = 240 + i * 30;
       c.add(text(this, W / 2 - 160, y, k, 10, '#a090b0', 0));
       c.add(text(this, W / 2 + 160, y, v, 10, '#ffffff', 1));
     });
     const unlock = r.unlock || (save.bossesBeaten.stone ? 'Beat the boss of an age to\nadvance further next run.' : 'Tip: summon the boss when you feel\nstrong. Beat it to unlock the portal.');
-    c.add(text(this, W / 2, 500, unlock, 8, r.won ? '#7ad0f4' : '#c0b0d0'));
-    c.add(button(this, W / 2, 580, 260, 54, 'PLAY AGAIN', () => {
+    c.add(text(this, W / 2, 380, unlock, 8, r.won ? '#7ad0f4' : '#c0b0d0'));
+    // Sparks earned, line by line, then the total counts up
+    const sp = r.sparks || { total: 0, lines: [] };
+    let sy = 430;
+    sp.lines.forEach(([k, v], i) => {
+      const a = text(this, W / 2 - 150, sy, k.toUpperCase(), 8, '#a090b0', 0).setAlpha(0);
+      const b = text(this, W / 2 + 150, sy, `+${v}`, 8, '#ffe060', 1).setAlpha(0);
+      c.add([a, b]);
+      this.tweens.add({ targets: [a, b], alpha: 1, duration: 200, delay: 300 + i * 200 });
+      sy += 22;
+    });
+    const totalY = Math.max(sy + 14, 480);
+    c.add(this.add.image(W / 2 - 70, totalY, 'spark').setScale(2.2));
+    const tot = text(this, W / 2 - 50, totalY, '+0 SPARKS', 14, '#ffe060', 0);
+    c.add(tot);
+    const counter = { v: 0 };
+    this.tweens.add({
+      targets: counter, v: sp.total, duration: 700, delay: 300 + sp.lines.length * 200,
+      onUpdate: () => tot.setText(`+${Math.round(counter.v)} SPARKS`),
+      onComplete: () => { if (sp.total) audio.play('spark'); },
+    });
+    c.add(text(this, W / 2, totalY + 28, `YOU HAVE ${save.sparks} SPARKS. SPEND THEM ON THE MENU.`, 6, '#c0b0d0'));
+    c.add(button(this, W / 2, 620, 260, 54, 'PLAY AGAIN', () => {
       this.closeModal();
       save.runs++;
+      const daily = this.g.daily;
       this.scene.stop('Game');
-      this.scene.start('Game', { character: this.g.character });
+      this.scene.start('Game', { character: this.g.character, daily });
     }, { size: 16, color: COLORS.green, hi: COLORS.greenHi }));
-    c.add(button(this, W / 2, 650, 200, 46, 'MENU', () => {
+    c.add(button(this, W / 2, 690, 200, 46, 'MENU', () => {
       this.closeModal();
       this.scene.stop('Game');
       this.scene.start('Title');

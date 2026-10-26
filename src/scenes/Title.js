@@ -1,8 +1,25 @@
 import Phaser from 'phaser';
 import { audio } from '../audio.js';
 import { save, persist, resetProgress } from '../save.js';
-import { CHARACTERS, AGES, WEAPONS, ENEMIES } from '../data.js';
-import { W, H, text, button, panel, settingsPanel, COLORS, fmtTime } from '../ui.js';
+import { CHARACTERS, AGES, WEAPONS, ENEMIES, META, TWISTS } from '../data.js';
+import { W, H, text, button, panel, settingsPanel, COLORS, fmtTime, FONT } from '../ui.js';
+
+const fit = (img, size) => { const f = img.frame; return img.setScale(Math.min(size / f.width, size / f.height)); };
+
+// Today's daily challenge: same twists and weapon for everyone on the same date
+export function todaysDaily() {
+  const d = new Date();
+  const date = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+  let seed = 0;
+  for (const ch of date) seed = (seed * 31 + ch.charCodeAt(0)) % 2147483647;
+  const rnd = () => { seed = (seed * 16807 + 11) % 2147483647; return seed / 2147483647; };
+  const pool = (TWISTS || []).slice();
+  const twists = [];
+  while (twists.length < 2 && pool.length) twists.push(pool.splice(Math.floor(rnd() * pool.length), 1)[0].id);
+  const keys = Object.keys(WEAPONS);
+  const weapon = twists.includes('random') ? keys[Math.floor(rnd() * keys.length)] : null;
+  return { date, twists, weapon };
+}
 
 export default class Title extends Phaser.Scene {
   constructor() { super('Title'); }
@@ -33,16 +50,21 @@ export default class Title extends Phaser.Scene {
     this.time.addEvent({ delay: 220, loop: true, callback: () => this.hero.setFrame(this.hero.frame.name === 0 ? 1 : 0) });
 
     this.mainButtons = [
-      button(this, W / 2, 520, 240, 56, 'PLAY', () => this.showCharacterSelect(), { size: 20, color: COLORS.green, hi: COLORS.greenHi }),
-      button(this, W / 2, 596, 240, 48, 'SETTINGS', () => this.openSettings()),
-      button(this, W / 2, 660, 240, 44, 'EDITOR', () => { window.location.href = 'editor.html'; }, { size: 12, color: COLORS.purple, hi: COLORS.purpleHi }),
+      button(this, W / 2, 500, 260, 56, 'PLAY', () => this.showCharacterSelect(), { size: 20, color: COLORS.green, hi: COLORS.greenHi }),
+      button(this, W / 2 - 68, 568, 124, 48, 'DAILY', () => this.showDaily(), { size: 10, color: COLORS.red, hi: COLORS.redHi, icon: 'skull', iconScale: 1.6 }),
+      button(this, W / 2 + 68, 568, 124, 48, 'EVOLVE', () => this.showUpgrades(), { size: 10, icon: 'spark', iconScale: 1.8 }),
+      button(this, W / 2 - 68, 630, 124, 42, 'SETTINGS', () => this.openSettings(), { size: 8 }),
+      button(this, W / 2 + 68, 630, 124, 42, 'EDITOR', () => { window.location.href = 'editor.html'; }, { size: 8, color: COLORS.purple, hi: COLORS.purpleHi }),
     ];
+    // Sparks you own
+    this.add.image(W - 92, 26, 'spark').setScale(2);
+    this.sparkText = text(this, W - 76, 26, String(save.sparks), 12, '#ffe060', 0);
 
     const beaten = AGES.filter(a => save.bossesBeaten[a.key]).map(a => a.bossName);
     const info = [`RUNS ${save.runs}`, `BEST ${fmtTime(save.bestTime)}`];
     text(this, W / 2, 712, info.join('   '), 10, '#d8b890');
     text(this, W / 2, 736, beaten.length ? `BOSSES BEATEN: ${beaten.join(', ')}` : 'NO BOSSES BEATEN YET', 8, '#d8b890');
-    text(this, W / 2, 770, 'v0.1 MVP', 8, '#5a4a6a');
+    text(this, W / 2, 770, 'v0.2', 8, '#5a4a6a');
 
     this.input.once('pointerdown', () => { audio.unlock(); audio.playMusic('title'); });
     this.input.keyboard.once('keydown', () => { audio.unlock(); audio.playMusic('title'); });
@@ -81,7 +103,9 @@ export default class Title extends Phaser.Scene {
     c.add(text(this, W / 2, H / 2 - 245, 'CHOOSE YOUR\nCHARACTER', 16, '#e8c070'));
     const beatenBosses = new Set(AGES.filter(a => save.bossesBeaten[a.key]).map(a => a.boss));
     const isOpen = (ch) => !ch.unlock || ch.unlock === 'start' || beatenBosses.has(ch.unlock) || this.unlockAll;
-    const list = CHARACTERS.slice(0, 6);
+    const list = CHARACTERS.slice(0, 8);
+    const cols = Math.min(4, list.length);
+    const cw = 94, gap = 98;
     let selected = list.find(isOpen) || list[0];
     const desc = text(this, W / 2, H / 2 + 112, '', 8, '#e8d0b0');
     c.add(desc);
@@ -90,28 +114,28 @@ export default class Title extends Phaser.Scene {
       cards.forEach(({ ch, g, x, y }) => {
         const open = isOpen(ch), sel = ch === selected;
         g.clear();
-        g.fillStyle(open ? (sel ? 0x5a3a22 : 0x3a2618) : 0x2a1c14, 1).fillRect(x - 56, y - 76, 112, 150);
-        g.lineStyle(3, sel ? 0xf0c060 : open ? COLORS.border : 0x4a3a30, 1).strokeRect(x - 56, y - 76, 112, 150);
+        g.fillStyle(open ? (sel ? 0x5a3a22 : 0x3a2618) : 0x2a1c14, 1).fillRect(x - cw / 2, y - 76, cw, 150);
+        g.lineStyle(3, sel ? 0xf0c060 : open ? COLORS.border : 0x4a3a30, 1).strokeRect(x - cw / 2, y - 76, cw, 150);
       });
       const w = WEAPONS[selected.weapon];
       desc.setText(`${selected.name}, ${selected.title.toUpperCase()}\nStarts with: ${w ? w.name : '?'}\n${selected.hearts || 5} hearts`);
     };
     list.forEach((ch, i) => {
-      const col = i % 3, row = Math.floor(i / 3);
-      const x = W / 2 - 130 + col * 130, y = H / 2 - 120 + row * 160;
+      const col = i % cols, row = Math.floor(i / cols);
+      const x = W / 2 - ((cols - 1) * gap) / 2 + col * gap, y = H / 2 - 120 + row * 160;
       const g = this.add.graphics();
       c.add(g);
       cards.push({ ch, g, x, y });
       const open = isOpen(ch);
-      const spr = this.add.sprite(x, y - 18, this.textures.exists(ch.sprite) ? ch.sprite : 'caveman', 0).setScale(2.6);
+      const spr = this.add.sprite(x, y - 18, this.textures.exists(ch.sprite) ? ch.sprite : 'caveman', 0).setScale(2.3);
       if (!open) spr.setTintFill(0x140a06);
       else this.tweens.add({ targets: spr, y: y - 23, yoyo: true, repeat: -1, duration: 500 + i * 40 });
       c.add(spr);
-      if (!open) c.add(this.add.image(x, y - 18, 'lock').setScale(2.4));
-      c.add(text(this, x, y + 46, open ? ch.name : '???', 10, open ? '#ffffff' : '#7a6a5a'));
+      if (!open) c.add(this.add.image(x, y - 18, 'lock').setScale(2.2));
+      c.add(text(this, x, y + 46, open ? ch.name : '???', 9, open ? '#ffffff' : '#7a6a5a'));
       const boss = Object.values(ENEMIES).find((e, k) => Object.keys(ENEMIES)[k] === ch.unlock);
       c.add(text(this, x, y + 62, open ? ch.title : `Beat ${boss ? boss.name : 'a boss'}`, 6, '#c0a080'));
-      const hit = this.add.rectangle(x, y, 112, 150, 0xffffff, 0.001).setInteractive({ useHandCursor: true });
+      const hit = this.add.rectangle(x, y, cw, 150, 0xffffff, 0.001).setInteractive({ useHandCursor: true });
       hit.on('pointerup', () => { if (!open) { audio.play('deny'); return; } audio.play('select'); selected = ch; refresh(); });
       c.add(hit);
     });
@@ -120,10 +144,94 @@ export default class Title extends Phaser.Scene {
     c.add(button(this, W / 2, H / 2 + 240, 160, 40, 'BACK', () => { c.destroy(); this.mainButtons.forEach(b => b.setVisible(true)); }, { size: 12 }));
   }
 
-  startRun(character) {
+  startRun(character, daily = null) {
     save.runs++;
     persist();
     audio.stopMusic();
-    this.scene.start('Game', { character });
+    this.scene.start('Game', { character, daily });
+  }
+
+  // Permanent upgrades bought with Sparks
+  showUpgrades() {
+    audio.unlock();
+    this.mainButtons.forEach(b => b.setVisible(false));
+    const c = this.add.container(0, 0).setDepth(500);
+    c.add(this.add.rectangle(W / 2, H / 2, W, H, 0x000000, 0.75).setInteractive());
+    c.add(panel(this, W / 2, H / 2, 420, 740));
+    c.add(text(this, W / 2, 62, 'EVOLVE', 22, '#e8c070'));
+    c.add(text(this, W / 2, 90, 'Upgrades that last forever', 8, '#c0a080'));
+    c.add(this.add.image(W / 2 - 40, 118, 'spark').setScale(2));
+    const have = text(this, W / 2 - 22, 118, '', 12, '#ffe060', 0);
+    c.add(have);
+    const rows = this.add.container(0, 0);
+    c.add(rows);
+    const cost = (m) => m.base + m.grow * (save.upgrades[m.id] || 0);
+    const draw = () => {
+      rows.removeAll(true);
+      have.setText(String(save.sparks));
+      this.sparkText.setText(String(save.sparks));
+      (META || []).forEach((m, i) => {
+        const y = 160 + i * 66;
+        const lvl = save.upgrades[m.id] || 0;
+        const maxed = lvl >= m.max;
+        const g = this.add.graphics();
+        g.fillStyle(0x1e1009, 1).fillRect(W / 2 - 196, y - 29, 392, 60);
+        g.fillStyle(0x3a2618, 1).fillRect(W / 2 - 194, y - 27, 388, 56);
+        rows.add(g);
+        if (this.textures.exists(m.icon)) rows.add(fit(this.add.image(W / 2 - 168, y, m.icon, 0), 36));
+        rows.add(text(this, W / 2 - 140, y - 13, m.name.toUpperCase(), 9, '#ffffff', 0));
+        rows.add(this.add.text(W / 2 - 140, y + 8, m.blurb, { fontFamily: FONT, fontSize: '7px', color: '#d0b890' }).setOrigin(0, 0.5));
+        // Level pips
+        for (let k = 0; k < m.max; k++) rows.add(this.add.rectangle(W / 2 - 136 + k * 12, y + 22, 9, 4, k < lvl ? 0xffe060 : 0x5a4030));
+        const b = button(this, W / 2 + 140, y, 96, 40, maxed ? 'MAX' : String(cost(m)), () => {
+          if (maxed) return;
+          const c2 = cost(m);
+          if (save.sparks < c2) { audio.play('deny'); return; }
+          save.sparks -= c2;
+          save.upgrades[m.id] = lvl + 1;
+          persist();
+          audio.play('buy');
+          draw();
+        }, { size: 10, icon: maxed ? null : 'spark', iconScale: 1.4, color: maxed ? COLORS.grey : COLORS.green, hi: maxed ? COLORS.grey : COLORS.greenHi });
+        if (!maxed && save.sparks < cost(m)) b.setAlpha(0.55);
+        if (maxed) b.setDisabled(true);
+        rows.add(b);
+      });
+    };
+    draw();
+    c.add(text(this, W / 2, 698, 'Earn Sparks every run: bosses, big enemies,\ntime survived and leftover coins.', 7, '#c0a080'));
+    c.add(button(this, W / 2, 742, 160, 36, 'BACK', () => { c.destroy(); this.mainButtons.forEach(b => b.setVisible(true)); }, { size: 12 }));
+  }
+
+  showDaily() {
+    audio.unlock();
+    this.mainButtons.forEach(b => b.setVisible(false));
+    const daily = todaysDaily();
+    const c = this.add.container(0, 0).setDepth(500);
+    c.add(this.add.rectangle(W / 2, H / 2, W, H, 0x000000, 0.75).setInteractive());
+    c.add(panel(this, W / 2, H / 2, 400, 560));
+    c.add(text(this, W / 2, H / 2 - 236, 'DAILY CHALLENGE', 16, '#d83c3c'));
+    c.add(text(this, W / 2, H / 2 - 208, daily.date, 8, '#c0a080'));
+    c.add(text(this, W / 2, H / 2 - 180, 'Same run for everyone today', 8, '#d0b890'));
+    daily.twists.forEach((id, i) => {
+      const t = TWISTS.find(x => x.id === id);
+      const y = H / 2 - 120 + i * 76;
+      const g = this.add.graphics();
+      g.fillStyle(0x1e1009, 1).fillRect(W / 2 - 170, y - 30, 340, 62);
+      g.fillStyle(0x5a2018, 1).fillRect(W / 2 - 168, y - 28, 336, 58);
+      c.add(g);
+      c.add(text(this, W / 2, y - 10, t.name.toUpperCase(), 12, '#ffd0a0'));
+      c.add(text(this, W / 2, y + 14, t.blurb, 8, '#ffffff'));
+    });
+    if (daily.weapon) c.add(text(this, W / 2, H / 2 + 34, `Starting weapon: ${WEAPONS[daily.weapon].name}`, 8, '#7ad0f4'));
+    const d = save.daily;
+    const today = d.date === daily.date;
+    c.add(text(this, W / 2, H / 2 + 70, today && d.best ? `TODAY'S BEST: ${fmtTime(d.best)}  (${d.bestKills} kills)` : 'No run yet today', 9, '#e8c070'));
+    if (!(today && d.played)) {
+      c.add(this.add.image(W / 2 - 92, H / 2 + 100, 'spark').setScale(1.6));
+      c.add(text(this, W / 2 - 78, H / 2 + 100, 'First run today: +20 Sparks', 8, '#ffe060', 0));
+    }
+    c.add(button(this, W / 2, H / 2 + 165, 260, 56, 'START', () => this.startRun(CHARACTERS[0].key, daily), { size: 18, color: COLORS.green, hi: COLORS.greenHi }));
+    c.add(button(this, W / 2, H / 2 + 232, 160, 40, 'BACK', () => { c.destroy(); this.mainButtons.forEach(b => b.setVisible(true)); }, { size: 12 }));
   }
 }

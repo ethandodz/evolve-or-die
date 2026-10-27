@@ -292,6 +292,7 @@ export default class UI extends Phaser.Scene {
     c.add(chest);
     this.tweens.add({ targets: chest, angle: { from: -8, to: 8 }, yoyo: true, repeat: 5, duration: 70 });
     this.time.delayedCall(450, () => {
+      if (!chest.scene) return;
       chest.setTexture('chest_open');
       this.cameras.main.flash(250, 255, 220, 140);
       this.tweens.add({ targets: glow, alpha: 0.9, scale: 7, duration: 300 });
@@ -311,92 +312,6 @@ export default class UI extends Phaser.Scene {
       const done = () => { this.closeModal(); this.g.closeTreasure(); };
       c.add(button(this, W / 2, 600, 260, 56, 'TAKE IT', () => { this.g.takeRelic(relic.id); audio.play('buy'); done(); }, { size: 16, color: COLORS.green, hi: COLORS.greenHi }));
       c.add(button(this, W / 2, 672, 200, 46, 'LEAVE IT', () => { this.g.leaveRelic(); audio.play('coin'); done(); }, { size: 12 }));
-    });
-  }
-
-  // ------------------------------------------------------------------
-  // Treasure chest: it shakes, bursts open, then reels spin and land on each reward
-  showTreasure(rewards) {
-    const c = this.openModal();
-    c.kind = 'treasure';
-    const title = text(this, W / 2, 120, 'TREASURE!', 28, '#f2c84b');
-    c.add(title);
-    const glow = this.add.image(W / 2, 250, 'glow').setScale(5).setAlpha(0).setBlendMode(Phaser.BlendModes.ADD);
-    c.add(glow);
-    const chest = this.add.image(W / 2, 250, 'treasure').setScale(6);
-    c.add(chest);
-    this.tweens.add({ targets: chest, angle: { from: -8, to: 8 }, yoyo: true, repeat: 5, duration: 70 });
-    const LOOT = {
-      coins: (r) => ['coin', `+${r.amount} COINS`, 'Spend them at the wizard'],
-      heal: () => ['meat', 'FULL HEAL', 'All hearts back'],
-      lucky: () => ['star', 'LUCKY STAR', 'Next level-up: all cards Rare or better'],
-      reroll: () => ['reroll', '+1 REROLL', 'For level-up cards'],
-      magnet: () => ['magnet', 'XP MAGNET', 'Pulls in every XP gem'],
-      sparks: (r) => ['spark', `+${r.amount} SPARKS`, 'Kept between runs'],
-    };
-    const icons = ['coin', 'meat', 'star', 'reroll', 'magnet', 'spark'];
-    const reels = [];
-    const n = rewards.length;
-    const startY = n > 3 ? 360 : 400;
-    const gap = n > 3 ? 62 : 80;
-    rewards.forEach((r, i) => {
-      const y = startY + i * gap;
-      const row = this.add.container(0, 0).setAlpha(0);
-      const box = this.add.graphics();
-      row.add(box);
-      const ic = this.add.image(W / 2 - 150, y, icons[0]).setScale(2.5);
-      row.add(ic);
-      const label = text(this, W / 2 - 110, y - 8, '', 10, '#ffffff', 0);
-      const sub = text(this, W / 2 - 110, y + 12, '', 7, '#d0c0e0', 0);
-      row.add([label, sub]);
-      c.add(row);
-      reels.push({ r, row, box, ic, label, sub, y });
-    });
-    const drawBox = (rl, color) => {
-      rl.box.clear();
-      rl.box.fillStyle(0x0c0810, 1).fillRect(W / 2 - 193, rl.y - gap / 2 + 3, 386, gap - 6);
-      rl.box.fillStyle(0x2e2240, 1).fillRect(W / 2 - 190, rl.y - gap / 2 + 6, 380, gap - 12);
-      rl.box.lineStyle(3, color, 1).strokeRect(W / 2 - 190, rl.y - gap / 2 + 6, 380, gap - 12);
-    };
-    const land = (rl) => {
-      const r = rl.r;
-      const [icon, name, what] = (LOOT[r.type] || LOOT.coins)(r);
-      const special = r.type === 'lucky' || r.type === 'sparks';
-      fit(rl.ic.setTexture(icon, 0), 44);
-      rl.label.setText(name);
-      rl.sub.setText(what).setColor(special ? '#ffc040' : '#d0c0e0');
-      drawBox(rl, special ? 0xffa020 : 0xe8c070);
-      rl.ic.setScale(rl.ic.scaleX * 1.6);
-      this.tweens.add({ targets: rl.ic, scale: rl.ic.scaleX / 1.6, duration: 250, ease: 'Back.out' });
-      audio.play(special ? 'gift' : 'select');
-    };
-    // Open the lid
-    this.time.delayedCall(450, () => {
-      chest.setTexture('chest_open');
-      this.tweens.add({ targets: glow, alpha: 0.9, scale: 7, duration: 300 });
-      this.tweens.add({ targets: glow, angle: 360, duration: 4000, repeat: -1 });
-      this.cameras.main.flash(200, 255, 230, 160);
-      reels.forEach((rl, i) => {
-        drawBox(rl, 0x7a48b0);
-        this.tweens.add({ targets: rl.row, alpha: 1, duration: 200, delay: i * 80 });
-        // Spin through random icons, then land; each reel stops a bit later
-        let k = 0;
-        const spin = this.time.addEvent({
-          delay: 60, loop: true, callback: () => {
-            k++;
-            fit(rl.ic.setTexture(icons[(k + i * 3) % icons.length], 0), 44);
-            audio.play('reel');
-          },
-        });
-        this.time.delayedCall(700 + i * 380, () => { spin.remove(); land(rl); });
-      });
-      const done = 700 + n * 380 + 200;
-      this.time.delayedCall(done, () => {
-        c.add(button(this, W / 2, 720, 240, 54, 'COLLECT', () => {
-          this.closeModal();
-          this.g.closeTreasure();
-        }, { size: 16, color: COLORS.green, hi: COLORS.greenHi }));
-      });
     });
   }
 

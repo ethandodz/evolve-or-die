@@ -1,7 +1,7 @@
 import Phaser from 'phaser';
 import { audio } from '../audio.js';
 import { save, persist } from '../save.js';
-import { AGES, ENEMIES, WEAPONS, PASSIVES, SHOP_ITEMS, RARE_ITEMS, META, CFG, RARITIES, wholeEffect, AGE_LENGTH, BAL, CHARACTERS, COMBOS, EVENTS, statsOf, xpForLevel, POOL_WEAPONS, baseWeapon, RELICS, RELIC_CHANCE } from '../data.js';
+import { AGES, ENEMIES, WEAPONS, PASSIVES, SHOP_ITEMS, RARE_ITEMS, META, CFG, RARITIES, wholeEffect, AGE_LENGTH, BAL, CHARACTERS, COMBOS, EVENTS, statsOf, xpForLevel, POOL_WEAPONS, baseWeapon, RELICS } from '../data.js';
 import { W, H, FONT, buzz } from '../ui.js';
 import { stats, bump, best, allQuests, isDone, doneIds } from '../quests.js';
 import { submitScore, cloudBackup, onlineEnabled } from '../online.js';
@@ -123,11 +123,10 @@ export default class Game extends Phaser.Scene {
     this.combos = new Set();   // weapon combos that are active
     this.event = null;         // random event going on (gold rush, eclipse...)
     this.hitSrc = null;        // weapon doing the hitting, for per-weapon quests
-    this.runHits = {};
+    this.runHits = {};         // damage and kills per weapon this run, for the stats screen
     this.relics = new Set();   // relics taken this run
     this.aliens = [];          // Alien Egg swarm
     this.sword = null;         // Excalibur
-    this.lucky = 0;            // level-ups left whose cards are all Rare or better (chest Lucky Star)         // damage and kills per weapon this run, for the stats screen
     this.coinsEarned = 0;
     this.questsDone = doneIds();
     this.questT = 1;
@@ -770,9 +769,10 @@ export default class Game extends Phaser.Scene {
     }
     if (e.thief) {
       bump('thieves');
-      this.dropPickup('treasure', e.x, e.y);
+      const chest = this.dropTreasure(e.x, e.y);
+      if (!chest) this.dropPickup('chest', e.x, e.y);
       for (let i = 0; i < 8; i++) this.dropPickup('coin', e.x + rand(-20, 20), e.y + rand(-20, 20), this.mods.coin * 2);
-      this.ui.banner('CAUGHT!', 'He dropped a treasure chest', 1600, '#7ad0f4');
+      this.ui.banner('CAUGHT!', chest ? 'He dropped a relic chest' : 'He dropped his loot', 1600, '#7ad0f4');
       if (this.event && this.event.target === e) this.event = null;
     }
     if (e.mode !== 'stampede' || Math.random() < 0.5) {
@@ -786,7 +786,7 @@ export default class Game extends Phaser.Scene {
     else if (e.def.heavy || e.elite) {
       for (let i = 0; i < 4; i++) this.dropPickup('coin', e.x + rand(-14, 14), e.y + rand(-14, 14), coin);
       if (Math.random() < (e.def.heavy ? 0.35 : 0.25)) this.dropPickup('spark', e.x, e.y - 8, 1);
-      if (e.elite && Math.random() < (BAL.treasureChance ?? 0.15)) this.dropPickup('treasure', e.x + 10, e.y + 10);
+      if (e.elite && Math.random() < (BAL.treasureChance ?? 0.15)) this.dropTreasure(e.x + 10, e.y + 10);
     }
     else if (r < coinChance) this.dropPickup('coin', e.x + 6, e.y, coin);
     else if (r < coinChance + BAL.meatChance) { if (!this.mods.noMeat) this.dropPickup('meat', e.x, e.y); }
@@ -1419,23 +1419,20 @@ export default class Game extends Phaser.Scene {
 
   makeChoices() {
     const pool = shuffle(this.upgradePool());
-    const lucky = this.lucky > 0;
-    if (lucky) this.lucky--;
-    const out = pool.slice(0, 3).map(c => this.rollRarity(c, lucky));
+    const out = pool.slice(0, 3).map(c => this.rollRarity(c));
     if (!out.length) return [{ type: 'heal' }, { type: 'coins' }];
     return out;
   }
 
   // Cards can come up Rare, Epic or Legendary for a bigger stat boost (still one level)
-  rollRarity(c, lucky = false) {
+  rollRarity(c) {
     const ch = BAL.rarityChances || [1, 0, 0, 0];
     let r = Math.random(), ri = 0;
     for (let i = ch.length - 1; i > 0; i--) {
       const above = ch.slice(i).reduce((a, b) => a + b, 0);
       if (r < above) { ri = i; break; }
     }
-    if (lucky && ri < 1) ri = 1;
-    if (c.type === 'passive' && wholeEffect(PASSIVES[c.key].effect) && ri < 3) ri = lucky ? 3 : 0;
+    if (c.type === 'passive' && wholeEffect(PASSIVES[c.key].effect) && ri < 3) ri = 0;
     c.rarity = ri;
     c.mult = RARITIES[ri].mult;
     c.level = c.cur + 1;
@@ -1865,7 +1862,7 @@ export default class Game extends Phaser.Scene {
     if (this.braveSummon) bump('brave');
     buzz(200);
     const lm = this.lootMul || 1;
-    this.dropPickup('treasure', b.x - 30, b.y + 10);
+    this.dropTreasure(b.x - 30, b.y + 10);
     for (let i = 0; i < Math.round(12 * lm); i++) this.dropPickup('coin', b.x + rand(-50, 50), b.y + rand(-50, 50), 2);
     this.dropPickup('chest', b.x, b.y, lm);
     this.dropPickup('spark', b.x + 20, b.y - 10, Math.round(((BAL.sparkBoss ?? 4) + 3 * this.ageIndex) * lm));
@@ -2089,51 +2086,29 @@ export default class Game extends Phaser.Scene {
 
   // ------------------------------------------------------------------
   // Treasure chests: a spin of 1, 3 or 5 free upgrades
+  // Treasure chests only hold relics, so they only drop while an unlocked relic is still to be found
+  relicsLeft() { return RELICS.filter(r => save.relics[r.id] && !this.relics.has(r.id)); }
+
+  dropTreasure(x, y) {
+    const onGround = this.pickups.filter(k => k.kind === 'treasure').length;
+    if (onGround >= this.relicsLeft().length) return false;
+    this.dropPickup('treasure', x, y);
+    return true;
+  }
+
   openTreasure() {
     if (this.over) return;
+    // Two chests picked up at once: the second opens after the first
+    if (this.chestOpen) { this.chestQueue = (this.chestQueue || 0) + 1; return; }
+    const relics = this.relicsLeft();
+    if (!relics.length) { this.leaveRelic(); return; }
     bump('chests');
-    // Sometimes the chest holds a relic you have unlocked: take it or leave it
-    const relics = RELICS.filter(r => save.relics[r.id] && !this.relics.has(r.id));
-    if (relics.length && Math.random() < RELIC_CHANCE) {
-      const relic = pick(relics);
-      this.frozen = true;
-      audio.play('chest');
-      buzz(40);
-      this.time.delayedCall(10, () => { this.scene.pause(); this.ui.showRelic(relic); });
-      return;
-    }
-    // Chests never give upgrades (those are chosen on level-ups), only loot and help
-    const roll = Math.random();
-    const n = roll < 0.08 ? 5 : roll < 0.35 ? 3 : 1;
-    const p = this.player;
-    const coins = 40 * (this.ageIndex + 1);
-    const table = [
-      { type: 'coins', w: 4, amount: coins },
-      { type: 'heal', w: p.hearts < p.maxHearts ? 3 : 0 },
-      { type: 'lucky', w: 2 },
-      { type: 'reroll', w: 2 },
-      { type: 'magnet', w: 1.5 },
-      { type: 'sparks', w: 1, amount: 2 },
-    ];
-    const rewards = [];
-    for (let i = 0; i < n; i++) {
-      const opts = table.filter(t => t.w > 0 && (t.type === 'coins' || !rewards.some(r => r.type === t.type)));
-      let x = Math.random() * opts.reduce((s, t) => s + t.w, 0);
-      const t = opts.find(o => (x -= o.w) <= 0) || opts[0];
-      rewards.push({ ...t });
-      switch (t.type) {
-        case 'coins': this.coins += t.amount; this.coinsEarned += t.amount; break;
-        case 'heal': p.hearts = p.maxHearts; break;
-        case 'lucky': this.lucky += 1; break;
-        case 'reroll': this.rerolls += 1; break;
-        case 'magnet': for (const o of this.pickups) if (o.kind === 'gem') { o.fly = true; o.v = 200; } break;
-        case 'sparks': this.sparks += t.amount; break;
-      }
-    }
+    const relic = pick(relics);
+    this.chestOpen = true;
     this.frozen = true;
     audio.play('chest');
     buzz(40);
-    this.time.delayedCall(10, () => { this.scene.pause(); this.ui.showTreasure(rewards); });
+    this.time.delayedCall(10, () => { this.scene.pause(); this.ui.showRelic(relic); });
   }
 
   takeRelic(id) {
@@ -2167,12 +2142,15 @@ export default class Game extends Phaser.Scene {
   leaveRelic() {
     const c = 40 * (this.ageIndex + 1);
     this.coins += c; this.coinsEarned += c;
+    this.floatText(this.player.x, this.player.y - 30, `+${c} COINS`, '#f2c84b');
   }
 
   closeTreasure() {
     this.frozen = false;
+    this.chestOpen = false;
     this.player.inv = Math.max(this.player.inv, 0.6);
     this.scene.resume();
+    if (this.chestQueue > 0) { this.chestQueue--; this.time.delayedCall(300, () => this.openTreasure()); }
   }
 
   // ------------------------------------------------------------------

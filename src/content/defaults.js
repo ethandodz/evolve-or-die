@@ -4,7 +4,7 @@
 export const DEFAULT_CONFIG = {
   version: 1,
   // Bump when new built-in content is added, so saved editor edits get it too (see config.js)
-  contentVersion: 10,
+  contentVersion: 11,
 
   balance: {
     ageLength: 300,        // seconds until the time police arrive
@@ -280,7 +280,6 @@ export const DEFAULT_CONFIG = {
     { id: 'declaration', name: 'Declaration of Independence', icon: 'declaration', cost: 2000, blurb: 'Home of the brave, land of the free! The max level of your weapons goes up by 5.' },
     { id: 'ark', name: 'Ark of the Covenant', icon: 'ark', cost: 2500, blurb: 'All your weapons and weapon slots are replaced by the Ark: piercing beams of holy light that do huge damage.' },
   ],
-  relicChance: 0.5,  // chance a treasure chest holds a relic (when you have unlocked ones left to find)
 
   // Owning both weapons of a combo gives a bonus (weapons keep their type)
   combos: [

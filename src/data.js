@@ -14,7 +14,6 @@ export const RARE_ITEMS = CFG.rareShop;
 export const META = CFG.meta;
 export const TWISTS = CFG.twists;
 export const RELICS = CFG.relics || [];
-export const RELIC_CHANCE = CFG.relicChance ?? 0.5;
 export const COMBOS = CFG.combos || [];
 // Weapons anyone can find; signature weapons belong to one character
 export const POOL_WEAPONS = Object.keys(WEAPONS).filter(k => !WEAPONS[k].signature);

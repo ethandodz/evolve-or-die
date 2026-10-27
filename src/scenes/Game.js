@@ -1,7 +1,7 @@
 import Phaser from 'phaser';
 import { audio } from '../audio.js';
 import { save, persist } from '../save.js';
-import { AGES, ENEMIES, WEAPONS, PASSIVES, SHOP_ITEMS, RARE_ITEMS, META, CFG, RARITIES, AGE_LENGTH, BAL, CHARACTERS, statsOf, xpForLevel } from '../data.js';
+import { AGES, ENEMIES, WEAPONS, PASSIVES, SHOP_ITEMS, RARE_ITEMS, META, CFG, RARITIES, wholeEffect, AGE_LENGTH, BAL, CHARACTERS, statsOf, xpForLevel } from '../data.js';
 import { W, H, FONT } from '../ui.js';
 import { controls } from '../controls.js';
 
@@ -116,6 +116,7 @@ export default class Game extends Phaser.Scene {
 
     this.weapons = [];
     this.passives = {};
+    this.passivePts = {}; // levels weighted by card rarity
     this.passiveOrder = [];
 
     this.cameras.main.setRoundPixels(true);
@@ -754,6 +755,8 @@ export default class Game extends Phaser.Scene {
     for (const w of this.weapons) {
       const st = statsOf(w.key, w.level);
       st.icon = WEAPONS[w.key].icon;
+      // Rare+ level-ups add a bigger share of each stat's per-level step
+      if (w.boost) for (const [k, s] of Object.entries(WEAPONS[w.key].stats || {})) if (s && s.per) st[k] += s.per * w.boost;
       if (w.dmgMul) st.dmg *= w.dmgMul;
       if (w.bonusCount && st.count !== undefined) st.count += w.bonusCount;
       switch (WEAPONS[w.key].behavior) {
@@ -1235,7 +1238,7 @@ export default class Game extends Phaser.Scene {
     return out;
   }
 
-  // Cards can come up Rare, Epic or Legendary for bigger upgrades
+  // Cards can come up Rare, Epic or Legendary for a bigger stat boost (still one level)
   rollRarity(c) {
     const ch = BAL.rarityChances || [1, 0, 0, 0];
     let r = Math.random(), ri = 0;
@@ -1243,13 +1246,10 @@ export default class Game extends Phaser.Scene {
       const above = ch.slice(i).reduce((a, b) => a + b, 0);
       if (r < above) { ri = i; break; }
     }
-    // Not enough room for the extra levels: a lower rarity (Legendary weapons still get their bonus)
-    const room = c.max - c.cur - 1;
-    while (ri > 0 && RARITIES[ri].extra > room && !(ri === 3 && c.type === 'weapon')) ri--;
+    if (c.type === 'passive' && wholeEffect(PASSIVES[c.key].effect) && ri < 3) ri = 0;
     c.rarity = ri;
-    c.gain = 1 + Math.min(RARITIES[ri].extra, Math.max(0, room));
-    c.level = c.cur + c.gain;
-    c.legendary = ri === 3 && c.type === 'weapon';
+    c.mult = RARITIES[ri].mult;
+    c.level = c.cur + 1;
     return c;
   }
 
@@ -1260,19 +1260,22 @@ export default class Game extends Phaser.Scene {
   }
 
   applyChoice(c) {
-    const gain = c.gain || 1;
+    const mult = c.mult || 1;
     if (c.type === 'weapon') {
       let w = this.weapons.find(x => x.key === c.key);
-      if (w) w.level += gain; else { w = this.addWeapon(c.key); w.level = gain; }
-      if (c.legendary) {
-        w.dmgMul = (w.dmgMul || 1) * 1.3;
-        w.bonusCount = (w.bonusCount || 0) + 1;
-        w.legendary = true;
+      if (w) w.level++; else w = this.addWeapon(c.key);
+      if (mult > 1) {
+        w.boost = (w.boost || 0) + (mult - 1);
+        // Legendary doubles this level's extra attacks too
+        const cs = WEAPONS[c.key].stats?.count;
+        if (c.rarity === 3 && cs && (cs.at || []).includes(w.level)) w.bonusCount = (w.bonusCount || 0) + 1;
+        if (c.rarity === 3) w.legendary = true;
       }
     } else if (c.type === 'passive') {
-      if (!this.passives[c.key]) { this.passives[c.key] = 0; this.passiveOrder.push(c.key); }
-      this.passives[c.key] += gain;
-      if (PASSIVES[c.key].effect === 'hearts') { this.recomputeStats(); this.player.hearts = Math.min(this.player.maxHearts, this.player.hearts + gain); }
+      if (!this.passives[c.key]) { this.passives[c.key] = 0; this.passivePts[c.key] = 0; this.passiveOrder.push(c.key); }
+      this.passives[c.key]++;
+      this.passivePts[c.key] += mult;
+      if (PASSIVES[c.key].effect === 'hearts') { this.recomputeStats(); this.player.hearts = Math.min(this.player.maxHearts, this.player.hearts + Math.round(mult)); }
     } else if (c.type === 'heal') {
       this.player.hearts = this.player.maxHearts;
     } else if (c.type === 'coins') {
@@ -1299,7 +1302,7 @@ export default class Game extends Phaser.Scene {
     const sum = { hearts: 0, speed: 0, count: 0, damage: 0, area: 0, pickup: 0 };
     for (const [k, lvl] of Object.entries(this.passives)) {
       const d = PASSIVES[k];
-      if (d && sum[d.effect] !== undefined) sum[d.effect] += d.amount * lvl;
+      if (d && sum[d.effect] !== undefined) sum[d.effect] += d.amount * (this.passivePts[k] ?? lvl);
     }
     const ch = this.charDef;
     const m = this.meta, mods = this.mods;
@@ -1726,7 +1729,7 @@ export default class Game extends Phaser.Scene {
       const k = pool.find(x => !used.has(x) && x !== w.key) || pool.find(x => !used.has(x));
       used.add(k);
       const nw = this.addWeapon(k);
-      Object.assign(nw, { level: Math.min(w.level, this.weaponMax(k)), dmgMul: w.dmgMul, bonusCount: w.bonusCount, legendary: w.legendary });
+      Object.assign(nw, { level: Math.min(w.level, this.weaponMax(k)), boost: w.boost, dmgMul: w.dmgMul, bonusCount: w.bonusCount, legendary: w.legendary });
     }
   }
 

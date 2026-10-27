@@ -1,7 +1,7 @@
 import Phaser from 'phaser';
 import { audio } from '../audio.js';
 import { save } from '../save.js';
-import { WEAPONS, PASSIVES, AGES, RARITIES } from '../data.js';
+import { WEAPONS, PASSIVES, AGES, RARITIES, boostedBlurb } from '../data.js';
 import { W, H, text, button, panel, settingsPanel, COLORS, fmtTime, FONT } from '../ui.js';
 import { controls } from '../controls.js';
 
@@ -274,18 +274,21 @@ export default class UI extends Phaser.Scene {
 
   choiceCard(ch, x, y, onPick) {
     let name, desc, icon, tag, tagColor;
+    const mult = ch.mult || 1;
+    const pct = Math.round((mult - 1) * 100);
     if (ch.type === 'weapon') {
       const d = WEAPONS[ch.key];
       name = d.name; icon = d.icon;
-      desc = ch.isNew ? `${d.kind}. ${d.blurb}` : (d.levels[ch.level - 1] || 'More damage, faster');
+      if (ch.isNew) desc = `${d.kind}. ${d.blurb}`;
+      else desc = (d.levels[ch.level - 1] || 'More damage, faster').replace(/\+(\d+(\.\d+)?) damage/, (m, n) => `+${+(parseFloat(n) * mult).toFixed(1)} damage`);
+      if (mult > 1) desc += ch.isNew ? `\nStarts ${pct}% stronger` : `\n${pct}% bigger boost`;
+      const cs = d.stats?.count;
+      if (ch.rarity === 3 && cs && (cs.at || []).includes(ch.level) && !ch.isNew) desc += ', +1 extra attack';
       tag = ch.isNew ? 'NEW WEAPON' : `LV ${ch.level}`; tagColor = ch.isNew ? '#f2c84b' : '#7ad0f4';
-      if (ch.isNew && ch.level > 1) tag = `NEW, LV ${ch.level}`;
-      if (ch.legendary) desc = `${desc}\nLEGENDARY: +30% damage, +1 attack`;
     } else if (ch.type === 'passive') {
       const d = PASSIVES[ch.key];
-      name = d.name; icon = d.icon; desc = d.blurb;
+      name = d.name; icon = d.icon; desc = boostedBlurb(d.blurb, mult);
       tag = ch.isNew ? 'NEW PASSIVE' : `LV ${ch.level}`; tagColor = ch.isNew ? '#c08aff' : '#7ad0f4';
-      if (ch.isNew && ch.level > 1) tag = `NEW, LV ${ch.level}`;
     } else if (ch.type === 'heal') {
       name = 'Roast Meat'; icon = 'meat'; desc = 'Heal all hearts.'; tag = ''; tagColor = '#fff';
     } else {
@@ -310,7 +313,7 @@ export default class UI extends Phaser.Scene {
     card.add(text(this, x - w / 2 + 100, y - 30, name.toUpperCase(), 12, '#ffffff', 0));
     if (tag) card.add(text(this, x + w / 2 - 12, y - 30, tag, 8, tagColor, 1));
     if (fancy) {
-      const label = `${rar.name}${ch.gain > 1 ? ` +${ch.gain} LV` : ''}`;
+      const label = `${rar.name} x${rar.mult}`;
       const rt = text(this, x + w / 2 - 12, y + h / 2 - 12, label, 8, rar.text, 1);
       card.add(rt);
       if (ch.rarity >= 2) this.tweens.add({ targets: rt, alpha: 0.4, yoyo: true, repeat: -1, duration: 400 });

@@ -4,7 +4,7 @@
 export const DEFAULT_CONFIG = {
   version: 1,
   // Bump when new built-in content is added, so saved editor edits get it too (see config.js)
-  contentVersion: 5,
+  contentVersion: 6,
 
   balance: {
     ageLength: 300,        // seconds until the time police arrive
@@ -60,6 +60,8 @@ export const DEFAULT_CONFIG = {
       damageTaken: 0.5, perk: 'Hits only take half a heart', drawback: '15% slower' },
     { key: 'centurion', name: 'MARCUS', title: 'The Centurion', sprite: 'centurion', weapon: 'spear', hearts: 5, speed: 0.95, unlock: 'kills:1500',
       bonusCount: 1, dmgMul: 0.85, perk: '+1 attack for every weapon', drawback: '-15% damage' },
+    { key: 'inventor', name: 'NICO', title: 'The Inventor', sprite: 'inventor', weapon: 'bolt', hearts: 4, speed: 1, unlock: 'mech',
+      cdMul: 0.8, areaMul: 0.8, perk: 'Weapons attack 25% faster', drawback: '-20% area and range' },
   ],
 
   // stats: each value is base + per * (level - 1) + one for every level in "at" that is reached

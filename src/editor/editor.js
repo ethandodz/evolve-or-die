@@ -214,6 +214,7 @@ function renderCharacters(main) {
       num(cur, 'dmgMul', 'Damage multiplier', '1.3 = +30%'),
       num(cur, 'weaponSlots', 'Weapon slots', 'Normally 3'),
       num(cur, 'damageTaken', 'Damage taken per hit', '1 = a heart, 0.5 = half a heart'),
+      num(cur, 'cdMul', 'Attack delay multiplier', '0.8 = weapons attack 25% faster'),
       num(cur, 'critMul', 'Crit chance multiplier', '2 = crits twice as often'),
       num(cur, 'xpMul', 'XP multiplier'), num(cur, 'areaMul', 'Area multiplier'),
       num(cur, 'bonusCount', 'Extra attacks', '+N attacks for every weapon'),

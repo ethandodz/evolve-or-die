@@ -779,6 +779,8 @@ export default class Game extends Phaser.Scene {
       const xp = e.def.xp * this.age.xpMul * this.mods.xp * (e.elite ? 5 : 1) * (this.event && this.event.id === 'eclipse' ? 2 : 1);
       this.dropGem(e.x, e.y, xp);
     }
+    // Any enemy has a tiny chance of a relic chest
+    if (Math.random() < (BAL.treasureChance ?? 0.001)) this.dropTreasure(e.x + 10, e.y + 10);
     const r = Math.random();
     const coin = this.mods.coin;
     const coinChance = BAL.coinChance * (this.event && this.event.id === 'gold' ? 5 : 1);
@@ -786,7 +788,6 @@ export default class Game extends Phaser.Scene {
     else if (e.def.heavy || e.elite) {
       for (let i = 0; i < 4; i++) this.dropPickup('coin', e.x + rand(-14, 14), e.y + rand(-14, 14), coin);
       if (Math.random() < (e.def.heavy ? 0.35 : 0.25)) this.dropPickup('spark', e.x, e.y - 8, 1);
-      if (e.elite && Math.random() < (BAL.treasureChance ?? 0.15)) this.dropTreasure(e.x + 10, e.y + 10);
     }
     else if (r < coinChance) this.dropPickup('coin', e.x + 6, e.y, coin);
     else if (r < coinChance + BAL.meatChance) { if (!this.mods.noMeat) this.dropPickup('meat', e.x, e.y); }
@@ -1862,7 +1863,7 @@ export default class Game extends Phaser.Scene {
     if (this.braveSummon) bump('brave');
     buzz(200);
     const lm = this.lootMul || 1;
-    this.dropTreasure(b.x - 30, b.y + 10);
+    if (Math.random() < (BAL.bossTreasureChance ?? 0.25)) this.dropTreasure(b.x - 30, b.y + 10);
     for (let i = 0; i < Math.round(12 * lm); i++) this.dropPickup('coin', b.x + rand(-50, 50), b.y + rand(-50, 50), 2);
     this.dropPickup('chest', b.x, b.y, lm);
     this.dropPickup('spark', b.x + 20, b.y - 10, Math.round(((BAL.sparkBoss ?? 4) + 3 * this.ageIndex) * lm));
@@ -2085,7 +2086,6 @@ export default class Game extends Phaser.Scene {
   }
 
   // ------------------------------------------------------------------
-  // Treasure chests: a spin of 1, 3 or 5 free upgrades
   // Treasure chests only hold relics, so they only drop while an unlocked relic is still to be found
   relicsLeft() { return RELICS.filter(r => save.relics[r.id] && !this.relics.has(r.id)); }
 

@@ -4,7 +4,7 @@
 export const DEFAULT_CONFIG = {
   version: 1,
   // Bump when new built-in content is added, so saved editor edits get it too (see config.js)
-  contentVersion: 11,
+  contentVersion: 12,
 
   balance: {
     ageLength: 300,        // seconds until the time police arrive
@@ -42,7 +42,8 @@ export const DEFAULT_CONFIG = {
     passiveSlots: 3,
     eventTimes: [0.18, 0.6], // random events start at these parts of each age
     eventLength: 20,       // seconds a random event lasts
-    treasureChance: 0.03,  // chance a glowing elite drops a treasure chest
+    treasureChance: 0.001,  // chance any enemy drops a relic chest (0.1%)
+    bossTreasureChance: 0.25,  // chance an age boss drops a relic chest
   },
 
   // Each character has a perk and a drawback. Optional stats: dmgMul, critMul, xpMul,

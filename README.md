@@ -25,7 +25,7 @@ A survivors-like roguelike where you fight through the ages of history. Move to 
 - Weapons and passives can level higher in each later age
 - After the last boss, the wizard sells a Magic Mirror that loops the run back to the first age with tougher enemies
 - Daily challenge: two twists a day, the same for everyone, +10 Sparks for the first run
-- Treasure chests only hold relics, so they only drop (from bosses, the treasure thief and rarely a glowing elite) once you've unlocked a relic you haven't found yet that run
+- Treasure chests only hold relics. Any enemy has a 0.1% chance to drop one and an age boss 25% (the treasure thief always does), but only while you have an unlocked relic you haven't found yet that run
 - Weapon combos: owning both weapons of a pair turns on a bonus (Whirlwind, Torch Club, Lightning Rod, Magma Rocks, Thunderstorm, Hunter's Pack)
 - Random events twice an age: Gold Rush, Eclipse, Meteor Shower, Treasure Thief
 - Relics: unlock them with Sparks (RELICS on the main menu; locked ones stay a mystery), then they can turn up in treasure chests, where you take one or leave it for coins. Mona Lisa (first hit stuns each enemy), Alien Egg (getting hit releases an alien swarm), Excalibur (a sword held out the way you move), Declaration of Independence (+5 max level for weapons), Ark of the Covenant (all weapons and slots replaced by piercing beams of holy light)

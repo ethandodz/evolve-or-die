@@ -360,7 +360,7 @@ export default class Title extends Phaser.Scene {
     c.add(this.add.rectangle(W / 2, H / 2, W, H, 0x000000, 0.75).setInteractive());
     c.add(panel(this, W / 2, H / 2, 420, 740));
     c.add(text(this, W / 2, 62, 'RELICS', 22, '#e8c070'));
-    c.add(text(this, W / 2, 90, 'Unlock them here. Then they can turn up\nin treasure chests: take one to change your run.', 7, '#c0a080'));
+    c.add(text(this, W / 2, 90, 'Unlock a powerful relic for a chance\nto encounter them in your run.', 7, '#c0a080'));
     c.add(this.add.image(W / 2 - 40, 126, 'spark').setScale(2));
     const have = text(this, W / 2 - 22, 126, '', 12, '#ffe060', 0);
     c.add(have);

@@ -11,6 +11,7 @@ const DEFAULTS = {
   seenShield: false,
   sparks: 0,          // carry-over currency, spent on permanent upgrades
   upgrades: {},       // meta upgrade id -> level
+  relics: {},         // relic id -> true once unlocked with Sparks
   daily: { date: '', best: 0, bestKills: 0, played: false },
   tutorialDone: false,
   stats: {},          // lifetime counters for quests (see quests.js)
@@ -29,6 +30,7 @@ function load() {
       ...structuredClone(DEFAULTS), ...data,
       settings: { ...DEFAULTS.settings, ...(data.settings || {}) },
       upgrades: { ...(data.upgrades || {}) },
+      relics: { ...(data.relics || {}) },
       daily: { ...DEFAULTS.daily, ...(data.daily || {}) },
       stats: { ...(data.stats || {}) },
       quests: { ...(data.quests || {}) },
@@ -50,7 +52,7 @@ export function persist() {
 export function resetProgress() {
   save.bossesBeaten = {};
   save.runs = 0; save.bestTime = 0; save.totalKills = 0;
-  save.sparks = 0; save.upgrades = {};
+  save.sparks = 0; save.upgrades = {}; save.relics = {};
   save.daily = structuredClone(DEFAULTS.daily);
   save.stats = {}; save.quests = {}; save.history = [];
   save.tutorialDone = false;

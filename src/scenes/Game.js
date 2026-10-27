@@ -1024,23 +1024,25 @@ export default class Game extends Phaser.Scene {
         });
         this.hitSrc = null;
         if (magma) this.burst(tx, ty, 0xff7a2a, 8, 120);
-      }));
+      }, 0xffffff, true));
     }
   }
 
-  dropRock(tx, ty, radius, icon, onImpact, color = 0xffffff) {
-    const sh = this.add.image(tx, ty, 'shadow').setScale(radius / 12, radius / 20).setAlpha(0.3).setDepth(-1.85e7);
+  // small: the player's own rocks, drawn smaller and quieter so they don't distract (same hit area)
+  dropRock(tx, ty, radius, icon, onImpact, color = 0xffffff, small = false) {
+    const sz = small ? 0.55 : 1;
+    const sh = this.add.image(tx, ty, 'shadow').setScale(radius / 12 * sz, radius / 20 * sz).setAlpha(0.3).setDepth(-1.85e7);
     if (color !== 0xffffff) sh.setTint(color);
-    const rock = this.add.image(tx, ty - 260, icon).setScale(radius / 9).setDepth(1e7 + 5);
+    const rock = this.add.image(tx, ty - 260, icon).setScale(radius / 9 * sz).setDepth(1e7 + 5);
     this.tweens.add({ targets: sh, alpha: 0.7, duration: 420 });
     this.tweens.add({
       targets: rock, y: ty, angle: 200, duration: 420, ease: 'Quad.in',
       onComplete: () => {
         rock.destroy(); sh.destroy();
         onImpact();
-        this.burst(tx, ty, 0xa3a3b0, 10, 150);
-        this.ringFx(tx, ty, radius, 0xffffff);
-        this.shake(70, 0.004);
+        this.burst(tx, ty, 0xa3a3b0, small ? 4 : 10, small ? 90 : 150);
+        if (small) this.ringFx(tx, ty, radius * 0.7, 0xffffff);
+        else { this.ringFx(tx, ty, radius, 0xffffff); this.shake(70, 0.004); }
         audio.play('thud');
       },
     });
@@ -1208,7 +1210,7 @@ export default class Game extends Phaser.Scene {
       if (distToSeg(e.x, e.y, x0, y0, x2, y2) > e.r + 8) return;
       if (this.totalTime - (e.hitBy.excalibur || -9) < 0.4) return;
       e.hitBy.excalibur = this.totalTime;
-      this.hitEnemy(e, 18 + this.level * 2.5, p.x, p.y, 160);
+      this.hitEnemy(e, 14.4 + this.level * 2, p.x, p.y, 160);
     });
     this.hitSrc = null;
   }
@@ -1866,7 +1868,7 @@ export default class Game extends Phaser.Scene {
     if (Math.random() < (BAL.bossTreasureChance ?? 0.25)) this.dropTreasure(b.x - 30, b.y + 10);
     for (let i = 0; i < Math.round(12 * lm); i++) this.dropPickup('coin', b.x + rand(-50, 50), b.y + rand(-50, 50), 2);
     this.dropPickup('chest', b.x, b.y, lm);
-    this.dropPickup('spark', b.x + 20, b.y - 10, Math.round(((BAL.sparkBoss ?? 4) + 3 * this.ageIndex) * lm));
+    this.dropPickup('spark', b.x + 20, b.y - 10, Math.round((BAL.sparkBoss ?? 20) * lm));
     if (lm > 1) this.ui.banner(`LOOT x${lm}`, 'Bonus for summoning early', 1600, '#f2c84b');
     // Everything flies to you
     this.time.delayedCall(900, () => { for (const k of this.pickups) { k.fly = true; k.v = 150; } });

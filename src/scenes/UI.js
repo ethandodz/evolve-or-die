@@ -77,6 +77,7 @@ export default class UI extends Phaser.Scene {
     this.eventText = text(this, W / 2, 88, '', 8, '#ffffff').setVisible(false);
     // Arrow at the screen edge pointing to the treasure thief
     this.arrow = this.add.graphics().setDepth(40);
+    this.wizIcon = this.add.sprite(0, 0, 'wizard', 0).setScale(0.8).setDepth(40).setVisible(false);
     // Small notes that slide in at the top (quests done)
     this.toasts = [];
     // First-run tips
@@ -206,19 +207,12 @@ export default class UI extends Phaser.Scene {
     if (ev) this.eventText.setText(`${ev.name.replace('!', '')} ${Math.ceil(ev.t)}`).setColor(ev.color || '#ffffff');
     this.arrow.clear();
     const tg = ev && ev.target && ev.target.alive ? ev.target : null;
-    if (tg) {
-      const cam = g.cameras.main;
-      const sx = tg.x - cam.scrollX, sy = tg.y - cam.scrollY;
-      if (sx < 0 || sx > W || sy < 0 || sy > H) {
-        const a = Math.atan2(tg.y - p.y, tg.x - p.x);
-        const ex = Math.max(24, Math.min(W - 24, W / 2 + Math.cos(a) * 400));
-        const ey = Math.max(150, Math.min(H - 24, H / 2 + Math.sin(a) * 400));
-        const pulse = 1 + Math.sin(g.totalTime * 10) * 0.15;
-        const pt = (r, da) => [ex + Math.cos(a + da) * r * pulse, ey + Math.sin(a + da) * r * pulse];
-        this.arrow.fillStyle(0x120c18, 1).fillTriangle(...pt(20, 0), ...pt(15, 2.4), ...pt(15, -2.4));
-        this.arrow.fillStyle(0x7ad0f4, 1).fillTriangle(...pt(15, 0), ...pt(11, 2.4), ...pt(11, -2.4));
-      }
-    }
+    if (tg) this.edgeArrow(tg.x, tg.y, 0x7ad0f4);
+    // The wizard, when his shop is out of sight
+    const wiz = g.portal && !g.portal.entering ? g.portal.wiz : null;
+    const wizOff = wiz && this.edgeArrow(wiz.x, wiz.y, 0xe8c070);
+    this.wizIcon.setVisible(!!wizOff);
+    if (wizOff) this.wizIcon.setPosition(wizOff.x, wizOff.y);
 
     // Boss bar, or the mini-boss's when no boss is out
     const b = g.boss || (g.mini && g.mini.alive ? g.mini : null);
@@ -257,6 +251,21 @@ export default class UI extends Phaser.Scene {
       targets: c, alpha: 0, duration: 400, delay: 3000,
       onComplete: () => { c.destroy(); this.toasts = this.toasts.filter(t => t !== c); },
     });
+  }
+
+  // Arrow at the screen edge pointing to something off-screen. Returns a spot just inside it, or null when on screen.
+  edgeArrow(x, y, color) {
+    const g = this.g, cam = g.cameras.main, p = g.player;
+    const sx = x - cam.scrollX, sy = y - cam.scrollY;
+    if (sx >= 0 && sx <= W && sy >= 0 && sy <= H) return null;
+    const a = Math.atan2(y - p.y, x - p.x);
+    const ex = Math.max(24, Math.min(W - 24, W / 2 + Math.cos(a) * 400));
+    const ey = Math.max(150, Math.min(H - 24, H / 2 + Math.sin(a) * 400));
+    const pulse = 1 + Math.sin(g.totalTime * 10) * 0.15;
+    const pt = (r, da) => [ex + Math.cos(a + da) * r * pulse, ey + Math.sin(a + da) * r * pulse];
+    this.arrow.fillStyle(0x120c18, 1).fillTriangle(...pt(20, 0), ...pt(15, 2.4), ...pt(15, -2.4));
+    this.arrow.fillStyle(color, 1).fillTriangle(...pt(15, 0), ...pt(11, 2.4), ...pt(11, -2.4));
+    return { x: ex - Math.cos(a) * 22, y: ey - Math.sin(a) * 22 };
   }
 
   // First-run tip box at the bottom, with an optional arrow to a button
@@ -428,7 +437,7 @@ export default class UI extends Phaser.Scene {
       bg.fillStyle(0x0c0810, 1).fillRect(x - w / 2 - 3, y - h / 2 - 3, w + 6, h + 9);
       bg.fillStyle(hi ? 0x4a3460 : 0x2e2240, 1).fillRect(x - w / 2, y - h / 2, w, h);
       if (fancy) bg.fillStyle(rar.color, hi ? 0.22 : 0.14).fillRect(x - w / 2, y - h / 2, w, h);
-      bg.lineStyle(fancy ? 4 : 3, fancy ? rar.color : ch.type === 'passive' ? 0x7a48b0 : 0xe8c070, 1).strokeRect(x - w / 2, y - h / 2, w, h);
+      bg.lineStyle(fancy ? 4 : 3, rar.color, 1).strokeRect(x - w / 2, y - h / 2, w, h);
     };
     draw(false);
     card.add(bg);

@@ -27,13 +27,30 @@ function fillMissing(cfg) {
   cfg.balance = { ...d.balance, ...cfg.balance };
   // Not editable in the editor, so they always come from the game itself
   for (const k of ['meta', 'rareShop', 'twists', 'mirror', 'miniAttacks', 'combos', 'events', 'relics']) cfg[k] = d[k];
-  if (seen < d.contentVersion) addNewContent(cfg, d);
+  if (seen < d.contentVersion) addNewContent(cfg, d, seen);
   return cfg;
 }
 
 // Saved edits are full snapshots, so built-in content added later (new enemies, ages,
 // characters, fields) is merged in once. Nothing the player changed is overwritten.
-function addNewContent(cfg, d) {
+function addNewContent(cfg, d, seen) {
+  // Harder game (v13), before new built-in weapons (already weaker) are merged in: weapons and passives 20% weaker, more enemies that toughen up faster
+  if (seen < 13) {
+    const nerf = (x) => Math.round(x * 0.8 * 100) / 100;
+    for (const w of Object.values(cfg.weapons)) {
+      const s = w.stats && w.stats.dmg;
+      if (s && typeof s === 'object') { s.base = nerf(s.base || 0); s.per = nerf(s.per || 0); }
+      if (Array.isArray(w.levels)) w.levels = w.levels.map(t => t.replace(/\+([\d.]+) damage/g, (m, n) => `+${nerf(parseFloat(n))} damage`));
+    }
+    for (const [key, val] of Object.entries(d.passives)) {
+      const have = cfg.passives[key];
+      if (!have) continue;
+      if (have.effect !== 'hearts' && have.effect !== 'count') { have.amount = val.amount; have.blurb = val.blurb; }
+      if (key === 'heart' && have.max === 5) have.max = val.max;
+    }
+    const OLD_BAL = { maxEnemies: 150, spawnGrowth: 0.03, crowdGrowth: 0.6, hpGrowth: 85, sparkBoss: 4 };
+    for (const [k, v] of Object.entries(OLD_BAL)) if (cfg.balance[k] === v) cfg.balance[k] = d.balance[k];
+  }
   for (const k of ['enemies', 'weapons', 'passives']) {
     for (const [key, val] of Object.entries(d[k])) {
       if (!cfg[k][key]) cfg[k][key] = val;

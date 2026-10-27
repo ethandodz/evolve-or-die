@@ -13,6 +13,8 @@ export const CHARACTERS = CFG.characters;
 export const RARE_ITEMS = CFG.rareShop;
 export const META = CFG.meta;
 export const TWISTS = CFG.twists;
+export const COMBOS = CFG.combos || [];
+export const EVENTS = CFG.events || [];
 
 // Level-up card rarities. mult = how much bigger this level's stat boost is
 // (a Rare Sharp Flint gives +14% damage instead of +12%).

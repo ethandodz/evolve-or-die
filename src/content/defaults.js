@@ -4,7 +4,7 @@
 export const DEFAULT_CONFIG = {
   version: 1,
   // Bump when new built-in content is added, so saved editor edits get it too (see config.js)
-  contentVersion: 4,
+  contentVersion: 5,
 
   balance: {
     ageLength: 300,        // seconds until the time police arrive
@@ -40,14 +40,20 @@ export const DEFAULT_CONFIG = {
     bossDarkness: 0.75,    // how dark boss fights get (0 = off)
     weaponSlots: 3,
     passiveSlots: 3,
+    eventTimes: [0.18, 0.6], // random events start at these parts of each age
+    eventLength: 20,       // seconds a random event lasts
+    treasureChance: 0.15,  // chance a glowing elite drops a treasure chest
   },
 
   // Each character has a perk and a drawback. Optional stats: dmgMul, critMul, xpMul,
   // areaMul, damageTaken (0.5 = half a heart per hit), weaponSlots, bonusCount.
+  // pet: an enemy sprite that fights at your side.
   // unlock: 'start', a boss key, or 'kills:N' (total enemies defeated over all runs).
   characters: [
     { key: 'caveman', name: 'GRUG', title: 'The Caveman', sprite: 'caveman', weapon: 'club', hearts: 5, speed: 1, unlock: 'start',
       dmgMul: 1.3, weaponSlots: 2, perk: '+30% damage', drawback: 'Only 2 weapon slots' },
+    { key: 'tamer', name: 'TAKA', title: 'The Dino Tamer', sprite: 'tamer', weapon: 'rocks', hearts: 4, speed: 1, unlock: 'trex',
+      pet: 'raptor', perk: 'A baby raptor fights with you', drawback: 'Only 4 hearts' },
     { key: 'shaman', name: 'ORA', title: 'The Shaman', sprite: 'shaman', weapon: 'fire', hearts: 3, speed: 1, unlock: 'hydra',
       xpMul: 1.3, areaMul: 1.25, perk: '+30% XP, +25% area', drawback: 'Only 3 hearts' },
     { key: 'knight', name: 'EDRIC', title: 'The Knight', sprite: 'knight', weapon: 'axes', hearts: 5, speed: 0.85, unlock: 'dragon',
@@ -131,10 +137,19 @@ export const DEFAULT_CONFIG = {
     slime:      { name: 'Giant Slime', sprite: 'slime', hp: 120, speed: 42, r: 15, xp: 5, scale: 1.6, color: '#6ad04a', ai: 'split', splitInto: 'slimelet', splitCount: 3 },
     slimelet:   { name: 'Slimelet', sprite: 'slimelet', hp: 16, speed: 80, r: 8, xp: 1, scale: 1.5, color: '#6ad04a' },
     troll:      { name: 'Troll', sprite: 'troll', hp: 420, speed: 32, r: 22, xp: 20, scale: 1.7, color: '#6a8a4a', heavy: true },
+    apprentice: { name: 'Apprentice', sprite: 'apprentice', hp: 22, speed: 90, r: 10, xp: 1, scale: 1.5, color: '#e0c890' },
+    duelist:    { name: 'Duelist', sprite: 'duelist', hp: 32, speed: 78, r: 10, xp: 1, scale: 1.5, color: '#3a4a8a', ai: 'zigzag' },
+    halberdier: { name: 'Halberdier', sprite: 'halberdier', hp: 46, speed: 56, r: 11, xp: 1, scale: 1.5, color: '#b8324a', ai: 'shield', shield: 3 },
+    clockwork:  { name: 'Clockwork Knight', sprite: 'clockwork', hp: 170, speed: 70, r: 12, xp: 5, scale: 1.6, color: '#c8923a', ai: 'charge' },
+    gearling:   { name: 'Gear Beast', sprite: 'gearling', hp: 190, speed: 44, r: 15, xp: 5, scale: 1.6, color: '#b8a070', heavy: true, ai: 'split', splitInto: 'cog', splitCount: 4 },
+    cog:        { name: 'Rolling Cog', sprite: 'cog', hp: 24, speed: 104, r: 8, xp: 1, scale: 1.5, color: '#b8a070' },
+    automaton:  { name: 'Brass Automaton', sprite: 'automaton', hp: 700, speed: 32, r: 22, xp: 20, scale: 1.7, color: '#c8923a', heavy: true },
+    thief:      { name: 'Treasure Thief', sprite: 'thief', hp: 60, speed: 118, r: 10, xp: 5, scale: 1.5, color: '#8a5ab0' },
     timecop:    { name: 'Time police', sprite: 'timecop', hp: 90, speed: 96, r: 12, xp: 5, scale: 1.55, color: '#3a6ac8' },
     trex:       { name: 'T-Rex', sprite: 'trex', hp: 4200, speed: 46, r: 34, xp: 0, scale: 2.2, color: '#b86a2a', boss: true, heavy: true },
     hydra:      { name: 'Hydra', sprite: 'hydra', hp: 11000, speed: 34, r: 36, xp: 0, scale: 2.2, color: '#3ab8a4', boss: true, heavy: true },
     dragon:     { name: 'Dragon', sprite: 'dragon', hp: 26000, speed: 40, r: 36, xp: 0, scale: 2.2, color: '#d84a2a', boss: true, heavy: true },
+    mech:       { name: 'Steam Mech', sprite: 'mech', hp: 52000, speed: 40, r: 38, xp: 0, scale: 2.2, color: '#c8923a', boss: true, heavy: true },
   },
 
   // Mini-bosses (the giant elite at the halfway mark) use these moves: stomp, charge, summon, throw
@@ -164,6 +179,14 @@ export const DEFAULT_CONFIG = {
       basic: ['peasant', 'footman', 'jester'], medium: 'blackknight', elite: 'troll', specials: ['slime'],
       stampede: 'peasant', stampedeName: 'PEASANT MOB!', boss: 'dragon', bossName: 'DRAGON', bossAttacks: ['fly', 'breath', 'meteors', 'fly', 'sweep'], bossStyle: 'flyer',
       music: 'medieval', bossMusic: 'medievalBoss', hpMul: 4.5, xpMul: 3.2,
+    },
+    {
+      key: 'renaissance', name: 'RENAISSANCE', ground: 'parchment', bg: '#d8c49a',
+      decor: ['easel', 'gearpile', 'statue', 'lantern', 'cypress', 'gearpile'],
+      paintings: false,
+      basic: ['apprentice', 'duelist', 'halberdier'], medium: 'clockwork', elite: 'automaton', specials: ['gearling'],
+      stampede: 'cog', stampedeName: 'COG AVALANCHE!', boss: 'mech', bossName: 'STEAM MECH', bossAttacks: ['steam', 'laser', 'cogs', 'charge', 'summon'], bossStyle: 'mech',
+      music: 'renaissance', bossMusic: 'renaissanceBoss', hpMul: 7.5, xpMul: 4.6,
     },
   ],
 
@@ -202,6 +225,24 @@ export const DEFAULT_CONFIG = {
     { id: 'revive', name: 'Second Wind', icon: 'feather', max: 1, base: 300, grow: 0, amount: 1, blurb: 'Come back to life once per run.' },
   ],
 
+  // Owning both weapons of a combo gives a bonus (weapons keep their type)
+  combos: [
+    { id: 'whirlwind', name: 'Whirlwind', a: 'club', b: 'axes', blurb: 'Club swings hit all around you' },
+    { id: 'torch', name: 'Torch Club', a: 'club', b: 'fire', blurb: 'Club hits set enemies on fire' },
+    { id: 'rod', name: 'Lightning Rod', a: 'spear', b: 'bolt', blurb: 'Spear tips call down lightning' },
+    { id: 'magma', name: 'Magma Rocks', a: 'rocks', b: 'fire', blurb: 'Falling rocks set enemies on fire' },
+    { id: 'storm', name: 'Thunderstorm', a: 'rocks', b: 'bolt', blurb: 'Bolts strike 35% more often' },
+    { id: 'pack', name: "Hunter's Pack", a: 'spear', b: 'axes', blurb: '+1 spear and +1 axe' },
+  ],
+
+  // Random events during an age
+  events: [
+    { id: 'gold', name: 'GOLD RUSH!', blurb: 'Enemies drop way more coins', color: '#f2c84b' },
+    { id: 'eclipse', name: 'ECLIPSE!', blurb: 'Faster enemies, double XP', color: '#c890ff' },
+    { id: 'meteors', name: 'METEOR SHOWER!', blurb: 'Rocks fall from the sky. Watch out!', color: '#ff9a4a' },
+    { id: 'thief', name: 'TREASURE THIEF!', blurb: 'Catch him before he gets away', color: '#7ad0f4' },
+  ],
+
   // Daily challenge twists. Two are picked each day.
   twists: [
     { id: 'glass', name: 'Glass Cannon', blurb: 'Double damage, half hearts' },
@@ -228,8 +269,8 @@ export const BEHAVIORS = {
 };
 
 export const PASSIVE_EFFECTS = ['hearts', 'speed', 'count', 'damage', 'area', 'pickup'];
-export const BOSS_ATTACKS = ['charge', 'charge3', 'stomp', 'rocks', 'roar', 'lunge', 'ring', 'pools', 'summon', 'breath', 'meteors', 'fly', 'sweep'];
-export const BOSS_STYLES = ['', 'hunter', 'rooted', 'flyer'];
-export const MUSIC = ['stone', 'stoneBoss', 'roman', 'romanBoss', 'medieval', 'medievalBoss', 'police', 'title'];
-export const GROUNDS = ['cave', 'mosaic', 'tapestry'];
+export const BOSS_ATTACKS = ['charge', 'charge3', 'stomp', 'rocks', 'roar', 'lunge', 'ring', 'pools', 'summon', 'breath', 'meteors', 'fly', 'sweep', 'steam', 'laser', 'cogs'];
+export const BOSS_STYLES = ['', 'hunter', 'rooted', 'flyer', 'mech'];
+export const MUSIC = ['stone', 'stoneBoss', 'roman', 'romanBoss', 'medieval', 'medievalBoss', 'renaissance', 'renaissanceBoss', 'police', 'title'];
+export const GROUNDS = ['cave', 'mosaic', 'tapestry', 'parchment'];
 export const ENEMY_AI = ['', 'charge', 'shield', 'split', 'zigzag'];

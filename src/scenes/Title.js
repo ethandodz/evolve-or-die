@@ -3,6 +3,8 @@ import { audio } from '../audio.js';
 import { save, persist, resetProgress } from '../save.js';
 import { CHARACTERS, AGES, WEAPONS, ENEMIES, META, TWISTS } from '../data.js';
 import { W, H, text, button, panel, settingsPanel, COLORS, fmtTime, FONT } from '../ui.js';
+import { allQuests, progress, isDone, isClaimed, claimable, claim } from '../quests.js';
+import { onlineEnabled, topScores, playerName, cloudCode, cloudBackup, cloudRestore } from '../online.js';
 
 const fit = (img, size) => { const f = img.frame; return img.setScale(Math.min(size / f.width, size / f.height)); };
 
@@ -45,17 +47,29 @@ export default class Title extends Phaser.Scene {
     this.tweens.add({ targets: [t1, t2], y: '+=6', yoyo: true, repeat: -1, duration: 1400, ease: 'Sine.inOut' });
     text(this, W / 2, 262, 'SURVIVE THE AGES', 10, '#c0b0d0');
 
-    this.hero = this.add.sprite(W / 2, 385, 'caveman', 0).setScale(4);
-    this.add.image(W / 2, 438, 'shadow').setScale(4, 3).setDepth(-1);
+    this.hero = this.add.sprite(W / 2, 370, 'caveman', 0).setScale(4);
+    this.add.image(W / 2, 423, 'shadow').setScale(4, 3).setDepth(-1);
     this.time.addEvent({ delay: 220, loop: true, callback: () => this.hero.setFrame(this.hero.frame.name === 0 ? 1 : 0) });
 
+    const ready = claimable().length;
     this.mainButtons = [
-      button(this, W / 2, 500, 260, 56, 'PLAY', () => this.showCharacterSelect(), { size: 20, color: COLORS.green, hi: COLORS.greenHi }),
-      button(this, W / 2 - 68, 568, 124, 48, 'DAILY', () => this.showDaily(), { size: 10, color: COLORS.red, hi: COLORS.redHi, icon: 'skull', iconScale: 1.6 }),
-      button(this, W / 2 + 68, 568, 124, 48, 'EVOLVE', () => this.showUpgrades(), { size: 10, icon: 'spark', iconScale: 1.8 }),
-      button(this, W / 2 - 68, 630, 124, 42, 'SETTINGS', () => this.openSettings(), { size: 8 }),
-      button(this, W / 2 + 68, 630, 124, 42, 'EDITOR', () => { window.location.href = 'editor.html'; }, { size: 8, color: COLORS.purple, hi: COLORS.purpleHi }),
+      button(this, W / 2, 470, 260, 56, 'PLAY', () => this.showCharacterSelect(), { size: 20, color: COLORS.green, hi: COLORS.greenHi }),
+      button(this, W / 2 - 68, 536, 124, 48, 'DAILY', () => this.showDaily(), { size: 10, color: COLORS.red, hi: COLORS.redHi, icon: 'skull', iconScale: 1.6 }),
+      button(this, W / 2 + 68, 536, 124, 48, 'EVOLVE', () => this.showUpgrades(), { size: 10, icon: 'spark', iconScale: 1.8 }),
+      button(this, W / 2 - 68, 594, 124, 48, 'QUESTS', () => this.showQuests(), { size: 10, icon: 'scroll', iconScale: 1.6 }),
+      button(this, W / 2 + 68, 594, 124, 48, 'SCORES', () => this.showScores(), { size: 10, icon: 'trophy', iconScale: 1.6 }),
+      button(this, W / 2 - 68, 650, 124, 40, 'SETTINGS', () => this.openSettings(), { size: 8 }),
+      button(this, W / 2 + 68, 650, 124, 40, 'EDITOR', () => { window.location.href = 'editor.html'; }, { size: 8, color: COLORS.purple, hi: COLORS.purpleHi }),
     ];
+    // Red badge when quest rewards are waiting
+    if (ready) {
+      const qb = this.mainButtons[3];
+      const badge = this.add.container(qb.x + 56, qb.y - 22);
+      badge.add(this.add.circle(0, 0, 11, 0xd83c3c).setStrokeStyle(2, 0x120c18));
+      badge.add(text(this, 0, 1, String(ready), 8, '#ffffff'));
+      this.tweens.add({ targets: badge, scale: 1.2, yoyo: true, repeat: -1, duration: 500 });
+      this.mainButtons.push(badge);
+    }
     // Sparks you own
     this.add.image(W - 92, 26, 'spark').setScale(2);
     this.sparkText = text(this, W - 76, 26, String(save.sparks), 12, '#ffe060', 0);
@@ -64,7 +78,7 @@ export default class Title extends Phaser.Scene {
     const info = [`RUNS ${save.runs}`, `BEST ${fmtTime(save.bestTime)}`];
     text(this, W / 2, 712, info.join('   '), 10, '#d8b890');
     text(this, W / 2, 736, beaten.length ? `BOSSES BEATEN: ${beaten.join(', ')}` : 'NO BOSSES BEATEN YET', 8, '#d8b890');
-    text(this, W / 2, 770, 'v0.2', 8, '#5a4a6a');
+    text(this, W / 2, 770, 'v0.3', 8, '#5a4a6a');
 
     this.input.once('pointerdown', () => { audio.unlock(); audio.playMusic('title'); });
     this.input.keyboard.once('keydown', () => { audio.unlock(); audio.playMusic('title'); });
@@ -91,7 +105,164 @@ export default class Title extends Phaser.Scene {
 
   openSettings() {
     this.mainButtons.forEach(b => b.setVisible(false));
-    settingsPanel(this, () => this.mainButtons.forEach(b => b.setVisible(true)));
+    settingsPanel(this, () => this.mainButtons.forEach(b => b.setVisible(true)), { onCloud: () => this.showCloud() });
+  }
+
+  // A panel on top of the menu; returns the container and a close function
+  overlay(w, h) {
+    audio.unlock();
+    this.mainButtons.forEach(b => b.setVisible(false));
+    const c = this.add.container(0, 0).setDepth(500);
+    c.add(this.add.rectangle(W / 2, H / 2, W, H, 0x000000, 0.75).setInteractive());
+    c.add(panel(this, W / 2, H / 2, w, h));
+    const close = () => { c.destroy(); this.mainButtons.forEach(b => b.setVisible(true)); };
+    return { c, close };
+  }
+
+  // Quests: progress bars, and a CLAIM button for finished ones
+  showQuests() {
+    const { c, close } = this.overlay(420, 760);
+    c.add(text(this, W / 2, 50, 'QUESTS', 22, '#e8c070'));
+    c.add(text(this, W / 2, 78, 'Finish them for Sparks', 8, '#c0a080'));
+    const rows = this.add.container(0, 0);
+    c.add(rows);
+    const perPage = 7;
+    // Claimable first, then unfinished (closest first), then claimed
+    const order = () => allQuests().slice().sort((a, b) => {
+      const rank = (q) => (isDone(q) && !isClaimed(q) ? 0 : isClaimed(q) ? 2 : 1);
+      return rank(a) - rank(b) || progress(b) / b.target - progress(a) / a.target;
+    });
+    let list = order();
+    let page = 0;
+    const pages = () => Math.max(1, Math.ceil(list.length / perPage));
+    const pageText = text(this, W / 2, 696, '', 8, '#c0a080');
+    c.add(pageText);
+    const draw = () => {
+      rows.removeAll(true);
+      this.sparkText.setText(String(save.sparks));
+      list.slice(page * perPage, page * perPage + perPage).forEach((q, i) => {
+        const y = 130 + i * 78;
+        const done = isDone(q), claimed = isClaimed(q);
+        const g = this.add.graphics();
+        g.fillStyle(0x1e1009, 1).fillRect(W / 2 - 196, y - 34, 392, 70);
+        g.fillStyle(done && !claimed ? 0x4a3a18 : 0x3a2618, 1).fillRect(W / 2 - 194, y - 32, 388, 66);
+        if (done && !claimed) g.lineStyle(2, 0xffe060, 1).strokeRect(W / 2 - 194, y - 32, 388, 66);
+        rows.add(g);
+        rows.add(text(this, W / 2 - 182, y - 18, q.name.toUpperCase(), 9, claimed ? '#8a7a6a' : '#ffffff', 0));
+        rows.add(this.add.text(W / 2 - 182, y + 2, q.blurb, { fontFamily: FONT, fontSize: '7px', color: claimed ? '#8a7a6a' : '#d0b890', wordWrap: { width: 250 } }).setOrigin(0, 0.5));
+        // Progress bar
+        const pr = progress(q) / q.target;
+        rows.add(this.add.rectangle(W / 2 - 182, y + 22, 240, 6, 0x5a4030).setOrigin(0, 0.5));
+        rows.add(this.add.rectangle(W / 2 - 182, y + 22, 240 * pr, 6, done ? 0x9ae07a : 0xffe060).setOrigin(0, 0.5));
+        const fmt = (v) => (q.time ? fmtTime(v) : String(Math.floor(v)));
+        rows.add(text(this, W / 2 + 64, y + 22, `${fmt(progress(q))}/${fmt(q.target)}`, 6, '#c0a080', 0));
+        if (claimed) {
+          rows.add(text(this, W / 2 + 150, y, 'DONE', 9, '#9ae07a'));
+        } else {
+          const b = button(this, W / 2 + 148, y - 4, 80, 40, done ? `+${q.reward}` : String(q.reward), () => {
+            if (!claim(q)) { audio.play('deny'); return; }
+            audio.play('spark');
+            list = order();
+            draw();
+          }, { size: 9, icon: 'spark', iconScale: 1.2, color: done ? COLORS.green : COLORS.grey, hi: done ? COLORS.greenHi : COLORS.grey });
+          if (!done) b.setAlpha(0.6);
+          else this.tweens.add({ targets: b, scale: 1.06, yoyo: true, repeat: -1, duration: 400 });
+          rows.add(b);
+        }
+      });
+      pageText.setText(`${page + 1} / ${pages()}`);
+    };
+    c.add(button(this, W / 2 - 110, 696, 70, 36, '<', () => { page = (page + pages() - 1) % pages(); draw(); }, { size: 12 }));
+    c.add(button(this, W / 2 + 110, 696, 70, 36, '>', () => { page = (page + 1) % pages(); draw(); }, { size: 12 }));
+    c.add(button(this, W / 2, 748, 160, 36, 'BACK', () => { close(); this.scene.restart(); }, { size: 12 }));
+    draw();
+  }
+
+  // Best runs: online top 10 when Supabase is set up, otherwise this device's best runs
+  showScores() {
+    const { c, close } = this.overlay(420, 720);
+    c.add(text(this, W / 2, 72, 'SCORES', 22, '#e8c070'));
+    const rows = this.add.container(0, 0);
+    c.add(rows);
+    const status = text(this, W / 2, 400, '', 8, '#c0a080');
+    c.add(status);
+    const header = text(this, W / 2, 104, '', 8, '#c0a080');
+    c.add(header);
+    const show = (list, empty) => {
+      rows.removeAll(true);
+      status.setText(list.length ? '' : empty);
+      list.forEach((r, i) => {
+        const y = 150 + i * 44;
+        const g = this.add.graphics();
+        g.fillStyle(i % 2 ? 0x3a2618 : 0x2e1e12, 1).fillRect(W / 2 - 190, y - 20, 380, 40);
+        rows.add(g);
+        rows.add(text(this, W / 2 - 178, y, `${i + 1}`, 10, i === 0 ? '#ffe060' : '#ffffff', 0));
+        rows.add(text(this, W / 2 - 144, y - 8, String(r.name || r.character || '').toUpperCase(), 8, '#ffffff', 0));
+        rows.add(text(this, W / 2 - 144, y + 9, `${r.age}  ${r.kills} kills`, 6, '#c0a080', 0));
+        rows.add(text(this, W / 2 + 178, y, fmtTime(r.time_s ?? r.time), 10, '#9ae07a', 1));
+      });
+    };
+    const local = () => {
+      header.setText('YOUR BEST RUNS ON THIS DEVICE');
+      show(save.history || [], 'No runs yet. Go play!');
+    };
+    const online = (daily) => {
+      header.setText(daily ? `TODAY'S DAILY CHALLENGE (${daily})` : 'TOP PLAYERS, ALL TIME');
+      rows.removeAll(true);
+      status.setText('Loading...');
+      topScores(daily).then(list => { if (c.active) show(list || [], 'No scores yet. Be the first!'); })
+        .catch(() => { if (c.active) status.setText("Couldn't reach the scoreboard.\nCheck your connection."); });
+    };
+    if (onlineEnabled) {
+      c.add(button(this, W / 2 - 128, 640, 118, 38, 'ALL TIME', () => online(null), { size: 8 }));
+      c.add(button(this, W / 2, 640, 118, 38, 'TODAY', () => online(todaysDaily().date), { size: 8, color: COLORS.red, hi: COLORS.redHi }));
+      c.add(button(this, W / 2 + 128, 640, 118, 38, 'MINE', () => local(), { size: 8 }));
+      const nameBtn = button(this, W / 2, 686, 260, 34, `NAME: ${playerName()}`, () => {
+        const v = window.prompt('Your name on the scoreboard (up to 12 letters)', save.playerName || '');
+        if (v === null) return;
+        const clean = v.replace(/[^A-Za-z0-9 _-]/g, '').slice(0, 12).trim();
+        if (!clean) return;
+        save.playerName = clean.toUpperCase(); persist();
+        nameBtn.label.setText(`NAME: ${save.playerName}`);
+      }, { size: 8, color: COLORS.purple, hi: COLORS.purpleHi });
+      c.add(nameBtn);
+      online(null);
+    } else {
+      local();
+      c.add(text(this, W / 2, 650, 'Online scores are coming soon', 7, '#8a7a6a'));
+    }
+    c.add(button(this, W / 2, 736, 160, 34, 'BACK', close, { size: 12 }));
+  }
+
+  // Cloud save: back up progress and bring it to another device with a code
+  showCloud() {
+    const { c, close } = this.overlay(400, 520);
+    const back = () => { close(); this.openSettings(); };
+    c.add(text(this, W / 2, H / 2 - 220, 'CLOUD SAVE', 18, '#e8c070'));
+    if (!onlineEnabled) {
+      c.add(text(this, W / 2, H / 2 - 40, 'Cloud saves are coming soon.\nYour progress is saved\non this device.', 9, '#d0b890'));
+      c.add(button(this, W / 2, H / 2 + 200, 160, 40, 'BACK', back, { size: 12 }));
+      return;
+    }
+    c.add(text(this, W / 2, H / 2 - 170, 'Your save code. Keep it secret!\nType it on another device\nto bring your progress over.', 8, '#d0b890'));
+    c.add(text(this, W / 2, H / 2 - 95, cloudCode(), 16, '#ffe060'));
+    const msg = text(this, W / 2, H / 2 + 120, 'Backed up after every run', 8, '#9ae07a');
+    c.add(msg);
+    c.add(button(this, W / 2, H / 2 - 20, 260, 46, 'BACK UP NOW', () => {
+      msg.setText('Saving...').setColor('#c0a080');
+      cloudBackup().then(() => msg.setText('Saved!').setColor('#9ae07a')).catch(() => msg.setText("Couldn't save. Try again.").setColor('#ff9a8a'));
+    }, { size: 10, color: COLORS.green, hi: COLORS.greenHi }));
+    c.add(button(this, W / 2, H / 2 + 50, 260, 46, 'LOAD FROM CODE', () => {
+      const code = window.prompt('Type your save code');
+      if (!code) return;
+      if (!window.confirm('This replaces the progress on this device. Continue?')) return;
+      msg.setText('Loading...').setColor('#c0a080');
+      cloudRestore(code).then(ok => {
+        if (ok) { msg.setText('Loaded! Restarting...').setColor('#9ae07a'); setTimeout(() => location.reload(), 800); }
+        else msg.setText('No save found for that code.').setColor('#ff9a8a');
+      }).catch(() => msg.setText("Couldn't load. Try again.").setColor('#ff9a8a'));
+    }, { size: 10 }));
+    c.add(button(this, W / 2, H / 2 + 200, 160, 40, 'BACK', back, { size: 12 }));
   }
 
   showCharacterSelect() {

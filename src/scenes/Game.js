@@ -1,8 +1,10 @@
 import Phaser from 'phaser';
 import { audio } from '../audio.js';
 import { save, persist } from '../save.js';
-import { AGES, ENEMIES, WEAPONS, PASSIVES, SHOP_ITEMS, RARE_ITEMS, META, CFG, RARITIES, wholeEffect, AGE_LENGTH, BAL, CHARACTERS, statsOf, xpForLevel } from '../data.js';
-import { W, H, FONT } from '../ui.js';
+import { AGES, ENEMIES, WEAPONS, PASSIVES, SHOP_ITEMS, RARE_ITEMS, META, CFG, RARITIES, wholeEffect, AGE_LENGTH, BAL, CHARACTERS, COMBOS, EVENTS, statsOf, xpForLevel } from '../data.js';
+import { W, H, FONT, buzz } from '../ui.js';
+import { stats, bump, best, allQuests, isDone, doneIds } from '../quests.js';
+import { submitScore, cloudBackup, onlineEnabled } from '../online.js';
 import { controls } from '../controls.js';
 
 // ?test in the URL shortens ages and weakens bosses, for quick playtesting.
@@ -118,6 +120,14 @@ export default class Game extends Phaser.Scene {
     this.passives = {};
     this.passivePts = {}; // levels weighted by card rarity
     this.passiveOrder = [];
+    this.combos = new Set();   // weapon combos that are active
+    this.event = null;         // random event going on (gold rush, eclipse...)
+    this.hitSrc = null;        // weapon doing the hitting, for per-weapon quests
+    this.coinsEarned = 0;
+    this.questsDone = doneIds();
+    this.questT = 1;
+    this.newQuests = [];
+    this.pet = null;
 
     this.cameras.main.setRoundPixels(true);
     this.ground = this.add.tileSprite(W / 2, H / 2, W, H, 'ground_cave').setScrollFactor(0).setDepth(-3e7).setTileScale(1.5);
@@ -136,6 +146,8 @@ export default class Game extends Phaser.Scene {
     let startWeapon = this.charDef.weapon in WEAPONS ? this.charDef.weapon : Object.keys(WEAPONS)[0];
     if (this.daily && this.daily.weapon in WEAPONS) startWeapon = this.daily.weapon;
     this.addWeapon(startWeapon);
+    this.checkCombos();
+    if (this.charDef.pet) this.makePet(this.charDef.pet);
 
     this.cameras.main.startFollow(this.player.spr, true, 0.45, 0.45);
 
@@ -148,10 +160,8 @@ export default class Game extends Phaser.Scene {
 
     this.startAge(0);
 
-    if (!save.seenHint) {
-      this.time.delayedCall(400, () => this.ui.banner('MOVE TO DODGE!', 'Weapons attack on their own', 3500));
-      save.seenHint = true; persist();
-    }
+    // First run: a few short tips at the bottom of the screen
+    this.tut = save.tutorialDone ? null : { step: 0, t: 0, moved: 0, shown: -1 };
     this.events.on('shutdown', () => { audio.stopMusic(); });
   }
 
@@ -173,6 +183,9 @@ export default class Game extends Phaser.Scene {
     this.cleared = false;
     this.endless = false;
     this.portal = null;
+    this.endEvent(true);
+    this.usedEvents = new Set();
+    this.eventQueue = (BAL.eventTimes || []).map(f => this.ageLen * f).sort((a, b) => a - b);
     this.ground.setTexture(`ground_${this.age.ground}`);
     this.cameras.main.setBackgroundColor(this.age.bg);
     this.setDarkness(false, true);
@@ -200,11 +213,14 @@ export default class Game extends Phaser.Scene {
     this.ageTime += dt;
 
     this.updatePlayer(dt);
+    this.updateTutorial(dt);
     this.updateDirector(dt);
+    this.updateEvent(dt);
     this.updateEnemies(dt);
     this.buildGrid();
     this.separate();
     this.updateWeapons(dt);
+    this.updatePet(dt);
     this.updateBoss(dt);
     this.updateHazards(dt);
     this.checkContacts();
@@ -218,6 +234,8 @@ export default class Game extends Phaser.Scene {
     this.ground.tilePositionX = cam.scrollX / 1.5;
     this.ground.tilePositionY = cam.scrollY / 1.5;
     this.updateDarkness(dt);
+    this.questT -= dt;
+    if (this.questT <= 0) { this.questT = 1; this.checkQuests(); }
 
     if (this.pendingLevels > 0 && !this.frozen && !this.over && this.levelFx <= 0) this.startLevelFx();
     // A free second weapon early in the first age
@@ -235,6 +253,7 @@ export default class Game extends Phaser.Scene {
 
   startLevelFx() {
     this.levelFx = 0.4;
+    buzz(25);
     const p = this.player;
     this.player.inv = Math.max(this.player.inv, 0.6);
     audio.play('levelup');
@@ -323,6 +342,11 @@ export default class Game extends Phaser.Scene {
       this.stampedes.shift();
       this.stampedeWarned = false;
       if (!this.boss) this.spawnStampede(this.stampedeDir ?? rand(0, TAU));
+    }
+
+    if (this.eventQueue.length && t >= this.eventQueue[0]) {
+      this.eventQueue.shift();
+      if (!this.boss && !this.policeMode && !this.event) this.startEvent();
     }
 
     if (!this.miniSpawned && t >= this.ageLen / 2 && !this.boss) {
@@ -500,6 +524,14 @@ export default class Game extends Phaser.Scene {
         if (e.traveled > 1700) { this.removeEnemy(e); continue; }
       } else if (e.boss) {
         vx = e.vx || 0; vy = e.vy || 0;
+      } else if (e.mode === 'flee') {
+        // Treasure thief: runs away, weaving, slower when far so it stays catchable
+        const dx = e.x - p.x, dy = e.y - p.y, d = Math.hypot(dx, dy) || 1;
+        e.zig += dt * 3;
+        const ang = Math.atan2(dy, dx) + Math.sin(e.zig) * 0.7;
+        const sp = e.speed * slow * (d > 380 ? 0.45 : d < 140 ? 1 : 0.85);
+        vx = Math.cos(ang) * sp; vy = Math.sin(ang) * sp;
+        if (Math.random() < 0.15) this.burst(e.x, e.y - 10, 0xf2c84b, 1, 30);
       } else {
         const dx = p.x - e.x, dy = p.y - e.y;
         const d = Math.hypot(dx, dy) || 1;
@@ -509,7 +541,8 @@ export default class Game extends Phaser.Scene {
           e.x = p.x + Math.cos(a) * SPAWN_DIST; e.y = p.y + Math.sin(a) * SPAWN_DIST;
           continue;
         }
-        vx = (dx / d) * e.speed * slow; vy = (dy / d) * e.speed * slow;
+        const fast = this.event && this.event.id === 'eclipse' ? 1.25 : 1;
+        vx = (dx / d) * e.speed * slow * fast; vy = (dy / d) * e.speed * slow * fast;
         const ai = e.def.ai;
         if (e.mini) {
           const mv = this.updateMini(e, dt, dx, dy, d);
@@ -656,7 +689,7 @@ export default class Game extends Phaser.Scene {
   hitEnemy(e, base, sx, sy, kb = 0) {
     if (!e.alive || e.flying) return;
     const crit = Math.random() < BAL.critChance * (this.charDef.critMul || 1);
-    let dmg = Math.max(1, Math.round(base * this.stats.dmg * (crit ? 2 : 1)));
+    let dmg = Math.max(1, Math.round(base * this.stats.dmg * (crit ? 2 : 1) * (e.vuln ? 2 : 1)));
     if (e.shieldHits > 0 && !save.seenShield) {
       save.seenShield = true; persist();
       this.ui.banner('SHIELDS!', 'Blue enemies block most damage\nuntil their shield breaks', 2600, '#b8d0ff');
@@ -695,6 +728,10 @@ export default class Game extends Phaser.Scene {
     if (!e.alive) return;
     this.removeEnemy(e);
     this.kills++;
+    const st = stats();
+    st.kills++;
+    if (this.hitSrc && WEAPONS[this.hitSrc]) st.wk[this.hitSrc] = (st.wk[this.hitSrc] || 0) + 1;
+    if (e.elite) st.elites = (st.elites || 0) + 1;
     this.burst(e.x, e.y - e.r * 0.6, hexColor(e.def.color), e.boss ? 60 : e.def.heavy || e.elite ? 18 : 8, e.boss ? 260 : 140);
     this.deathPop(e);
     if (!quiet) audio.play('kill');
@@ -710,20 +747,29 @@ export default class Game extends Phaser.Scene {
         c.kx = Math.cos(a) * 260; c.ky = Math.sin(a) * 260;
       }
     }
+    if (e.thief) {
+      bump('thieves');
+      this.dropPickup('treasure', e.x, e.y);
+      for (let i = 0; i < 8; i++) this.dropPickup('coin', e.x + rand(-20, 20), e.y + rand(-20, 20), this.mods.coin * 2);
+      this.ui.banner('CAUGHT!', 'He dropped a treasure chest', 1600, '#7ad0f4');
+      if (this.event && this.event.target === e) this.event = null;
+    }
     if (e.mode !== 'stampede' || Math.random() < 0.5) {
-      const xp = e.def.xp * this.age.xpMul * this.mods.xp * (e.elite ? 5 : 1);
+      const xp = e.def.xp * this.age.xpMul * this.mods.xp * (e.elite ? 5 : 1) * (this.event && this.event.id === 'eclipse' ? 2 : 1);
       this.dropGem(e.x, e.y, xp);
     }
     const r = Math.random();
     const coin = this.mods.coin;
-    if (e.mini) { this.dropPickup('chest', e.x, e.y); this.dropPickup('spark', e.x + 16, e.y, 2); }
+    const coinChance = BAL.coinChance * (this.event && this.event.id === 'gold' ? 5 : 1);
+    if (e.mini) { this.dropPickup('treasure', e.x, e.y); this.dropPickup('chest', e.x + 24, e.y); this.dropPickup('spark', e.x + 16, e.y + 16, 2); }
     else if (e.def.heavy || e.elite) {
       for (let i = 0; i < 4; i++) this.dropPickup('coin', e.x + rand(-14, 14), e.y + rand(-14, 14), coin);
       if (Math.random() < (e.def.heavy ? 0.35 : 0.25)) this.dropPickup('spark', e.x, e.y - 8, 1);
+      if (e.elite && Math.random() < (BAL.treasureChance ?? 0.15)) this.dropPickup('treasure', e.x + 10, e.y + 10);
     }
-    else if (r < BAL.coinChance) this.dropPickup('coin', e.x + 6, e.y, coin);
-    else if (r < BAL.coinChance + BAL.meatChance) { if (!this.mods.noMeat) this.dropPickup('meat', e.x, e.y); }
-    else if (r < BAL.coinChance + BAL.meatChance + BAL.magnetChance) this.dropPickup('magnet', e.x, e.y);
+    else if (r < coinChance) this.dropPickup('coin', e.x + 6, e.y, coin);
+    else if (r < coinChance + BAL.meatChance) { if (!this.mods.noMeat) this.dropPickup('meat', e.x, e.y); }
+    else if (r < coinChance + BAL.meatChance + BAL.magnetChance) this.dropPickup('magnet', e.x, e.y);
   }
 
   // A white silhouette that squashes flat and fades
@@ -759,6 +805,8 @@ export default class Game extends Phaser.Scene {
       if (w.boost) for (const [k, s] of Object.entries(WEAPONS[w.key].stats || {})) if (s && s.per) st[k] += s.per * w.boost;
       if (w.dmgMul) st.dmg *= w.dmgMul;
       if (w.bonusCount && st.count !== undefined) st.count += w.bonusCount;
+      if (this.combos.has('pack') && (w.key === 'spear' || w.key === 'axes') && st.count !== undefined) st.count += 1;
+      this.hitSrc = w.key;
       switch (WEAPONS[w.key].behavior) {
         case 'swing': this.updateClub(w, st, dt); break;
         case 'orbit': this.updateAxes(w, st, dt); break;
@@ -768,6 +816,7 @@ export default class Game extends Phaser.Scene {
         case 'lightning': this.updateBolt(w, st, dt); break;
       }
     }
+    this.hitSrc = null;
   }
 
   aimAngle(range) {
@@ -795,11 +844,16 @@ export default class Game extends Phaser.Scene {
     }
     this.runQueue(w, dt, (q) => {
       const p = this.player;
-      const arc = 1.15;
+      // Whirlwind combo: the swing goes all the way around
+      const arc = this.combos.has('whirlwind') ? Math.PI : 1.15;
+      const torch = this.combos.has('torch');
       this.query(p.x, p.y, radius, (e) => {
         const a = Math.atan2(e.y - p.y, e.x - p.x);
         const d = Math.hypot(e.x - p.x, e.y - p.y);
-        if (d < e.r + 14 || angleDiff(a, q.ang) <= arc) this.hitEnemy(e, st.dmg, p.x, p.y, st.knockback || 260);
+        if (d < e.r + 14 || angleDiff(a, q.ang) <= arc) {
+          this.hitEnemy(e, st.dmg, p.x, p.y, st.knockback || 260);
+          if (torch) this.ignite(e, st.dmg * 0.35 * this.stats.dmg, 2.5);
+        }
       });
       this.slashFx(q.ang, radius, arc, st.icon);
       audio.play('swing');
@@ -859,6 +913,8 @@ export default class Game extends Phaser.Scene {
       this.query((p.x + x2) / 2, (p.y + y2) / 2, len / 2, (e) => {
         if (distToSeg(e.x, e.y, p.x, p.y, x2, y2) <= e.r + 10) this.hitEnemy(e, st.dmg, p.x, p.y, 120);
       });
+      // Lightning Rod combo: a bolt strikes the spear tip
+      if (this.combos.has('rod')) this.strike(x2, y2, 34 * this.stats.area, st.dmg * 0.6);
       const streak = this.add.graphics();
       streak.lineStyle(10, 0xffffff, 0.5).lineBetween(0, 0, Math.cos(q.ang) * len, Math.sin(q.ang) * len);
       streak.lineStyle(4, 0xffffff, 0.9).lineBetween(0, 0, Math.cos(q.ang) * len, Math.sin(q.ang) * len);
@@ -936,7 +992,14 @@ export default class Game extends Phaser.Scene {
       const tx = e ? e.x + rand(-8, 8) : p.x + rand(-200, 200);
       const ty = e ? e.y + rand(-8, 8) : p.y + rand(-260, 260);
       this.time.delayedCall(i * 90, () => this.dropRock(tx, ty, radius, st.icon, () => {
-        this.query(tx, ty, radius, (en) => this.hitEnemy(en, st.dmg, tx, ty, 200));
+        const magma = this.combos.has('magma');
+        this.hitSrc = w.key;
+        this.query(tx, ty, radius, (en) => {
+          this.hitEnemy(en, st.dmg, tx, ty, 200);
+          if (magma) this.ignite(en, st.dmg * 0.3 * this.stats.dmg, 3);
+        });
+        this.hitSrc = null;
+        if (magma) this.burst(tx, ty, 0xff7a2a, 8, 120);
       }));
     }
   }
@@ -964,13 +1027,14 @@ export default class Game extends Phaser.Scene {
     if (w.t > 0) return;
     const targets = shuffle(this.enemiesInRange(st.range));
     if (!targets.length) { w.t = 0.2; return; }
-    w.t = st.cd;
+    w.t = st.cd * (this.combos.has('storm') ? 0.65 : 1);
     const n = st.count + this.stats.count;
     const radius = st.radius * this.stats.area;
     for (let i = 0; i < n && i < targets.length; i++) {
       this.time.delayedCall(i * 70, () => {
         const e = targets[i];
         let x = e.x, y = e.y;
+        this.hitSrc = w.key;
         this.strike(x, y, radius, st.dmg);
         const hit = new Set([e]);
         for (let c = 0; c < st.chain; c++) {
@@ -986,6 +1050,7 @@ export default class Game extends Phaser.Scene {
           this.query(best.x, best.y, radius * 0.7, (o) => this.hitEnemy(o, st.dmg * 0.6, best.x, best.y, 60));
           x = best.x; y = best.y;
         }
+        this.hitSrc = null;
       });
     }
   }
@@ -1026,7 +1091,7 @@ export default class Game extends Phaser.Scene {
   checkContacts() {
     const p = this.player;
     if (p.inv > 0) return;
-    this.query(p.x, p.y, p.r, (e) => { if (p.inv <= 0 && !e.flying) this.hurtPlayer(1); });
+    this.query(p.x, p.y, p.r, (e) => { if (p.inv <= 0 && !e.flying && !e.thief) this.hurtPlayer(1); });
   }
 
   hurtPlayer(n) {
@@ -1034,7 +1099,9 @@ export default class Game extends Phaser.Scene {
     if (p.inv > 0 || this.over) return;
     p.hearts -= n * (this.charDef.damageTaken || 1);
     p.inv = BAL.invincibility;
+    if (this.boss) this.bossHits++;
     audio.play('hurt');
+    buzz(70);
     this.shake(120, 0.008);
     this.cameras.main.flash(90, 160, 20, 20);
     // Shove nearby enemies back to give room to escape
@@ -1087,6 +1154,12 @@ export default class Game extends Phaser.Scene {
     const coinBonus = Math.floor(this.coins / (BAL.sparkCoinsEvery || 25));
     if (coinBonus) lines.push(['Leftover coins', coinBonus]);
     let dailyNew = false;
+    best('bestTime', this.totalTime); best('bestLevel', this.level); best('bestCoins', this.coinsEarned);
+    if (this.daily) bump('dailies');
+    // Best runs on this device, for the scores screen
+    save.history.push({ time: Math.floor(this.totalTime), kills: this.kills, age: this.age.name, character: this.charDef.name, date: new Date().toISOString().slice(0, 10), daily: this.daily ? this.daily.date : null });
+    save.history.sort((a, b) => b.time - a.time);
+    save.history.length = Math.min(save.history.length, 10);
     if (this.daily) {
       const d = save.daily;
       if (d.date !== this.daily.date) Object.assign(d, { date: this.daily.date, best: 0, bestKills: 0, played: false });
@@ -1099,10 +1172,15 @@ export default class Game extends Phaser.Scene {
     save.bestTime = Math.max(save.bestTime, Math.floor(this.totalTime));
     save.totalKills += this.kills;
     persist();
+    if (onlineEnabled) {
+      submitScore({ time: this.totalTime, kills: this.kills, age: this.age.name, character: this.charDef.name, daily: this.daily ? this.daily.date : null });
+      cloudBackup().catch(() => {});
+    }
+    this.checkQuests(true);
     this.scene.pause();
     this.ui.showResults({
       won, kills: this.kills, time: this.totalTime, age: this.age.name, level: this.level,
-      sparks: { total, lines }, daily: this.daily, dailyNew, ...info,
+      sparks: { total, lines }, daily: this.daily, dailyNew, quests: this.newQuests.length, ...info,
     });
   }
 
@@ -1120,8 +1198,9 @@ export default class Game extends Phaser.Scene {
   }
 
   dropPickup(kind, x, y, value = 1, tex) {
-    const key = tex || { coin: 'coin', meat: 'meat', magnet: 'magnet', chest: 'chest', spark: 'spark' }[kind];
-    const spr = this.add.image(x, y, key).setScale(1.5).setDepth(-1.6e7);
+    const key = tex || { coin: 'coin', meat: 'meat', magnet: 'magnet', chest: 'chest', spark: 'spark', treasure: 'treasure' }[kind];
+    const spr = this.add.image(x, y, key).setScale(kind === 'treasure' ? 1.8 : 1.5).setDepth(-1.6e7);
+    if (kind === 'treasure') this.tweens.add({ targets: spr, angle: { from: -6, to: 6 }, yoyo: true, repeat: -1, duration: 260 });
     const pk = { kind, x, y, value, spr, fly: false, v: 0 };
     // Little pop when dropped
     spr.y -= 4;
@@ -1138,7 +1217,7 @@ export default class Game extends Phaser.Scene {
       const k = this.pickups[i];
       const dx = p.x - k.x, dy = p.y - k.y;
       const d = Math.hypot(dx, dy);
-      const reach = k.kind === 'chest' ? 30 : k.kind === 'spark' ? range * 1.5 : range;
+      const reach = k.kind === 'chest' || k.kind === 'treasure' ? 30 : k.kind === 'spark' ? range * 1.5 : range;
       if (k.kind === 'spark' && !k.fly) k.spr.setScale(1.5 + Math.sin(this.totalTime * 8 + k.x) * 0.2);
       if (!k.fly && d < reach) { k.fly = true; k.v = -120; }
       if (k.fly) {
@@ -1160,7 +1239,10 @@ export default class Game extends Phaser.Scene {
         this.addXp(k.value);
         break;
       case 'coin':
-        this.coins += k.value; audio.play('coin'); break;
+        this.coins += k.value; this.coinsEarned += k.value; audio.play('coin'); break;
+      case 'treasure':
+        this.openTreasure();
+        break;
       case 'spark':
         this.sparks += k.value;
         audio.play('spark');
@@ -1178,6 +1260,7 @@ export default class Game extends Phaser.Scene {
       case 'chest': {
         const c = Math.round(Math.floor(rand(18, 32)) * (this.ageIndex + 1) * (k.value || 1));
         this.coins += c;
+        this.coinsEarned += c;
         this.floatText(p.x, p.y - 30, `+${c} COINS`, '#f2c84b');
         this.burst(p.x, p.y, 0xf2c84b, 20, 160);
         audio.play('bosskill');
@@ -1191,6 +1274,7 @@ export default class Game extends Phaser.Scene {
     while (this.xp >= this.xpNeed) {
       this.xp -= this.xpNeed;
       this.level++;
+      best('bestLevel', this.level);
       this.xpNeed = xpForLevel(this.level);
       this.pendingLevels++;
     }
@@ -1225,14 +1309,19 @@ export default class Game extends Phaser.Scene {
     });
   }
 
-  makeChoices() {
+  // Everything a level-up card could offer right now
+  upgradePool() {
     const pool = [];
     const owned = new Set(this.weapons.map(w => w.key));
     for (const w of this.weapons) if (w.level < this.weaponMax(w.key)) pool.push({ type: 'weapon', key: w.key, cur: w.level, max: this.weaponMax(w.key) });
     for (const k of this.passiveOrder) if (this.passives[k] < this.passiveMax(k)) pool.push({ type: 'passive', key: k, cur: this.passives[k], max: this.passiveMax(k) });
     if (this.weapons.length < this.weaponSlots) for (const k of Object.keys(WEAPONS)) if (!owned.has(k)) pool.push({ type: 'weapon', key: k, cur: 0, max: this.weaponMax(k), isNew: true });
     if (this.passiveOrder.length < this.passiveSlots) for (const k of Object.keys(PASSIVES)) if (!this.passives[k]) pool.push({ type: 'passive', key: k, cur: 0, max: this.passiveMax(k), isNew: true });
-    shuffle(pool);
+    return pool;
+  }
+
+  makeChoices() {
+    const pool = shuffle(this.upgradePool());
     const out = pool.slice(0, 3).map(c => this.rollRarity(c));
     if (!out.length) return [{ type: 'heal' }, { type: 'coins' }];
     return out;
@@ -1259,8 +1348,10 @@ export default class Game extends Phaser.Scene {
     return this.makeChoices();
   }
 
-  applyChoice(c) {
+  // Weapon or passive part of a card (also used by treasure chests)
+  applyUpgrade(c) {
     const mult = c.mult || 1;
+    if (c.rarity === 3) bump('legendary');
     if (c.type === 'weapon') {
       let w = this.weapons.find(x => x.key === c.key);
       if (w) w.level++; else w = this.addWeapon(c.key);
@@ -1276,7 +1367,13 @@ export default class Game extends Phaser.Scene {
       this.passives[c.key]++;
       this.passivePts[c.key] += mult;
       if (PASSIVES[c.key].effect === 'hearts') { this.recomputeStats(); this.player.hearts = Math.min(this.player.maxHearts, this.player.hearts + Math.round(mult)); }
-    } else if (c.type === 'heal') {
+    }
+    if (c.type === 'weapon') this.checkCombos();
+  }
+
+  applyChoice(c) {
+    if (c.type === 'weapon' || c.type === 'passive') this.applyUpgrade(c);
+    else if (c.type === 'heal') {
       this.player.hearts = this.player.maxHearts;
     } else if (c.type === 'coins') {
       this.coins += 25;
@@ -1335,6 +1432,8 @@ export default class Game extends Phaser.Scene {
     e.vx = 0; e.vy = 0;
     this.boss = e;
     this.bossSummoned = true;
+    this.bossHits = 0;
+    this.braveSummon = this.ageTime < 60;
     this.lootMul = this.currentLootMul();
     this.setDarkness(true);
     this.ui.banner(`${this.age.bossName}!`, this.lootMul > 1 ? `Early summon: loot x${this.lootMul}` : 'Dodge the red zones', 2200, '#d83c3c');
@@ -1358,6 +1457,17 @@ export default class Game extends Phaser.Scene {
       ai.enraged = true; ai.fast = 0.55;
       this.ui.banner('TWO MORE HEADS!', 'It attacks faster', 1800, '#3ab8a4');
       audio.play('roar'); this.shake(300, 0.01);
+    }
+    // The Steam Mech overheats twice: it stops and takes double damage for a moment
+    if (ai.style === 'mech') {
+      ai.heat = ai.heat || [0.66, 0.33];
+      if (ai.heat.length && b.hp < b.maxHp * ai.heat[0] && ai.state !== 'overheat') {
+        ai.heat.shift();
+        ai.state = 'overheat'; ai.t = 3.5; b.vuln = true;
+        this.clearHazards();
+        this.ui.banner('OVERHEATED!', 'Hit it now for double damage!', 1800, '#ff9a4a');
+        audio.play('steam');
+      }
     }
     // The Hunter (T-Rex) gets faster as it gets hurt
     const hunt = ai.style === 'hunter' ? 1.4 + 0.8 * (1 - b.hp / b.maxHp) : 1;
@@ -1418,6 +1528,12 @@ export default class Game extends Phaser.Scene {
       case 'rest':
         b.vx = 0; b.vy = 0;
         if (ai.t <= 0) { ai.state = 'walk'; ai.t = 1.8 * ai.fast; }
+        break;
+      case 'overheat':
+        b.vx = 0; b.vy = 0;
+        if (Math.random() < 0.5) this.burst(b.x + rand(-30, 30), b.y - 60, 0xe8e8f0, 2, 80);
+        b.spr.setTint(Math.floor(this.totalTime * 10) % 2 ? 0xff8060 : 0xffffff);
+        if (ai.t <= 0) { b.vuln = false; b.spr.clearTint(); ai.state = 'walk'; ai.t = 1.2; }
         break;
     }
   }
@@ -1510,6 +1626,28 @@ export default class Game extends Phaser.Scene {
       }
       ai.onWindup = () => { ai.state = 'rest'; ai.t = 0.5; };
       audio.play('roar');
+    } else if (choice === 'steam') {
+      // Steam vents: rings of scalding steam roll outward. Stand between them.
+      ai.state = 'windup'; ai.t = 1.8;
+      for (let i = 0; i < 3; i++) this.addHazard({ kind: 'ring', x: b.x, y: b.y, r: 90 + i * 90, w: 44, t: 0.9 + i * 0.45, color: 0xd0e8f0 });
+      ai.onWindup = () => { ai.state = 'rest'; ai.t = 0.4; };
+      audio.play('steam');
+    } else if (choice === 'laser') {
+      // Eye laser that sweeps across
+      ai.state = 'windup'; ai.t = 1.9;
+      const dir = Math.random() < 0.5 ? 1 : -1;
+      for (let i = 0; i < 10; i++) {
+        this.addHazard({ kind: 'line', x: b.x, y: b.y - 40, ang: ang + dir * (-1.2 + i * 0.26), len: 470, w: 34, t: 0.8 + i * 0.1, color: 0xff4a3a, flash: 0xffd0c0 });
+      }
+      ai.onWindup = () => { ai.state = 'rest'; ai.t = 0.5; };
+      audio.play('zap');
+    } else if (choice === 'cogs') {
+      for (let i = 0; i < 7; i++) {
+        const x = p.x + rand(-170, 170), y = p.y + rand(-170, 170);
+        this.addHazard({ kind: 'circle', x, y, r: 46, t: 1.0 + i * 0.13, rock: true, icon: 'cogicon', color: 0xc8923a });
+      }
+      this.addHazard({ kind: 'circle', x: p.x, y: p.y, r: 46, t: 1.0, rock: true, icon: 'cogicon', color: 0xc8923a });
+      ai.state = 'rest'; ai.t = 0.9; audio.play('roar');
     } else if (choice === 'breath') {
       ai.state = 'windup'; ai.t = 1.0;
       for (let i = -2; i <= 2; i++) this.addHazard({ kind: 'line', x: b.x, y: b.y - 20, ang: ang + i * 0.26, len: 400, w: 46, t: 1.0, color: 0xff7a2a, flash: 0xffc848 });
@@ -1556,6 +1694,9 @@ export default class Game extends Phaser.Scene {
           g.fillStyle(col, pulse).fillCircle(h.x, h.y, h.r);
           g.fillStyle(col, 0.35).fillCircle(h.x, h.y, h.r * prog);
           g.lineStyle(2, col, 0.9).strokeCircle(h.x, h.y, h.r);
+        } else if (h.kind === 'ring') {
+          g.lineStyle(h.w, col, pulse).strokeCircle(h.x, h.y, h.r);
+          g.lineStyle(h.w * prog, col, 0.4).strokeCircle(h.x, h.y, h.r);
         } else {
           const ex = h.x + Math.cos(h.ang) * h.len, ey = h.y + Math.sin(h.ang) * h.len;
           g.lineStyle(h.w, col, pulse).lineBetween(h.x, h.y, ex, ey);
@@ -1565,14 +1706,19 @@ export default class Game extends Phaser.Scene {
           h.fired = true;
           if (h.rock) {
             g.clear();
-            this.dropRock(h.x, h.y, h.r, h.burn ? 'flame' : 'rock', () => {
+            this.dropRock(h.x, h.y, h.r, h.icon || (h.burn ? 'flame' : 'rock'), () => {
               if (Math.hypot(p.x - h.x, p.y - h.y) < h.r + p.r) this.hurtPlayer(1);
+              if (h.hitsEnemies) this.query(h.x, h.y, h.r, (e) => { if (!e.boss && !e.thief) this.hitEnemy(e, 30, h.x, h.y, 220); });
               if (h.burn && this.boss) this.addHazard({ kind: 'circle', x: h.x, y: h.y, r: h.r * 0.9, t: 0.01, persist: 3, color: 0xff7a2a });
             }, 0xff6060);
             h.dead = true;
           } else if (h.kind === 'circle') {
             if (!h.telegraphOnly && Math.hypot(p.x - h.x, p.y - h.y) < h.r + p.r) this.hurtPlayer(1);
             if (!h.persist) h.dead = true; else h.life = h.persist;
+          } else if (h.kind === 'ring') {
+            if (Math.abs(Math.hypot(p.x - h.x, p.y - h.y) - h.r) < h.w / 2 + p.r) this.hurtPlayer(1);
+            this.ringFx(h.x, h.y, h.r, 0xffffff);
+            h.dead = true;
           } else {
             const ex = h.x + Math.cos(h.ang) * h.len, ey = h.y + Math.sin(h.ang) * h.len;
             if (!h.telegraphOnly && distToSeg(p.x, p.y, h.x, h.y, ex, ey) < h.w / 2 + p.r) this.hurtPlayer(1);
@@ -1614,7 +1760,12 @@ export default class Game extends Phaser.Scene {
     this.cameras.main.flash(300, 255, 255, 255);
     // The arena clears
     for (const e of this.enemies) if (e.alive) this.killEnemy(e, true);
+    this.endEvent(true);
+    if (this.bossHits === 0) bump('flawless');
+    if (this.braveSummon) bump('brave');
+    buzz(200);
     const lm = this.lootMul || 1;
+    this.dropPickup('treasure', b.x - 30, b.y + 10);
     for (let i = 0; i < Math.round(12 * lm); i++) this.dropPickup('coin', b.x + rand(-50, 50), b.y + rand(-50, 50), 2);
     this.dropPickup('chest', b.x, b.y, lm);
     this.dropPickup('spark', b.x + 20, b.y - 10, Math.round(((BAL.sparkBoss ?? 4) + 3 * this.ageIndex) * lm));
@@ -1768,7 +1919,7 @@ export default class Game extends Phaser.Scene {
         it.result = 'Faster, but one heart lighter';
         break;
       }
-      case 'confusion': this.confuseWeapons(); it.result = 'Your weapons changed!'; break;
+      case 'confusion': this.confuseWeapons(); this.checkCombos(); it.result = 'Your weapons changed!'; break;
       case 'mirror': {
         if (!this.portal) return false;
         this.portal.locked = false;
@@ -1784,6 +1935,7 @@ export default class Game extends Phaser.Scene {
         const opts = Object.keys(WEAPONS).filter(k => !owned.has(k));
         if (!opts.length || this.weapons.length >= this.weaponSlots) return false;
         const k = pick(opts); this.addWeapon(k);
+        this.checkCombos();
         it.result = `You got ${WEAPONS[k].name}`;
         break;
       }
@@ -1820,7 +1972,7 @@ export default class Game extends Phaser.Scene {
           this.pickups = [];
           // The Magic Mirror loops back to the first age, with tougher enemies
           let next = this.ageIndex + 1;
-          if (next >= AGES.length || this.finalShop) { next = 0; this.loop++; this.finalShop = false; }
+          if (next >= AGES.length || this.finalShop) { next = 0; this.loop++; this.finalShop = false; bump('loops'); }
           this.startAge(next);
           p.spr.setScale(this.charDef.scale || 1.5).setAngle(0);
           this.player.inv = 1.5;
@@ -1831,6 +1983,204 @@ export default class Game extends Phaser.Scene {
         });
       },
     });
+  }
+
+  // ------------------------------------------------------------------
+  // Treasure chests: a spin of 1, 3 or 5 free upgrades
+  openTreasure() {
+    if (this.over) return;
+    bump('chests');
+    const roll = Math.random();
+    const n = roll < 0.1 ? 5 : roll < 0.4 ? 3 : 1;
+    const rewards = [];
+    for (let i = 0; i < n; i++) {
+      const pool = this.upgradePool();
+      if (pool.length) {
+        const c = this.rollRarity(pick(pool));
+        this.applyUpgrade(c);
+        rewards.push(c);
+      } else {
+        this.coins += 30; this.coinsEarned += 30;
+        rewards.push({ type: 'coins' });
+      }
+    }
+    this.recomputeStats();
+    this.frozen = true;
+    audio.play('chest');
+    buzz(40);
+    this.time.delayedCall(10, () => { this.scene.pause(); this.ui.showTreasure(rewards); });
+  }
+
+  closeTreasure() {
+    this.frozen = false;
+    this.player.inv = Math.max(this.player.inv, 0.6);
+    this.scene.resume();
+  }
+
+  // ------------------------------------------------------------------
+  // Weapon combos: owning both weapons of a pair turns on a bonus
+  comboWith(key) {
+    const owned = new Set(this.weapons.map(w => w.key));
+    if (owned.has(key)) return null;
+    return COMBOS.find(c => !this.combos.has(c.id) && ((c.a === key && owned.has(c.b)) || (c.b === key && owned.has(c.a))));
+  }
+
+  checkCombos() {
+    const owned = new Set(this.weapons.map(w => w.key));
+    for (const c of COMBOS) {
+      const on = owned.has(c.a) && owned.has(c.b);
+      if (on && !this.combos.has(c.id)) {
+        this.combos.add(c.id);
+        const st = stats();
+        const found = !st.combos[c.id];
+        st.combos[c.id] = true;
+        if (this.ui && this.ui.ready) {
+          this.time.delayedCall(300, () => {
+            this.ui.banner(`${c.name.toUpperCase()}!`, `${found ? 'NEW COMBO! ' : 'COMBO: '}${c.blurb}`, 2600, '#ffc040');
+            audio.play('combo');
+          });
+        }
+      } else if (!on && this.combos.has(c.id)) this.combos.delete(c.id);
+    }
+  }
+
+  // Sets an enemy on fire (bosses burn less)
+  ignite(e, dps, t) {
+    if (!e.alive) return;
+    e.burnT = Math.max(e.burnT, t);
+    e.burnDps = Math.max(e.burnDps, dps * (e.boss ? 0.4 : 1));
+  }
+
+  // ------------------------------------------------------------------
+  // Random events: gold rush, eclipse, meteor shower, treasure thief
+  startEvent(id = null) {
+    const fresh = EVENTS.filter(e => !this.usedEvents.has(e.id));
+    const ev = id ? EVENTS.find(e => e.id === id) : pick(fresh.length ? fresh : EVENTS);
+    if (!ev) return;
+    this.usedEvents.add(ev.id);
+    this.event = { ...ev, t: BAL.eventLength || 20, total: BAL.eventLength || 20, acc: 0 };
+    this.ui.banner(ev.name, ev.blurb, 2200, ev.color);
+    audio.play('warn');
+    if (ev.id === 'eclipse') this.setDarkness(true, false, 0.55);
+    if (ev.id === 'thief') {
+      const a = rand(0, TAU);
+      const e = this.spawnEnemy('thief', Math.cos(a) * 230, Math.sin(a) * 230);
+      e.mode = 'flee'; e.thief = true;
+      e.hp = e.maxHp = (ENEMIES.thief ? ENEMIES.thief.hp : 60) * this.age.hpMul * 2 * this.loopMul();
+      e.baseTint = 0xffe8a0; e.spr.setTint(e.baseTint);
+      this.event.target = e;
+      this.event.t = this.event.total = 15;
+    }
+  }
+
+  endEvent(silent = false) {
+    const ev = this.event;
+    if (!ev) return;
+    this.event = null;
+    if (ev.id === 'eclipse' && !this.boss) this.setDarkness(false);
+    if (ev.id === 'thief' && ev.target && ev.target.alive) {
+      this.burst(ev.target.x, ev.target.y, 0x8a5ab0, 20, 160);
+      this.removeEnemy(ev.target);
+      if (!silent) this.ui.banner('HE GOT AWAY!', 'Maybe next time', 1500, '#a090b0');
+    }
+  }
+
+  updateEvent(dt) {
+    const ev = this.event;
+    if (!ev) return;
+    ev.t -= dt;
+    if (this.boss || this.cleared || ev.t <= 0) { this.endEvent(); return; }
+    if (ev.id === 'meteors') {
+      ev.acc += dt;
+      while (ev.acc >= 0.55) {
+        ev.acc -= 0.55;
+        const p = this.player;
+        this.addHazard({ kind: 'circle', x: p.x + rand(-220, 220), y: p.y + rand(-280, 280), r: 46, t: 1.2, rock: true, hitsEnemies: true, color: 0xff9a4a });
+      }
+    }
+  }
+
+  // ------------------------------------------------------------------
+  // Pet (Taka's baby raptor): runs to the nearest enemy and bites it
+  makePet(key) {
+    const p = this.player;
+    const tex = ENEMIES[key] ? ENEMIES[key].sprite : key;
+    if (!this.textures.exists(tex)) return;
+    const spr = this.add.sprite(p.x - 30, p.y, tex, 0).setScale(1.15).setOrigin(0.5, 0.85).setTint(0xd8ffc8);
+    const shadow = this.add.image(0, 0, 'shadow').setScale(1.1, 1).setDepth(-2e7);
+    this.pet = { x: p.x - 30, y: p.y, spr, shadow, cd: 0, target: null, retarget: 0, anim: 0 };
+  }
+
+  updatePet(dt) {
+    const pet = this.pet;
+    if (!pet) return;
+    const p = this.player;
+    pet.cd -= dt;
+    const tg = pet.target;
+    if (!tg || !tg.alive || tg.flying || Math.hypot(tg.x - p.x, tg.y - p.y) > 320) {
+      pet.target = null;
+      pet.retarget -= dt;
+      if (pet.retarget <= 0) { pet.retarget = 0.25; pet.target = this.nearestEnemy(260); }
+    }
+    let tx, ty, speed;
+    if (pet.target) { tx = pet.target.x; ty = pet.target.y; speed = 280; }
+    else { tx = p.x - p.facing * 34; ty = p.y + 8; speed = Math.max(this.stats.speed * 1.3, 180); }
+    const dx = tx - pet.x, dy = ty - pet.y, d = Math.hypot(dx, dy);
+    if (pet.target && d < pet.target.r + 12) {
+      if (pet.cd <= 0) {
+        pet.cd = 0.5;
+        this.hitSrc = 'pet';
+        this.hitEnemy(pet.target, 9 + this.level * 1.4, pet.x, pet.y, 140);
+        this.hitSrc = null;
+        pet.spr.setScale(1.4, 0.95);
+      }
+    } else if (d > 4) {
+      const step = Math.min(d, speed * dt);
+      pet.x += (dx / d) * step; pet.y += (dy / d) * step;
+      if (Math.abs(dx) > 2) pet.spr.setFlipX(dx < 0);
+    }
+    if (Math.hypot(pet.x - p.x, pet.y - p.y) > 500) { pet.x = p.x - 30; pet.y = p.y; }
+    pet.anim += dt * (d > 4 ? 10 : 3);
+    const k = Math.min(1, dt * 10);
+    pet.spr.setScale(pet.spr.scaleX + (1.15 - pet.spr.scaleX) * k, pet.spr.scaleY + (1.15 - pet.spr.scaleY) * k);
+    pet.spr.setPosition(pet.x, pet.y).setFrame(Math.floor(pet.anim) % 2).setDepth(pet.y);
+    pet.shadow.setPosition(pet.x, pet.y + 2);
+  }
+
+  // ------------------------------------------------------------------
+  // Quests: a note pops up the moment one is done
+  checkQuests(quiet = false) {
+    best('bestTime', this.totalTime); best('bestLevel', this.level); best('bestCoins', this.coinsEarned);
+    for (const q of allQuests()) {
+      if (this.questsDone.has(q.id) || !isDone(q)) continue;
+      this.questsDone.add(q.id);
+      this.newQuests.push(q);
+      if (!quiet) { this.ui.toast(`QUEST DONE: ${q.name.toUpperCase()}`, `+${q.reward} Sparks to claim on the menu`); audio.play('quest'); }
+    }
+  }
+
+  // ------------------------------------------------------------------
+  // First-run tips
+  updateTutorial(dt) {
+    const tut = this.tut;
+    if (!tut || !this.ui || !this.ui.ready) return;
+    tut.t += dt;
+    if (this.player.moving) tut.moved += dt;
+    const steps = [
+      { text: 'DRAG ANYWHERE TO MOVE\n(OR USE WASD / ARROW KEYS)', done: () => tut.moved > 0.8 },
+      { text: 'YOUR WEAPON ATTACKS ON ITS OWN.\nJUST STAY AWAY FROM ENEMIES!', done: () => tut.t > 4.5 },
+      { text: 'GRAB THE GEMS THEY DROP\nTO LEVEL UP', done: () => this.level >= 2 },
+      { text: 'SUMMON THE BOSS WHEN YOU FEEL STRONG.\nEARLIER = BIGGER LOOT', done: () => tut.t > 7, arrow: 'summon' },
+    ];
+    const s = steps[tut.step];
+    if (!s) {
+      this.tut = null;
+      save.tutorialDone = true; save.seenHint = true; persist();
+      this.ui.hint(null);
+      return;
+    }
+    if (tut.shown !== tut.step) { tut.shown = tut.step; this.ui.hint(s.text, s.arrow); }
+    if (s.done()) { tut.step++; tut.t = 0; audio.play('select'); }
   }
 
   // ------------------------------------------------------------------
@@ -1890,13 +2240,14 @@ export default class Game extends Phaser.Scene {
   }
 
   shake(ms, amt) {
+    if (save.settings.shake === false) return;
     this.cameras.main.shake(ms, amt * 0.6);
   }
 
   // ------------------------------------------------------------------
   // Boss fights happen at night: darkness with firelight and glowing eyes
-  setDarkness(on, instant = false) {
-    this.darkTarget = on ? BAL.bossDarkness : 0;
+  setDarkness(on, instant = false, amount = null) {
+    this.darkTarget = on ? (amount ?? BAL.bossDarkness) : 0;
     if (instant) this.darkLevel = this.darkTarget;
   }
 

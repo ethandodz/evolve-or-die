@@ -103,7 +103,20 @@ const TROLL = ['#8aa86a', '#6a8a4a', '#4a6632', '#2e4220'];
 const DRAGON = ['#f0704a', '#d0482a', '#9a2e1c', '#601a10'];
 const WING = ['#c84a5a', '#9a3044', '#6a1e30', '#40101c'];
 const GREEN = ['#5aa05a', '#3e7e3e', '#2a5a2a', '#183a18'];
+const BRASS = ['#f8d878', '#d8a848', '#a87a2a', '#6a4a14'];
+const COPPER = ['#e89a6a', '#c0703e', '#8a4a26', '#5a2c14'];
+const SEPIA = ['#f2e2c0', '#dcc6a0', '#b8a07a', '#8a7454'];
 const EYE = '#160c08';
+
+// A gear: round body with square teeth
+function gear(s, cx, cy, r, ramp, teeth = 8, rot = 0) {
+  for (let i = 0; i < teeth; i++) {
+    const a = rot + (i / teeth) * Math.PI * 2;
+    s.ell(cx + Math.cos(a) * r, cy + Math.sin(a) * r, Math.max(1.2, r * 0.28), Math.max(1.2, r * 0.28), ramp);
+  }
+  s.ell(cx, cy, r, r, ramp, 0.05);
+  s.ell(cx, cy, r * 0.35, r * 0.35, [ramp[3], ramp[3], ramp[3], ramp[3]]);
+}
 
 // ---------------------------------------------------------------------------
 // Humanoids share one body; options change the look
@@ -170,6 +183,11 @@ const CHAR_LOOKS = {
   footman: { skin: SKIN, helmet: STEEL, body: STEEL, bodyTex: 0.3, shield: BLUE, sword: true, belt: '#3a2a20', legs: LEATHER, boots: LEATHER },
   jester: { skin: SKIN, jesterHat: [RED, PURPLE], body: RED, halves: PURPLE, legs: PURPLE, boots: RED },
   blackknight: { skin: SKIN2, helmet: DARKSTEEL, grill: true, plume: RED, body: DARKSTEEL, bodyTex: 0.25, cape: ['#a83a2a', '#86281c', '#5e1a12', '#3a0e0a'], shield: DARKSTEEL, sword: true, legs: DARKSTEEL, boots: DARKSTEEL },
+  tamer: { skin: SKIN, hair: HAIR, body: DINO, spots: true, band: TEAL, paint: true, belt: '#f6eed4', legs: SKIN, boots: LEATHER },
+  apprentice: { skin: SKIN, hair: HAIR, body: CREAM, belt: '#8a5a2e', staff: RED, legs: LEATHER, boots: LEATHER },
+  duelist: { skin: SKIN, hair: BLACKH, body: NAVY, cape: RED, belt: '#f0c060', sword: true, legs: NAVY, boots: LEATHER },
+  halberdier: { skin: SKIN, helmet: STEEL, body: RED, halves: GOLD, belt: '#3a2a20', spear: true, legs: GOLD, boots: LEATHER },
+  thief: { skin: SKIN2, hood: PURPLE, body: SACK, belt: '#f0c060', legs: LEATHER, boots: LEATHER },
   timecop: { skin: SKIN, cap: NAVY, body: BLUE, badge: true, belt: '#1a1a2a', legs: NAVY, boots: ['#2a2a2a', '#1a1a1a', '#101010', '#080808'] },
 };
 
@@ -332,6 +350,63 @@ function quad(kind, f) {
       s.rect(23 - lf, 44, 6, 8, P); s.rect(35 + lf, 44, 6, 8, P);
       s.rect(21 - lf, 52, 9, 3, P); s.rect(33 + lf, 52, 9, 3, P);
     });
+    case 'clockwork': return paint(26, 34, (s) => {
+      const lf = f ? 1 : 0;
+      s.rect(8 - lf, 24, 3, 8, BRASS); s.rect(15 + lf, 24, 3, 8, BRASS);
+      s.rect(7 - lf, 31, 5, 2, COPPER); s.rect(14 + lf, 31, 5, 2, COPPER);
+      s.rect(6, 12, 14, 13, BRASS, 0.05);
+      gear(s, 13, 18, 3, COPPER, 6, f ? 0.4 : 0);
+      s.rect(3, 13 + lf, 3, 9, COPPER); s.rect(20, 13 - lf, 3, 9, COPPER);
+      s.line(22, 20, 25, 6, STEEL[1], 1); s.line(23, 20, 26, 6, STEEL[0], 1);
+      s.rect(8, 4, 10, 8, BRASS); s.rect(9, 7, 8, 2, ['#3a2a10', '#3a2a10', '#2a1a08', '#1a1004']);
+      s.put(11, 7, '#7ae0ff'); s.put(15, 7, '#7ae0ff');
+      s.line(13, 4, 13, 0, COPPER[1]); s.put(13, 0, '#ff6a3a');
+    });
+    case 'gearling': return paint(32, 30, (s) => {
+      const lf = f ? 1 : 0;
+      s.rect(8 - lf, 23, 4, 6, COPPER); s.rect(20 + lf, 23, 4, 6, COPPER);
+      gear(s, 16, 14, 10, BRASS, 10, f ? 0.3 : 0);
+      gear(s, 8, 6, 4, COPPER, 6, f ? 0 : 0.5); gear(s, 25, 7, 4, COPPER, 6, f ? 0.5 : 0);
+      s.put(13, 13, '#ff6a3a'); s.put(19, 13, '#ff6a3a'); s.put(14, 13, '#ffd0a0'); s.put(20, 13, '#ffd0a0');
+      s.line(13, 18, 19, 18, BRASS[3]);
+    });
+    case 'cog': return paint(16, 16, (s) => {
+      gear(s, 8, 8, 5, BRASS, 7, f ? 0.45 : 0);
+      s.put(6, 7, EYE); s.put(10, 7, EYE);
+    });
+    case 'automaton': return paint(44, 44, (s) => {
+      const lf = f ? 2 : 0;
+      s.rect(11 - lf, 32, 8, 10, COPPER); s.rect(25 + lf, 32, 8, 10, COPPER);
+      s.ell(22, 22, 15, 13, BRASS, 0.08);
+      s.ell(22, 24, 6, 6, FIRE);
+      for (let x = 17; x <= 27; x += 2) s.line(x, 19, x, 29, BRASS[3]);
+      s.rect(3, 14 - lf, 6, 16, COPPER); s.rect(35, 14 + lf, 6, 16, COPPER);
+      s.ell(6, 31 - lf, 4, 3, BRASS); s.ell(38, 31 + lf, 4, 3, BRASS);
+      s.rect(15, 2, 14, 10, BRASS); s.rect(17, 6, 10, 2, ['#3a2a10', '#3a2a10', '#2a1a08', '#1a1004']);
+      s.put(19, 6, '#7ae0ff'); s.put(24, 6, '#7ae0ff');
+      s.rect(30, 0, 3, 8, DARKSTEEL);
+      gear(s, 13, 12, 3, COPPER, 6);
+    });
+    case 'mech': return paint(70, 60, (s) => {
+      const lf = f ? 2 : 0;
+      // legs
+      s.rect(16 - lf, 40, 8, 14, DARKSTEEL); s.rect(46 + lf, 40, 8, 14, DARKSTEEL);
+      s.rect(13 - lf, 52, 14, 5, BRASS); s.rect(43 + lf, 52, 14, 5, BRASS);
+      gear(s, 20 - lf, 42, 4, COPPER, 6); gear(s, 50 + lf, 42, 4, COPPER, 6);
+      // body
+      s.ell(35, 28, 22, 16, BRASS, 0.06);
+      s.ell(35, 30, 9, 9, FIRE);
+      for (let x = 28; x <= 42; x += 3) s.line(x, 22, x, 38, BRASS[3]);
+      gear(s, 18, 22, 5, COPPER, 8, f ? 0.4 : 0); gear(s, 52, 22, 5, COPPER, 8, f ? 0 : 0.4);
+      // arms: a drill and a claw
+      s.rect(4, 20 + lf, 9, 7, COPPER); for (let i = 0; i < 6; i++) s.line(4 - i, 20 + lf + i * 0.6, 4 - i, 26 + lf - i * 0.6, STEEL[i % 2]);
+      s.rect(57, 20 - lf, 9, 7, COPPER); s.line(66, 19 - lf, 69, 15 - lf, STEEL[1], 2); s.line(66, 27 - lf, 69, 31 - lf, STEEL[1], 2);
+      // head and smokestacks
+      s.rect(27, 6, 16, 10, BRASS); s.rect(29, 9, 12, 3, ['#3a2a10', '#3a2a10', '#2a1a08', '#1a1004']);
+      s.rect(31, 10, 3, 1, '#ff3a1a'); s.rect(36, 10, 3, 1, '#ff3a1a');
+      s.rect(22, 0, 4, 10, DARKSTEEL); s.rect(44, 0, 4, 10, DARKSTEEL);
+      s.put(23, 0, '#e0e0e0'); s.put(45, f ? 0 : 1, '#e0e0e0');
+    });
     case 'chariot': return paint(46, 32, (s) => {
       const H = LEATHER;
       // horse
@@ -381,6 +456,15 @@ const ITEMS = {
   coin: () => paint(10, 10, (s) => { s.ell(5, 5, 4, 4, GOLD); s.put(5, 3, GOLD[2]); s.put(5, 4, GOLD[2]); s.put(5, 5, GOLD[2]); }),
   meat: () => paint(16, 14, (s) => { s.line(1, 12, 6, 8, BONE[1], 2); s.ell(1.5, 12.5, 1.5, 1.5, BONE); s.ell(9, 6, 6, 5, RED, 0.1); s.ell(7, 4, 2, 1.4, ['#f4a090', '#f4a090', '#e07060', '#b8402e']); }),
   magnet: () => paint(14, 14, (s) => { s.rect(2, 2, 4, 9, RED); s.rect(8, 2, 4, 9, RED); s.rect(2, 9, 10, 3, RED); s.rect(2, 1, 4, 3, STEEL); s.rect(8, 1, 4, 3, STEEL); }),
+  treasure: () => paint(22, 18, (s) => { s.rect(1, 6, 20, 11, ['#b85a2a', '#8a3a1a', '#62240e', '#3e1408'], 0.05); s.ell(11, 6, 10, 5, ['#b85a2a', '#8a3a1a', '#62240e', '#3e1408']); s.rect(1, 9, 20, 2, GOLD); s.rect(4, 2, 2, 15, GOLD); s.rect(16, 2, 2, 15, GOLD); s.rect(9, 8, 4, 5, GOLD); s.put(11, 10, EYE); }),
+  chest_open: () => paint(22, 22, (s) => { s.rect(1, 10, 20, 11, ['#b85a2a', '#8a3a1a', '#62240e', '#3e1408'], 0.05); s.rect(1, 13, 20, 2, GOLD); s.rect(2, 1, 18, 7, ['#8a3a1a', '#62240e', '#3e1408', '#2a0c04']); s.rect(2, 1, 18, 1, GOLD); s.ell(11, 10, 8, 2.5, ['#fff8c0', '#ffe060', '#f0c040', '#c89020']); s.put(7, 9, '#ffffff'); s.put(14, 9, '#ffffff'); }),
+  scroll: () => paint(14, 16, (s) => { s.rect(3, 2, 8, 12, SEPIA); s.ell(7, 2, 5, 1.6, SEPIA); s.ell(7, 14, 5, 1.6, SEPIA); for (let y = 5; y < 12; y += 2) s.line(5, y, 9, y, SEPIA[3]); s.put(9, 12, RED[1]); }),
+  trophy: () => paint(14, 16, (s) => { s.ell(7, 5, 5, 4.5, GOLD); s.ell(2, 5, 1.6, 2.4, GOLD); s.ell(12, 5, 1.6, 2.4, GOLD); s.rect(6, 9, 2, 3, GOLD); s.rect(3, 12, 8, 3, GOLD); s.put(5, 3, '#ffffff'); }),
+  combo: () => paint(14, 14, (s) => { s.line(1, 12, 10, 3, STEEL[1], 2); s.line(12, 12, 3, 3, GOLD[1], 2); s.ell(7, 7, 2, 2, FIRE); }),
+  cogicon: () => paint(14, 14, (s) => gear(s, 7, 7, 4.5, BRASS, 7)),
+  easel: () => paint(20, 34, (s) => { s.line(4, 33, 10, 2, WOOD[1], 1); s.line(16, 33, 10, 2, WOOD[2], 1); s.line(10, 6, 10, 33, WOOD[2]); s.rect(2, 6, 16, 14, CREAM); s.ell(7, 12, 3, 3, ['#7ab0e0', '#5a90c8', '#3a70a8', '#1a5088']); s.rect(11, 14, 5, 4, GREEN); s.put(13, 10, '#e05a3a'); s.rect(1, 20, 18, 2, WOOD); }),
+  gearpile: () => paint(26, 18, (s) => { gear(s, 8, 11, 5, BRASS, 7); gear(s, 18, 12, 4, COPPER, 6, 0.3); gear(s, 13, 6, 3, STEEL, 6); }),
+  statue: () => paint(18, 44, (s) => { s.rect(2, 34, 14, 9, MARBLE); s.rect(4, 32, 10, 3, MARBLE); s.ell(9, 22, 5, 9, MARBLE); s.ell(9, 9, 4, 4.5, MARBLE); s.ell(8.5, 6, 4.5, 2.5, MARBLE, 0.3); s.rect(3, 17, 3, 8, MARBLE); s.rect(12, 15, 3, 7, MARBLE); s.put(10, 9, MARBLE[3]); }),
   chest: () => paint(20, 16, (s) => { s.rect(1, 5, 18, 10, WOOD, 0.1); s.ell(10, 5, 9, 4, WOOD); s.rect(1, 8, 18, 1, BRONZE); s.rect(8, 7, 4, 4, GOLD); s.put(10, 9, EYE); }),
   heart: () => paint(13, 12, (s) => { s.ell(3.5, 3.5, 3, 3, RED); s.ell(8.5, 3.5, 3, 3, RED); s.ell(6, 6, 5, 4, RED); s.line(3, 7, 6, 10, RED[1]); s.line(9, 7, 6, 10, RED[2]); s.put(3, 2, '#ffffff'); }),
   heart_empty: () => paint(13, 12, (s) => { const D = ['#5a3a30', '#4a2e26', '#3a221c', '#2a1812']; s.ell(3.5, 3.5, 3, 3, D); s.ell(8.5, 3.5, 3, 3, D); s.ell(6, 6, 5, 4, D); s.line(3, 7, 6, 10, D[1]); s.line(9, 7, 6, 10, D[2]); }),
@@ -439,6 +523,11 @@ const ANIM_ITEMS = {
     s.line(6, 12, 6, 32, WOOD[1], 1); s.line(5, 12, 5, 32, WOOD[2], 1); s.rect(3, 11, 6, 2, GREYS);
     s.ell(5.5, 6 + (f ? 1 : 0), 3.5, 5, FIRE); s.ell(5.5 + (f ? 1 : -1), 7, 1.6, 2.6, [FIRE[0], FIRE[0], FIRE[1], FIRE[2]]);
   }),
+  lantern: (f) => paint(12, 36, (s) => {
+    s.line(6, 12, 6, 35, DARKSTEEL[1]); s.line(5, 12, 5, 35, DARKSTEEL[2]); s.rect(2, 33, 8, 2, DARKSTEEL);
+    s.rect(2, 2, 8, 10, BRASS); s.rect(3, 4, 6, 6, FIRE.slice(f ? 0 : 1).concat(f ? [] : [FIRE[3]]));
+    s.rect(1, 1, 10, 2, DARKSTEEL); s.put(6, 0, DARKSTEEL[0]);
+  }),
   brazier: (f) => paint(16, 28, (s) => {
     s.rect(7, 12, 3, 14, BRONZE); s.rect(3, 25, 11, 2, BRONZE); s.ell(8.5, 11, 6, 3, BRONZE);
     s.ell(8.5, 6 + (f ? 1 : 0), 4, 5, FIRE); s.ell(8.5 + (f ? 1 : -1), 7, 2, 3, [FIRE[0], FIRE[0], FIRE[1], FIRE[2]]);
@@ -475,7 +564,7 @@ export function buildDefaultSprites() {
   const out = {};
   const add = (key, grids) => { out[key] = toSprite(grids); };
   for (const [k, o] of Object.entries(CHAR_LOOKS)) { seed = 101; add(k, [human(o, 0), human(o, 1)]); }
-  for (const k of ['wolf', 'raptor', 'sabertooth', 'mammoth', 'trex', 'hydra', 'chariot', 'golem', 'pebble', 'testudo', 'slime', 'slimelet', 'troll', 'dragon']) { seed = 202; add(k, [quad(k, 0), quad(k, 1)]); }
+  for (const k of ['wolf', 'raptor', 'sabertooth', 'mammoth', 'trex', 'hydra', 'chariot', 'golem', 'pebble', 'testudo', 'slime', 'slimelet', 'troll', 'dragon', 'clockwork', 'gearling', 'cog', 'automaton', 'mech']) { seed = 202; add(k, [quad(k, 0), quad(k, 1)]); }
   seed = 303; add('wizard', [wizard()]);
   for (const [k, fn] of Object.entries(ITEMS)) { seed = 404; add(k, [fn()]); }
   for (const [k, fn] of Object.entries(ANIM_ITEMS)) { seed = 505; add(k, [fn(0), fn(1)]); }
@@ -485,14 +574,15 @@ export function buildDefaultSprites() {
 }
 
 export const SPRITE_GROUPS = {
-  Characters: ['caveman', 'hunter', 'shaman', 'knight', 'wizard'],
+  Characters: ['caveman', 'tamer', 'shaman', 'knight', 'centurion', 'wizard'],
   'Stone Age enemies': ['rival', 'wolf', 'raptor', 'sabertooth', 'golem', 'pebble', 'mammoth', 'trex'],
   'Roman enemies': ['legionary', 'spearman', 'gladiator', 'centurion', 'testudo', 'chariot', 'hydra', 'timecop'],
   'Medieval enemies': ['peasant', 'footman', 'jester', 'blackknight', 'slime', 'slimelet', 'troll', 'dragon'],
+  'Renaissance enemies': ['apprentice', 'duelist', 'halberdier', 'clockwork', 'gearling', 'cog', 'automaton', 'thief', 'mech'],
   Weapons: ['club', 'axe', 'spear', 'flame', 'rock', 'bolt'],
-  Items: ['heart_half', 'shieldicon', 'potion_purple', 'rabbitfoot', 'firegem', 'mirror', 'gem_s', 'gem_m', 'gem_l', 'coin', 'spark', 'meat', 'magnet', 'chest', 'potion', 'star', 'reroll', 'skull', 'lock', 'crystal', 'feather', 'idol'],
+  Items: ['treasure', 'chest_open', 'scroll', 'trophy', 'combo', 'cogicon', 'heart_half', 'shieldicon', 'potion_purple', 'rabbitfoot', 'firegem', 'mirror', 'gem_s', 'gem_m', 'gem_l', 'coin', 'spark', 'meat', 'magnet', 'chest', 'potion', 'star', 'reroll', 'skull', 'lock', 'crystal', 'feather', 'idol'],
   Icons: ['heart', 'heart_empty', 'sandal', 'totem', 'flint', 'tusk', 'lodestone'],
-  Scenery: ['boulder', 'fern', 'bones', 'tree', 'campfire', 'handprint', 'deer', 'hunters', 'column', 'broken', 'urn', 'cypress', 'brazier', 'banner', 'haybale', 'shrub', 'torch', 'gravestone'],
+  Scenery: ['boulder', 'fern', 'bones', 'tree', 'campfire', 'handprint', 'deer', 'hunters', 'column', 'broken', 'urn', 'cypress', 'brazier', 'banner', 'haybale', 'shrub', 'torch', 'gravestone', 'easel', 'gearpile', 'statue', 'lantern'],
 };
 
 export function getSprite(key, overrides = {}) {
@@ -533,6 +623,7 @@ export function generateTextures(scene, overrides = {}) {
   makeCaveGround(scene);
   makeMosaicGround(scene);
   makeTapestryGround(scene);
+  makeParchmentGround(scene);
   makeSimple(scene, 'px', 2, 2, (ctx) => { ctx.fillStyle = '#fff'; ctx.fillRect(0, 0, 2, 2); });
   makeSimple(scene, 'shadow', 16, 6, (ctx) => {
     ctx.fillStyle = 'rgba(40,16,6,0.32)';
@@ -653,5 +744,35 @@ function makeTapestryGround(scene) {
       if ((x + (y >> 1)) % 4 === 0) { ctx.fillStyle = 'rgba(0,0,0,0.12)'; ctx.fillRect(x, y, 1, 1); }
       if ((y + (x >> 1)) % 6 === 0) { ctx.fillStyle = 'rgba(255,230,200,0.06)'; ctx.fillRect(x, y, 1, 1); }
     }
+  });
+}
+
+// Renaissance sketchbook: sepia paper, faint grid and ink sketches of gears and flying machines
+function makeParchmentGround(scene) {
+  makeSimple(scene, 'ground_parchment', 192, 192, (ctx) => {
+    let s = 1452;
+    const r = () => { s = (s * 16807) % 2147483647; return s / 2147483647; };
+    ctx.fillStyle = '#dcc69c'; ctx.fillRect(0, 0, 192, 192);
+    const specks = ['#d4bc90', '#e2cea6', '#cfb486', '#e8d6b0'];
+    for (let i = 0; i < 7000; i++) {
+      ctx.fillStyle = specks[Math.floor(r() * specks.length)];
+      ctx.fillRect(Math.floor(r() * 192), Math.floor(r() * 192), 1 + Math.floor(r() * 2), 1);
+    }
+    ctx.fillStyle = 'rgba(120,90,50,0.12)';
+    for (let i = 0; i < 192; i += 24) { ctx.fillRect(i, 0, 1, 192); ctx.fillRect(0, i, 192, 1); }
+    // Ink sketches: a gear and a wing
+    ctx.fillStyle = 'rgba(80,50,24,0.35)';
+    const ring = (cx, cy, rad, teeth) => {
+      for (let a = 0; a < Math.PI * 2; a += 0.05) ctx.fillRect(Math.round(cx + Math.cos(a) * rad), Math.round(cy + Math.sin(a) * rad), 1, 1);
+      for (let i = 0; i < teeth; i++) {
+        const a = (i / teeth) * Math.PI * 2;
+        ctx.fillRect(Math.round(cx + Math.cos(a) * (rad + 2)), Math.round(cy + Math.sin(a) * (rad + 2)), 2, 2);
+      }
+    };
+    ring(50, 60, 14, 10); ring(68, 74, 8, 7); ring(150, 140, 11, 9);
+    for (let i = 0; i < 6; i++) {
+      for (let t = 0; t < 30; t++) ctx.fillRect(Math.round(110 + t * 1.6), Math.round(40 + i * 3 - Math.sin(t / 30 * Math.PI) * 10), 1, 1);
+    }
+    for (let i = 0; i < 4; i++) { const y = 150 + i * 6; ctx.fillRect(20, y, 30 + Math.floor(r() * 20), 1); }
   });
 }

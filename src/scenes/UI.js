@@ -1,7 +1,8 @@
 import Phaser from 'phaser';
 import { audio } from '../audio.js';
 import { save } from '../save.js';
-import { WEAPONS, PASSIVES, AGES, RARITIES, boostedBlurb } from '../data.js';
+import { WEAPONS, PASSIVES, AGES, RARITIES, CHARACTERS, COMBOS, boostedBlurb } from '../data.js';
+import { closestGoal } from '../quests.js';
 import { W, H, text, button, panel, settingsPanel, COLORS, fmtTime, FONT } from '../ui.js';
 import { controls } from '../controls.js';
 
@@ -67,6 +68,15 @@ export default class UI extends Phaser.Scene {
     // Banner
     this.bannerTitle = text(this, W / 2, 280, '', 26, '#ffffff').setAlpha(0);
     this.bannerSub = text(this, W / 2, 318, '', 10, '#e0d0f0').setAlpha(0);
+
+    // Random event name and time left, under the timer
+    this.eventText = text(this, W / 2, 88, '', 8, '#ffffff').setVisible(false);
+    // Arrow at the screen edge pointing to the treasure thief
+    this.arrow = this.add.graphics().setDepth(40);
+    // Small notes that slide in at the top (quests done)
+    this.toasts = [];
+    // First-run tips
+    this.hintBox = this.add.container(0, 0).setDepth(45).setVisible(false);
 
     // Floating joystick
     this.joy = this.add.graphics().setDepth(50);
@@ -174,6 +184,29 @@ export default class UI extends Phaser.Scene {
       this.lootText.setColor(m >= 2 ? '#f2c84b' : m > 1 ? '#e8c070' : '#a090b0');
     }
 
+    // Tips hide while a card or shop screen is open
+    if (this.hintBox.list.length) this.hintBox.setVisible(!this.modal);
+
+    // Random event
+    const ev = g.event;
+    this.eventText.setVisible(!!ev);
+    if (ev) this.eventText.setText(`${ev.name.replace('!', '')} ${Math.ceil(ev.t)}`).setColor(ev.color || '#ffffff');
+    this.arrow.clear();
+    const tg = ev && ev.target && ev.target.alive ? ev.target : null;
+    if (tg) {
+      const cam = g.cameras.main;
+      const sx = tg.x - cam.scrollX, sy = tg.y - cam.scrollY;
+      if (sx < 0 || sx > W || sy < 0 || sy > H) {
+        const a = Math.atan2(tg.y - p.y, tg.x - p.x);
+        const ex = Math.max(24, Math.min(W - 24, W / 2 + Math.cos(a) * 400));
+        const ey = Math.max(150, Math.min(H - 24, H / 2 + Math.sin(a) * 400));
+        const pulse = 1 + Math.sin(g.totalTime * 10) * 0.15;
+        const pt = (r, da) => [ex + Math.cos(a + da) * r * pulse, ey + Math.sin(a + da) * r * pulse];
+        this.arrow.fillStyle(0x120c18, 1).fillTriangle(...pt(20, 0), ...pt(15, 2.4), ...pt(15, -2.4));
+        this.arrow.fillStyle(0x7ad0f4, 1).fillTriangle(...pt(15, 0), ...pt(11, 2.4), ...pt(11, -2.4));
+      }
+    }
+
     // Boss bar, or the mini-boss's when no boss is out
     const b = g.boss || (g.mini && g.mini.alive ? g.mini : null);
     this.bossBox.setVisible(!!b);
@@ -194,6 +227,124 @@ export default class UI extends Phaser.Scene {
     this.tweens.add({ targets: this.bannerTitle, alpha: 1, scale: 1, duration: 260, ease: 'Back.out' });
     this.tweens.add({ targets: this.bannerSub, alpha: 1, duration: 300, delay: 120 });
     this.tweens.add({ targets: [this.bannerTitle, this.bannerSub], alpha: 0, duration: 400, delay: ms });
+  }
+
+  // Small note that slides down from the top and goes away by itself
+  toast(title, sub = '') {
+    if (!this.ready) return;
+    const y0 = 630 - this.toasts.length * 54;
+    const c = this.add.container(W / 2, y0 + 30).setDepth(60).setAlpha(0);
+    c.add(panel(this, 0, 0, 380, 46, 0x3e2a18));
+    c.add(this.add.image(-165, 0, 'scroll').setScale(1.8));
+    c.add(text(this, -140, -8, title, 8, '#ffe060', 0));
+    if (sub) c.add(text(this, -140, 10, sub, 6, '#e0d0c0', 0));
+    this.toasts.push(c);
+    this.tweens.add({ targets: c, y: y0, alpha: 1, duration: 250, ease: 'Back.out' });
+    this.tweens.add({
+      targets: c, alpha: 0, duration: 400, delay: 3000,
+      onComplete: () => { c.destroy(); this.toasts = this.toasts.filter(t => t !== c); },
+    });
+  }
+
+  // First-run tip box at the bottom, with an optional arrow to a button
+  hint(msg, arrowTo = null) {
+    const c = this.hintBox;
+    c.removeAll(true);
+    this.tweens.killTweensOf(c);
+    if (!msg) { c.setVisible(false); return; }
+    c.setVisible(true).setAlpha(0);
+    c.add(panel(this, W / 2, 720, 420, 64, 0x2e2240));
+    c.add(text(this, W / 2, 720, msg, 8, '#ffffff'));
+    if (arrowTo === 'summon') {
+      // Arrow pointing up at the Summon button
+      const a = this.add.graphics();
+      a.fillStyle(0x120c18, 1).fillTriangle(0, -16, -15, 6, 15, 6);
+      a.fillStyle(0xf2c84b, 1).fillTriangle(0, -10, -9, 3, 9, 3);
+      a.setPosition(W - 80, 232);
+      c.add(a);
+      this.tweens.add({ targets: a, y: 222, yoyo: true, repeat: -1, duration: 300 });
+    }
+    this.tweens.add({ targets: c, alpha: 1, duration: 250 });
+  }
+
+  // ------------------------------------------------------------------
+  // Treasure chest: it shakes, bursts open, then reels spin and land on each reward
+  showTreasure(rewards) {
+    const c = this.openModal();
+    c.kind = 'treasure';
+    const title = text(this, W / 2, 120, 'TREASURE!', 28, '#f2c84b');
+    c.add(title);
+    const glow = this.add.image(W / 2, 250, 'glow').setScale(5).setAlpha(0).setBlendMode(Phaser.BlendModes.ADD);
+    c.add(glow);
+    const chest = this.add.image(W / 2, 250, 'treasure').setScale(6);
+    c.add(chest);
+    this.tweens.add({ targets: chest, angle: { from: -8, to: 8 }, yoyo: true, repeat: 5, duration: 70 });
+    const icons = [...Object.values(WEAPONS).map(w => w.icon), ...Object.values(PASSIVES).map(p2 => p2.icon)];
+    const reels = [];
+    const n = rewards.length;
+    const startY = n > 3 ? 360 : 400;
+    const gap = n > 3 ? 62 : 80;
+    rewards.forEach((r, i) => {
+      const y = startY + i * gap;
+      const row = this.add.container(0, 0).setAlpha(0);
+      const box = this.add.graphics();
+      row.add(box);
+      const ic = this.add.image(W / 2 - 150, y, icons[0]).setScale(2.5);
+      row.add(ic);
+      const label = text(this, W / 2 - 110, y - 8, '', 10, '#ffffff', 0);
+      const sub = text(this, W / 2 - 110, y + 12, '', 7, '#d0c0e0', 0);
+      row.add([label, sub]);
+      c.add(row);
+      reels.push({ r, row, box, ic, label, sub, y });
+    });
+    const drawBox = (rl, color) => {
+      rl.box.clear();
+      rl.box.fillStyle(0x0c0810, 1).fillRect(W / 2 - 193, rl.y - gap / 2 + 3, 386, gap - 6);
+      rl.box.fillStyle(0x2e2240, 1).fillRect(W / 2 - 190, rl.y - gap / 2 + 6, 380, gap - 12);
+      rl.box.lineStyle(3, color, 1).strokeRect(W / 2 - 190, rl.y - gap / 2 + 6, 380, gap - 12);
+    };
+    const land = (rl) => {
+      const r = rl.r;
+      const rar = RARITIES[r.rarity || 0];
+      let icon = 'coin', name = '+30 COINS', what = '';
+      if (r.type === 'weapon') { icon = WEAPONS[r.key].icon; name = WEAPONS[r.key].name.toUpperCase(); what = r.isNew ? 'NEW WEAPON' : `LEVEL ${r.level}`; }
+      if (r.type === 'passive') { icon = PASSIVES[r.key].icon; name = PASSIVES[r.key].name.toUpperCase(); what = r.isNew ? 'NEW PASSIVE' : `LEVEL ${r.level}`; }
+      fit(rl.ic.setTexture(icon, 0), 44);
+      rl.label.setText(name);
+      rl.sub.setText(r.type === 'coins' ? 'Nothing left to upgrade' : `${what}${(r.rarity || 0) > 0 ? `  ${rar.name}` : ''}`).setColor((r.rarity || 0) > 0 ? rar.text : '#d0c0e0');
+      drawBox(rl, (r.rarity || 0) > 0 ? rar.color : 0xe8c070);
+      rl.ic.setScale(rl.ic.scaleX * 1.6);
+      this.tweens.add({ targets: rl.ic, scale: rl.ic.scaleX / 1.6, duration: 250, ease: 'Back.out' });
+      audio.play((r.rarity || 0) >= 2 ? 'gift' : 'select');
+    };
+    // Open the lid
+    this.time.delayedCall(450, () => {
+      chest.setTexture('chest_open');
+      this.tweens.add({ targets: glow, alpha: 0.9, scale: 7, duration: 300 });
+      this.tweens.add({ targets: glow, angle: 360, duration: 4000, repeat: -1 });
+      this.cameras.main.flash(200, 255, 230, 160);
+      reels.forEach((rl, i) => {
+        drawBox(rl, 0x7a48b0);
+        this.tweens.add({ targets: rl.row, alpha: 1, duration: 200, delay: i * 80 });
+        // Spin through random icons, then land; each reel stops a bit later
+        let k = 0;
+        const spin = this.time.addEvent({
+          delay: 60, loop: true, callback: () => {
+            k++;
+            fit(rl.ic.setTexture(icons[(k + i * 3) % icons.length], 0), 44);
+            audio.play('reel');
+          },
+        });
+        this.time.delayedCall(700 + i * 380, () => { spin.remove(); land(rl); });
+      });
+      const done = 700 + n * 380 + 200;
+      this.time.delayedCall(done, () => {
+        c.add(button(this, W / 2, 720, 240, 54, 'COLLECT', () => {
+          this.closeModal();
+          this.g.closeTreasure();
+        }, { size: 16, color: COLORS.green, hi: COLORS.greenHi }));
+      });
+    });
   }
 
   // ------------------------------------------------------------------
@@ -222,7 +373,8 @@ export default class UI extends Phaser.Scene {
     const g = this.g;
     const lines = g.weapons.map(w => `${WEAPONS[w.key].name} LV ${w.level}`)
       .concat(g.passiveOrder.map(k => `${PASSIVES[k].name} LV ${g.passives[k]}`));
-    c.add(text(this, W / 2, H / 2 - 100, lines.join('\n') || '', 8, '#c0b0d0'));
+    const combos = COMBOS.filter(cb => g.combos.has(cb.id)).map(cb => `COMBO: ${cb.name}`);
+    c.add(text(this, W / 2, H / 2 - 100, lines.concat(combos).join('\n') || '', 8, '#c0b0d0'));
     c.add(button(this, W / 2, H / 2 + 20, 240, 50, 'RESUME', () => this.togglePause(), { color: COLORS.green, hi: COLORS.greenHi }));
     c.add(button(this, W / 2, H / 2 + 90, 240, 46, 'SETTINGS', () => {
       c.setVisible(false);
@@ -284,7 +436,10 @@ export default class UI extends Phaser.Scene {
       if (mult > 1) desc += ch.isNew ? `\nStarts ${pct}% stronger` : `\n${pct}% bigger boost`;
       const cs = d.stats?.count;
       if (ch.rarity === 3 && cs && (cs.at || []).includes(ch.level) && !ch.isNew) desc += ', +1 extra attack';
-      tag = ch.isNew ? 'NEW WEAPON' : `LV ${ch.level}`; tagColor = ch.isNew ? '#f2c84b' : '#7ad0f4';
+      const combo = ch.isNew && this.g.comboWith ? this.g.comboWith(ch.key) : null;
+      if (combo) { desc = `COMBO: ${combo.name}!\n${combo.blurb}`; tag = 'NEW + COMBO'; }
+      if (!combo) tag = ch.isNew ? 'NEW WEAPON' : `LV ${ch.level}`;
+      tagColor = ch.isNew ? '#f2c84b' : '#7ad0f4';
     } else if (ch.type === 'passive') {
       const d = PASSIVES[ch.key];
       name = d.name; icon = d.icon; desc = boostedBlurb(d.blurb, mult);
@@ -454,10 +609,17 @@ export default class UI extends Phaser.Scene {
       c.add(text(this, W / 2 + 160, y, v, 10, '#ffffff', 1));
     });
     const unlock = r.unlock || (save.bossesBeaten.stone ? 'Beat the boss of an age to\nadvance further next run.' : 'Tip: summon the boss when you feel\nstrong. Beat it to unlock the portal.');
-    c.add(text(this, W / 2, 380, unlock, 8, r.won ? '#7ad0f4' : '#c0b0d0'));
+    c.add(text(this, W / 2, 372, unlock, 8, r.won ? '#7ad0f4' : '#c0b0d0'));
+    // What's almost done, so there is always a reason for one more run
+    const extra = r.quests ? `${r.quests} QUEST${r.quests > 1 ? 'S' : ''} DONE! CLAIM ON THE MENU` : closestGoal(CHARACTERS);
+    if (extra) {
+      const et = text(this, W / 2, 408, extra.toUpperCase(), 7, r.quests ? '#ffe060' : '#9ae07a');
+      c.add(et);
+      this.tweens.add({ targets: et, alpha: 0.5, yoyo: true, repeat: -1, duration: 600 });
+    }
     // Sparks earned, line by line, then the total counts up
     const sp = r.sparks || { total: 0, lines: [] };
-    let sy = 430;
+    let sy = 440;
     sp.lines.forEach(([k, v], i) => {
       const a = text(this, W / 2 - 150, sy, k.toUpperCase(), 8, '#a090b0', 0).setAlpha(0);
       const b = text(this, W / 2 + 150, sy, `+${v}`, 8, '#ffe060', 1).setAlpha(0);

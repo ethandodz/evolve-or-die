@@ -217,6 +217,7 @@ function renderCharacters(main) {
       num(cur, 'critMul', 'Crit chance multiplier', '2 = crits twice as often'),
       num(cur, 'xpMul', 'XP multiplier'), num(cur, 'areaMul', 'Area multiplier'),
       num(cur, 'bonusCount', 'Extra attacks', '+N attacks for every weapon'),
+      sel(cur, 'pet', 'Pet that fights with you', [['', 'None'], ...Object.entries(cfg.enemies).filter(([, e]) => !e.boss).map(([k, e]) => [k, e.name])]),
     ),
   ));
 }
@@ -428,7 +429,7 @@ function renderAges(main) {
     h('h2', {}, a.name), h('div', { class: 'sub' }, `Age ${i + 1} of ${A.length}. Ages play in this order; the last one is endless.`),
     h('div', { class: 'grid' },
       txt(a, 'name', 'Name', null, { upper: true }),
-      sel(a, 'ground', 'Ground style', GROUNDS.map(g => [g, { cave: 'Cave painting (ochre rock)', mosaic: 'Roman mosaic', tapestry: 'Medieval tapestry' }[g] || g])),
+      sel(a, 'ground', 'Ground style', GROUNDS.map(g => [g, { cave: 'Cave painting (ochre rock)', mosaic: 'Roman mosaic', tapestry: 'Medieval tapestry', parchment: 'Renaissance sketchbook' }[g] || g])),
       color(a, 'bg', 'Background color'),
       check(a, 'paintings', 'Cave paintings on the ground'),
       num(a, 'hpMul', 'Enemy health multiplier', 'Stone Age is 1'),
@@ -449,7 +450,7 @@ function renderAges(main) {
     h('div', { class: 'grid' },
       sel(a, 'boss', 'Boss', bossOpts.length ? bossOpts : [['', 'Mark an enemy as Boss first']]),
       txt(a, 'bossName', 'Boss name on screen', null, { upper: true }),
-      sel(a, 'bossStyle', 'Boss fight style', BOSS_STYLES.map(x => [x, { '': 'Basic (walks at you)', hunter: 'Hunter (chases, faster when hurt)', rooted: 'Rooted (burrows, angrier at half health)', flyer: 'Flyer (cannot be hit while flying)' }[x]])),
+      sel(a, 'bossStyle', 'Boss fight style', BOSS_STYLES.map(x => [x, { '': 'Basic (walks at you)', hunter: 'Hunter (chases, faster when hurt)', rooted: 'Rooted (burrows, angrier at half health)', flyer: 'Flyer (cannot be hit while flying)', mech: 'Mech (overheats and takes double damage)' }[x]])),
     ),
     field('Attack pattern (repeats in order). Click a step to remove it.', orderedList(a.bossAttacks, BOSS_ATTACKS, () => changed())),
     h('div', { class: 'note', style: 'margin-top:6px' }, 'charge = dash at you, stomp = shockwave ring, rocks = falling rocks, lunge = 3 bite lines, pools = poison puddles, summon = calls 10 enemies, breath = wide fire cone, meteors = burning rocks, charge3 = three charges in a row, roar = slows you and calls the pack, ring = poison ring around you, fly = takes off and dives at you, sweep = sweeping fire breath.'),

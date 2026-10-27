@@ -171,6 +171,22 @@ class Audio8 {
       case 'revive':
         this.tone(200, 1.0, 'triangle', 0.25, 1200); [72, 76, 79, 84].forEach((m, i) => this.tone(NOTE(m), 0.3, 'square', 0.12, null, 0.4 + i * 0.1));
         break;
+      case 'chest':
+        this.noise(0.3, 0.2, 1500); [60, 67, 72, 76, 79, 84, 88].forEach((m, i) => this.tone(NOTE(m), 0.2, 'square', 0.11, null, 0.15 + i * 0.06));
+        break;
+      case 'reel':
+        if (!this.throttle(name, 50)) return;
+        this.tone(NOTE(84 + Math.floor(Math.random() * 5)), 0.03, 'square', 0.06);
+        break;
+      case 'quest':
+        [76, 79, 84, 91].forEach((m, i) => this.tone(NOTE(m), 0.14, 'triangle', 0.14, null, i * 0.08));
+        break;
+      case 'combo':
+        [67, 74, 79, 86].forEach((m, i) => { this.tone(NOTE(m), 0.2, 'square', 0.1, null, i * 0.05); this.tone(NOTE(m + 7), 0.2, 'triangle', 0.1, null, i * 0.05); });
+        break;
+      case 'steam':
+        this.noise(0.6, 0.3, 4000, 0, null, 'highpass');
+        break;
       case 'death':
         [67, 63, 60, 55, 48].forEach((m, i) => this.tone(NOTE(m), 0.3, 'square', 0.15, null, i * 0.18));
         break;
@@ -291,6 +307,31 @@ const TRACKS = {
       61 - 62 - 64 - 65 - 67 - 68 - 69 - - -`),
     bass: pat(rep('38 - 38 38 - 38 41 - 38 - 38 38 - 44 43 -', 4)),
     drums: pat(rep('k h s h k k s h k h s h k s s s', 4)),
+  },
+  // Renaissance: harpsichord-like square arpeggios, baroque bass
+  renaissance: {
+    bpm: 118, len: 64, leadWave: 'square', leadLen: 1.2,
+    lead: pat(`
+      69 72 76 72 69 72 76 72 67 71 74 71 67 71 74 71
+      65 69 72 69 65 69 72 69 64 68 71 68 64 68 71 68
+      69 72 76 81 76 72 69 72 74 77 81 77 74 72 71 69
+      68 71 74 71 68 71 76 74 72 71 69 68 69 - - -`),
+    bass: pat(`
+      45 - - - 45 - - - 43 - - - 43 - - -
+      41 - - - 41 - - - 40 - - - 40 - - -
+      45 - - - 45 - - - 38 - - - 38 - - -
+      40 - - - 40 - - - 45 - - - 45 - - -`),
+    drums: pat(rep('h - - - t - - - h - - - t - h -', 4)),
+  },
+  renaissanceBoss: {
+    bpm: 152, len: 64, leadWave: 'sawtooth', bassWave: 'square', leadLen: 1,
+    lead: pat(`
+      57 60 64 69 64 60 57 60 56 59 64 68 64 59 56 59
+      57 60 64 69 72 69 64 60 62 65 69 74 69 65 62 65
+      69 - 68 - 69 - 72 - 71 - 69 - 68 - 64 -
+      65 - 64 - 62 - 60 - 59 - 57 - 56 - - -`),
+    bass: pat(rep('33 - 33 33 - 33 32 - 33 - 33 33 - 36 35 -', 4)),
+    drums: pat(rep('k h s h k k s h k h s h k s k s', 4)),
   },
   police: {
     bpm: 160, len: 32, leadWave: 'square', leadLen: 2,

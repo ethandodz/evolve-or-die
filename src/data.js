@@ -14,13 +14,23 @@ export const RARE_ITEMS = CFG.rareShop;
 export const META = CFG.meta;
 export const TWISTS = CFG.twists;
 
-// Level-up card rarities. extra = bonus levels on top of the normal one.
+// Level-up card rarities. mult = how much bigger this level's stat boost is
+// (a Rare Sharp Flint gives +14% damage instead of +12%).
 export const RARITIES = [
-  { name: 'COMMON', color: 0xe8c070, text: '#e8c070', extra: 0 },
-  { name: 'RARE', color: 0x4a9aff, text: '#7ab8ff', extra: 1 },
-  { name: 'EPIC', color: 0xb05aff, text: '#c890ff', extra: 2 },
-  { name: 'LEGENDARY', color: 0xffa020, text: '#ffc040', extra: 2 },
+  { name: 'COMMON', color: 0xe8c070, text: '#e8c070', mult: 1 },
+  { name: 'RARE', color: 0x4a9aff, text: '#7ab8ff', mult: 1.2 },
+  { name: 'EPIC', color: 0xb05aff, text: '#c890ff', mult: 1.5 },
+  { name: 'LEGENDARY', color: 0xffa020, text: '#ffc040', mult: 2 },
 ];
+
+// Whole-number passives (hearts, attacks) can't take +20%, so they are only Common or Legendary
+export const wholeEffect = (effect) => effect === 'hearts' || effect === 'count';
+
+// A passive's card text with the rarity boost applied ("+12% damage." -> "+14% damage.")
+export const boostedBlurb = (blurb, mult) => mult === 1 ? blurb : blurb
+  .replace(/\d+(\.\d+)?/g, n => String(Math.round(parseFloat(n) * mult)))
+  .replace(/\b([2-9]) max heart\b/, '$1 max hearts')
+  .replace(/\b([2-9]) attack\b/, '$1 attacks');
 
 export const statsOf = (key, level) => weaponStats(WEAPONS[key], level);
 

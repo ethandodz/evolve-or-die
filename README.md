@@ -19,7 +19,7 @@ A survivors-like roguelike where you fight through the ages of history. Move to 
 - Enemy moves: chargers (aim, then dash), shields (break after a few hits), splitters, zigzaggers, and rare glowing elites
 - Wizard shop: choose which weapon to upgrade, reroll the stock, and one rare item per visit
 - Sparks: a currency you keep between runs, spent on permanent upgrades (EVOLVE on the main menu)
-- Level-up cards can be Rare, Epic or Legendary for extra levels; Legendary weapons also get +30% damage and +1 attack
+- Level-up cards can be Rare (x1.2), Epic (x1.5) or Legendary (x2): still one level, but that level's stat boost is bigger (Rare Sharp Flint = +14% damage instead of +12%). Hearts and attacks are whole numbers, so those are only Common or Legendary.
 - Mini-bosses have a health bar and special moves; each boss fights differently (T-Rex hunts, Hydra burrows and enrages, Dragon flies and dives)
 - Weapons and passives can level higher in each later age
 - After the last boss, the wizard sells a Magic Mirror that loops the run back to the first age with tougher enemies

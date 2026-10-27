@@ -123,6 +123,7 @@ export default class Game extends Phaser.Scene {
     this.combos = new Set();   // weapon combos that are active
     this.event = null;         // random event going on (gold rush, eclipse...)
     this.hitSrc = null;        // weapon doing the hitting, for per-weapon quests
+    this.runHits = {};         // damage and kills per weapon this run, for the stats screen
     this.coinsEarned = 0;
     this.questsDone = doneIds();
     this.questT = 1;
@@ -578,9 +579,13 @@ export default class Game extends Phaser.Scene {
           e.burnAcc -= 0.5;
           const bd = Math.max(1, Math.round(e.burnDps * 0.5));
           if (!e.flying) {
+            this.hitSrc = 'burn';
+            this.logHit(Math.min(bd, Math.max(0, e.hp)));
             e.hp -= bd;
             if (save.settings.damageNumbers) this.spawnNumber(e.x, e.y - e.r * 1.6, bd, false, '#ff9a4a');
-            if (e.hp <= 0) { this.killEnemy(e); continue; }
+            if (e.hp <= 0) this.killEnemy(e);
+            this.hitSrc = null;
+            if (!e.alive) continue;
           }
         }
       }
@@ -706,6 +711,7 @@ export default class Game extends Phaser.Scene {
         if (e.shieldIcon) e.shieldIcon.setVisible(false);
       } else audio.play('clang');
     }
+    this.logHit(Math.min(dmg, Math.max(0, e.hp)));
     e.hp -= dmg;
     if (this.fireGem && !e.boss) { e.burnT = 3; e.burnDps = Math.max(e.burnDps, dmg * 0.4); }
     else if (this.fireGem) { e.burnT = 3; e.burnDps = Math.max(e.burnDps, dmg * 0.15); }
@@ -724,10 +730,17 @@ export default class Game extends Phaser.Scene {
     if (e.hp <= 0) this.killEnemy(e);
   }
 
+  // Per-run damage and kills, by whatever is doing the hitting
+  runHit(src = this.hitSrc || 'other') {
+    return this.runHits[src] || (this.runHits[src] = { dmg: 0, kills: 0 });
+  }
+  logHit(dmg) { this.runHit().dmg += dmg; }
+
   killEnemy(e, quiet = false) {
     if (!e.alive) return;
     this.removeEnemy(e);
     this.kills++;
+    this.runHit(quiet ? 'clear' : undefined).kills++;
     const st = stats();
     st.kills++;
     if (this.hitSrc && WEAPONS[this.hitSrc]) st.wk[this.hitSrc] = (st.wk[this.hitSrc] || 0) + 1;
@@ -1183,7 +1196,7 @@ export default class Game extends Phaser.Scene {
     this.scene.pause();
     this.ui.showResults({
       won, kills: this.kills, time: this.totalTime, age: this.age.name, level: this.level,
-      sparks: { total, lines }, daily: this.daily, dailyNew, quests: this.newQuests.length, ...info,
+      sparks: { total, lines }, daily: this.daily, dailyNew, quests: this.newQuests.length, hits: this.runHits, ...info,
     });
   }
 

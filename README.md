@@ -30,6 +30,8 @@ A survivors-like roguelike where you fight through the ages of history. Move to 
 - Random events twice an age: Gold Rush, Eclipse, Meteor Shower, Treasure Thief
 - Quests on the main menu pay Sparks; a note on the results screen shows what's closest to done
 - First-run tips, and settings for vibration and screen shake
+- Character select shows each character's weapon, its type (Melee, Orbit, Aura, Area) and what that type does
+- Run stats after every run: damage and kills for each weapon (plus pet, burning and boss shockwave)
 - Scores: your best runs on this device, plus an online top 10 and cloud saves once Supabase is set up (see supabase/README.md)
 
 ## Controls

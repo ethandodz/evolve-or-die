@@ -289,10 +289,15 @@ export default class Title extends Phaser.Scene {
     const cols = list.length === 4 ? 2 : Math.min(3, Math.max(1, list.length));
     const cw = 112, ch0 = 120, gap = 122;
     let selected = list.find(isOpen) || list[0];
-    const desc = text(this, W / 2, H / 2 + 92, '', 8, '#e8d0b0');
-    const perk = text(this, W / 2, H / 2 + 140, '', 8, '#9ae07a');
-    const drawback = text(this, W / 2, H / 2 + 160, '', 8, '#ff9a8a');
-    c.add([desc, perk, drawback]);
+    const desc = text(this, W / 2, H / 2 + 78, '', 8, '#e8d0b0');
+    const wName = text(this, W / 2 + 12, H / 2 + 100, '', 8, '#ffe060');
+    const wIcon = this.add.image(W / 2, H / 2 + 100, 'club', 0);
+    const wInfo = text(this, W / 2, H / 2 + 120, '', 6, '#c0a080');
+    const perk = text(this, W / 2, H / 2 + 144, '', 8, '#9ae07a');
+    const drawback = text(this, W / 2, H / 2 + 162, '', 8, '#ff9a8a');
+    c.add([desc, wName, wIcon, wInfo, perk, drawback]);
+    // What each kind of weapon does
+    const KIND_TIPS = { Melee: 'hits enemies close to you', Orbit: 'circles around you', Aura: 'burns everything around you', Area: 'strikes enemies from afar' };
     const cards = [];
     const refresh = () => {
       cards.forEach(({ ch, g, x, y }) => {
@@ -302,8 +307,16 @@ export default class Title extends Phaser.Scene {
         g.lineStyle(3, sel ? 0xf0c060 : open ? COLORS.border : 0x4a3a30, 1).strokeRect(x - cw / 2, y - ch0 / 2, cw, ch0);
       });
       const w = WEAPONS[selected.weapon];
-      const own = w && w.signature === selected.key ? `Own weapon: ${w.name} (power ${w.tier}/${maxTier})` : `Starts with: ${w ? w.name : '?'}`;
-      desc.setText(`${selected.name}, ${selected.title.toUpperCase()}\n${own}\n${selected.hearts || 5} hearts`);
+      const own = w && w.signature === selected.key;
+      desc.setText(`${selected.name}, ${selected.title.toUpperCase()}  -  ${selected.hearts || 5} HEARTS`);
+      wName.setText(w ? `${w.name.toUpperCase()}  -  ${(w.kind || '').toUpperCase()} WEAPON` : '');
+      if (w && this.textures.exists(w.icon)) {
+        wIcon.setTexture(w.icon, 0).setVisible(true);
+        wIcon.setScale(Math.min(20 / wIcon.width, 20 / wIcon.height));
+        wIcon.setX(wName.x - wName.width / 2 - 16);
+      } else wIcon.setVisible(false);
+      const tip = w ? KIND_TIPS[w.kind] : '';
+      wInfo.setText(w ? `${tip ? `${w.kind}: ${tip}. ` : ''}${own ? `Only ${selected.name} has it. Power ${w.tier}/${maxTier}` : 'Starting weapon'}` : '');
       perk.setText(selected.perk ? `+ ${selected.perk}` : '');
       drawback.setText(selected.drawback ? `- ${selected.drawback}` : '');
     };

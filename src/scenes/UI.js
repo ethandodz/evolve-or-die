@@ -1,7 +1,7 @@
 import Phaser from 'phaser';
 import { audio } from '../audio.js';
 import { save } from '../save.js';
-import { WEAPONS, PASSIVES, AGES, RARITIES, CHARACTERS, COMBOS, boostedBlurb } from '../data.js';
+import { WEAPONS, PASSIVES, AGES, RARITIES, CHARACTERS, COMBOS, ENEMIES, boostedBlurb } from '../data.js';
 import { closestGoal } from '../quests.js';
 import { W, H, text, button, panel, settingsPanel, COLORS, fmtTime, FONT } from '../ui.js';
 import { controls } from '../controls.js';
@@ -645,10 +645,55 @@ export default class UI extends Phaser.Scene {
       this.scene.stop('Game');
       this.scene.start('Game', { character: this.g.character, daily });
     }, { size: 16, color: COLORS.green, hi: COLORS.greenHi }));
-    c.add(button(this, W / 2, 690, 200, 46, 'MENU', () => {
+    c.add(button(this, W / 2 - 80, 690, 150, 46, 'STATS', () => this.showRunStats(c, r.hits || {}), { size: 12 }));
+    c.add(button(this, W / 2 + 80, 690, 150, 46, 'MENU', () => {
       this.closeModal();
       this.scene.stop('Game');
       this.scene.start('Title');
-    }));
+    }, { size: 12 }));
+  }
+
+  // Damage and kills for each weapon this run
+  showRunStats(parent, hits) {
+    const c = this.add.container(0, 0);
+    parent.add(c);
+    c.add(this.add.rectangle(W / 2, H / 2, W, H, 0x08040c, 0.6).setInteractive());
+    c.add(panel(this, W / 2, H / 2, 400, 720));
+    c.add(text(this, W / 2, 80, 'RUN STATS', 20, '#f2c84b'));
+    const OTHER = {
+      pet: { name: this.g.charDef.pet && ENEMIES[this.g.charDef.pet] ? `Pet ${ENEMIES[this.g.charDef.pet].name}` : 'Pet', icon: this.g.charDef.pet && ENEMIES[this.g.charDef.pet] ? ENEMIES[this.g.charDef.pet].sprite : 'star' },
+      burn: { name: 'Burning', icon: 'flame' },
+      clear: { name: 'Boss shockwave', icon: 'skull' },
+      other: { name: 'Other', icon: 'star' },
+    };
+    // Weapons held at the end show even if they never landed a hit
+    const all = { ...hits };
+    for (const w of this.g.weapons) if (!all[w.key]) all[w.key] = { dmg: 0, kills: 0 };
+    const rows = Object.entries(all)
+      .filter(([k, v]) => WEAPONS[k] || v.dmg > 0 || v.kills > 0)
+      .map(([k, v]) => ({ ...v, name: WEAPONS[k] ? WEAPONS[k].name : (OTHER[k] || OTHER.other).name, icon: WEAPONS[k] ? WEAPONS[k].icon : (OTHER[k] || OTHER.other).icon }))
+      .sort((a, b) => b.dmg - a.dmg);
+    const total = rows.reduce((s, x) => s + x.dmg, 0) || 1;
+    const fmt = (n) => n >= 1e6 ? `${(n / 1e6).toFixed(1)}M` : n >= 1e4 ? `${Math.round(n / 1e3)}K` : String(Math.round(n));
+    c.add(text(this, W / 2 + 70, 122, 'DAMAGE', 8, '#a090b0', 1));
+    c.add(text(this, W / 2 + 165, 122, 'KILLS', 8, '#a090b0', 1));
+    if (!rows.length) c.add(text(this, W / 2, 200, 'No hits this run', 10, '#c0b0d0'));
+    rows.slice(0, 9).forEach((r, i) => {
+      const y = 160 + i * 52;
+      if (this.textures.exists(r.icon)) {
+        const ic = this.add.image(W / 2 - 165, y, r.icon, 0);
+        ic.setScale(Math.min(26 / ic.width, 26 / ic.height) * 1);
+        c.add(ic);
+      }
+      c.add(text(this, W / 2 - 145, y - 8, r.name.toUpperCase(), 8, '#ffffff', 0));
+      c.add(text(this, W / 2 + 70, y - 8, fmt(r.dmg), 9, '#ffe060', 1));
+      c.add(text(this, W / 2 + 165, y - 8, String(r.kills), 9, '#ffffff', 1));
+      const bar = this.add.graphics();
+      bar.fillStyle(0x2a1c30, 1).fillRect(W / 2 - 145, y + 6, 310, 6);
+      bar.fillStyle(0xf2c84b, 1).fillRect(W / 2 - 145, y + 6, Math.max(2, 310 * r.dmg / total), 6);
+      c.add(bar);
+      c.add(text(this, W / 2 + 165, y + 9, `${Math.round(100 * r.dmg / total)}%`, 6, '#a090b0', 1));
+    });
+    c.add(button(this, W / 2, 690, 200, 46, 'BACK', () => c.destroy(), { size: 12 }));
   }
 }

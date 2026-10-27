@@ -452,6 +452,12 @@ const ITEMS = {
   spear: () => paint(32, 8, (s) => { s.line(1, 3, 24, 3, WOOD[1]); s.line(1, 4, 24, 4, WOOD[2]); s.ell(27, 3.5, 4, 2.2, GREYS); s.put(25, 2, '#f0e8dc'); s.rect(22, 2, 2, 4, LEATHER); }),
   rock: () => paint(14, 12, (s) => s.ell(7, 6, 6, 5, GREYS, 0.15)),
   bolt: () => paint(12, 16, (s) => { s.line(8, 1, 4, 7, GOLD[1], 2); s.line(4, 7, 8, 8, GOLD[0], 2); s.line(8, 8, 3, 15, GOLD[1], 2); }),
+  // Signature weapons
+  boneclub: () => paint(16, 16, (s) => { s.line(2, 14, 10, 6, BONE[1], 2); s.ell(11, 5, 4.2, 4.2, BONE, 0.15); s.ell(3, 13, 1.8, 1.8, BONE); [[14, 2], [15, 6], [9, 1]].forEach(([x, y]) => s.put(x, y, BONE[3])); s.put(10, 3, '#ffffff'); }),
+  amber: () => paint(14, 12, (s) => { s.ell(7, 6, 6, 5, ['#ffe08a', '#f0a830', '#c06a18', '#7a3a0c'], 0.1); s.put(5, 4, '#fff6c8'); s.put(6, 4, '#fff6c8'); s.put(9, 7, '#7a3a0c'); }),
+  pilum: () => paint(32, 8, (s) => { s.line(1, 3, 22, 3, WOOD[1]); s.line(1, 4, 22, 4, WOOD[2]); s.line(22, 3, 26, 3, STEEL[1]); s.line(22, 4, 26, 4, STEEL[2]); s.ell(28, 3.5, 3.5, 2.2, GOLD); s.put(28, 2, '#fffbe0'); s.rect(19, 2, 2, 4, GOLD); }),
+  holyblade: () => paint(16, 16, (s) => { s.line(4, 12, 13, 3, STEEL[0], 2); s.line(5, 13, 13, 5, STEEL[2]); s.line(2, 10, 6, 14, GOLD[1], 2); s.ell(2.5, 13.5, 1.5, 1.5, GOLD); s.put(12, 3, '#ffffff'); }),
+  tesla: () => paint(12, 16, (s) => { s.rect(3, 9, 6, 6, COPPER); for (let y = 10; y < 15; y += 2) s.rect(3, y, 6, 1, BRASS); s.line(6, 9, 6, 4, BRASS[1]); s.ell(6, 3, 2.6, 2.6, ['#e0fcff', '#7ae0ff', '#3aa0e0', '#1a60a0']); s.put(1, 2, '#7ae0ff'); s.put(10, 1, '#7ae0ff'); }),
   gem_s: () => paint(8, 10, (s) => { const G = ['#d0f4ff', '#6ad0ff', '#2a8ae0', '#1a4aa0']; s.rect(2, 1, 3, 7, G); s.rect(1, 3, 5, 3, G); s.put(2, 2, '#ffffff'); }),
   gem_m: () => paint(10, 12, (s) => { const G = ['#d8ffb0', '#88e05a', '#4aa83a', '#2a6a20']; s.rect(3, 1, 3, 9, G); s.rect(1, 3, 7, 5, G); s.put(3, 2, '#ffffff'); }),
   gem_l: () => paint(12, 14, (s) => { const G = ['#ffd0e8', '#f070b0', '#c03a80', '#7a1a4a']; s.rect(4, 1, 3, 11, G); s.rect(2, 3, 7, 7, G); s.rect(1, 5, 9, 3, G); s.put(4, 2, '#ffffff'); }),
@@ -515,6 +521,7 @@ const ITEMS = {
 
 const ANIM_ITEMS = {
   flame: (f) => paint(14, 18, (s) => { s.ell(7, 11, 5, 6, FIRE); s.ell(7 + (f ? 1 : -1), 7, 2.4, 4, FIRE.slice(0, 1).concat(FIRE.slice(0, 3))); s.put(7 + (f ? -2 : 2), 2, FIRE[1]); }),
+  spiritflame: (f) => { const SF = ['#e8fcff', '#8ae8ff', '#3aa8e0', '#1a5aa0']; return paint(14, 18, (s) => { s.ell(7, 11, 5, 6, SF); s.ell(7 + (f ? 1 : -1), 7, 2.4, 4, SF.slice(0, 1).concat(SF.slice(0, 3))); s.put(7 + (f ? -2 : 2), 2, SF[1]); }); },
   campfire: (f) => paint(22, 24, (s) => {
     for (let i = 0; i < 7; i++) { const a = Math.PI + i * Math.PI / 6; s.ell(11 + Math.cos(a) * 8, 21 + Math.sin(a) * 2.5, 2.4, 1.9, GREYS); }
     s.ell(11, 20, 8, 2.6, GREYS); s.line(4, 21, 17, 18, WOOD[1], 2); s.line(5, 18, 18, 21, WOOD[2], 2);
@@ -581,7 +588,7 @@ export const SPRITE_GROUPS = {
   'Roman enemies': ['legionary', 'spearman', 'gladiator', 'centurion', 'testudo', 'chariot', 'hydra', 'timecop'],
   'Medieval enemies': ['peasant', 'footman', 'jester', 'blackknight', 'slime', 'slimelet', 'troll', 'dragon'],
   'Renaissance enemies': ['apprentice', 'duelist', 'halberdier', 'clockwork', 'gearling', 'cog', 'automaton', 'thief', 'mech'],
-  Weapons: ['club', 'axe', 'spear', 'flame', 'rock', 'bolt'],
+  Weapons: ['club', 'axe', 'spear', 'flame', 'rock', 'bolt', 'boneclub', 'amber', 'spiritflame', 'pilum', 'holyblade', 'tesla'],
   Items: ['treasure', 'chest_open', 'scroll', 'trophy', 'combo', 'cogicon', 'heart_half', 'shieldicon', 'potion_purple', 'rabbitfoot', 'firegem', 'mirror', 'gem_s', 'gem_m', 'gem_l', 'coin', 'spark', 'meat', 'magnet', 'chest', 'potion', 'star', 'reroll', 'skull', 'lock', 'crystal', 'feather', 'idol'],
   Icons: ['heart', 'heart_empty', 'sandal', 'totem', 'flint', 'tusk', 'lodestone'],
   Scenery: ['boulder', 'fern', 'bones', 'tree', 'campfire', 'handprint', 'deer', 'hunters', 'column', 'broken', 'urn', 'cypress', 'brazier', 'banner', 'haybale', 'shrub', 'torch', 'gravestone', 'easel', 'gearpile', 'statue', 'lantern'],

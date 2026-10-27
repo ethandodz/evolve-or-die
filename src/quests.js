@@ -44,6 +44,7 @@ export function allQuests() {
   });
   // One per weapon
   for (const [k, w] of Object.entries(WEAPONS)) {
+    if (w.signature) continue;
     list.push({ id: `wk_${k}`, name: `${w.name} Master`, blurb: `Defeat 500 enemies with the ${w.name}`, target: 500, reward: 15, value: () => st().wk[k] || 0 });
   }
   return list;

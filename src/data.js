@@ -14,6 +14,10 @@ export const RARE_ITEMS = CFG.rareShop;
 export const META = CFG.meta;
 export const TWISTS = CFG.twists;
 export const COMBOS = CFG.combos || [];
+// Weapons anyone can find; signature weapons belong to one character
+export const POOL_WEAPONS = Object.keys(WEAPONS).filter(k => !WEAPONS[k].signature);
+// A signature weapon counts as its normal weapon for combos
+export const baseWeapon = (k) => (WEAPONS[k] && WEAPONS[k].base) || k;
 export const EVENTS = CFG.events || [];
 
 // Level-up card rarities. mult = how much bigger this level's stat boost is

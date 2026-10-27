@@ -1,7 +1,7 @@
 import Phaser from 'phaser';
 import { audio } from '../audio.js';
 import { save, persist } from '../save.js';
-import { AGES, ENEMIES, WEAPONS, PASSIVES, SHOP_ITEMS, RARE_ITEMS, META, CFG, RARITIES, wholeEffect, AGE_LENGTH, BAL, CHARACTERS, COMBOS, EVENTS, statsOf, xpForLevel } from '../data.js';
+import { AGES, ENEMIES, WEAPONS, PASSIVES, SHOP_ITEMS, RARE_ITEMS, META, CFG, RARITIES, wholeEffect, AGE_LENGTH, BAL, CHARACTERS, COMBOS, EVENTS, statsOf, xpForLevel, POOL_WEAPONS, baseWeapon } from '../data.js';
 import { W, H, FONT, buzz } from '../ui.js';
 import { stats, bump, best, allQuests, isDone, doneIds } from '../quests.js';
 import { submitScore, cloudBackup, onlineEnabled } from '../online.js';
@@ -806,7 +806,7 @@ export default class Game extends Phaser.Scene {
       if (w.dmgMul) st.dmg *= w.dmgMul;
       if (st.cd && this.charDef.cdMul) st.cd *= this.charDef.cdMul;
       if (w.bonusCount && st.count !== undefined) st.count += w.bonusCount;
-      if (this.combos.has('pack') && (w.key === 'spear' || w.key === 'axes') && st.count !== undefined) st.count += 1;
+      if (this.combos.has('pack') && (baseWeapon(w.key) === 'spear' || baseWeapon(w.key) === 'axes') && st.count !== undefined) st.count += 1;
       this.hitSrc = w.key;
       switch (WEAPONS[w.key].behavior) {
         case 'swing': this.updateClub(w, st, dt); break;
@@ -960,8 +960,9 @@ export default class Game extends Phaser.Scene {
     if (w.lastR !== radius) {
       w.lastR = radius;
       w.ring.clear();
-      w.ring.fillStyle(0xff7a2a, 0.13).fillCircle(0, 0, radius);
-      w.ring.lineStyle(2, 0xffe06a, 0.35).strokeCircle(0, 0, radius);
+      const [fill, edge] = WEAPONS[w.key].ringColor || [0xff7a2a, 0xffe06a];
+      w.ring.fillStyle(fill, 0.13).fillCircle(0, 0, radius);
+      w.ring.lineStyle(2, edge, 0.35).strokeCircle(0, 0, radius);
     }
     w.ring.setPosition(p.x, p.y);
     w.ring.setAlpha(0.8 + Math.sin(this.totalTime * 10) * 0.2);
@@ -1036,7 +1037,8 @@ export default class Game extends Phaser.Scene {
         const e = targets[i];
         let x = e.x, y = e.y;
         this.hitSrc = w.key;
-        this.strike(x, y, radius, st.dmg);
+        const col = WEAPONS[w.key].boltColor;
+        this.strike(x, y, radius, st.dmg, col);
         const hit = new Set([e]);
         for (let c = 0; c < st.chain; c++) {
           let best = null, bd = 140 * 140;
@@ -1047,7 +1049,7 @@ export default class Game extends Phaser.Scene {
           }
           if (!best) break;
           hit.add(best);
-          this.boltLine(x, y, best.x, best.y);
+          this.boltLine(x, y, best.x, best.y, col);
           this.query(best.x, best.y, radius * 0.7, (o) => this.hitEnemy(o, st.dmg * 0.6, best.x, best.y, 60));
           x = best.x; y = best.y;
         }
@@ -1056,14 +1058,14 @@ export default class Game extends Phaser.Scene {
     }
   }
 
-  strike(x, y, radius, dmg) {
-    this.boltLine(x + rand(-40, 40), y - 340, x, y);
+  strike(x, y, radius, dmg, color = 0xffe06a) {
+    this.boltLine(x + rand(-40, 40), y - 340, x, y, color);
     this.query(x, y, radius, (e) => this.hitEnemy(e, dmg, x, y, 80));
-    this.ringFx(x, y, radius, 0xffe06a);
+    this.ringFx(x, y, radius, color);
     audio.play('zap');
   }
 
-  boltLine(x1, y1, x2, y2) {
+  boltLine(x1, y1, x2, y2, color = 0xffe06a) {
     const g = this.add.graphics().setDepth(1e7 + 6);
     const pts = [[x1, y1]];
     const segs = 7;
@@ -1078,7 +1080,7 @@ export default class Game extends Phaser.Scene {
       for (const pt of pts) g.lineTo(pt[0], pt[1]);
       g.strokePath();
     };
-    line(8, 0xffe06a, 0.5); line(3, 0xffffff, 1);
+    line(8, color, 0.5); line(3, 0xffffff, 1);
     this.tweens.add({ targets: g, alpha: 0, duration: 180, onComplete: () => g.destroy() });
   }
 
@@ -1298,7 +1300,7 @@ export default class Game extends Phaser.Scene {
   // Free weapon pick early in the run
   openGift() {
     const owned = new Set(this.weapons.map(w => w.key));
-    const list = shuffle(Object.keys(WEAPONS).filter(k => !owned.has(k))).slice(0, 3)
+    const list = shuffle(POOL_WEAPONS.filter(k => !owned.has(k))).slice(0, 3)
       .map(k => ({ type: 'weapon', key: k, level: 1, isNew: true, gift: true }));
     if (!list.length) return;
     this.frozen = true;
@@ -1316,7 +1318,7 @@ export default class Game extends Phaser.Scene {
     const owned = new Set(this.weapons.map(w => w.key));
     for (const w of this.weapons) if (w.level < this.weaponMax(w.key)) pool.push({ type: 'weapon', key: w.key, cur: w.level, max: this.weaponMax(w.key) });
     for (const k of this.passiveOrder) if (this.passives[k] < this.passiveMax(k)) pool.push({ type: 'passive', key: k, cur: this.passives[k], max: this.passiveMax(k) });
-    if (this.weapons.length < this.weaponSlots) for (const k of Object.keys(WEAPONS)) if (!owned.has(k)) pool.push({ type: 'weapon', key: k, cur: 0, max: this.weaponMax(k), isNew: true });
+    if (this.weapons.length < this.weaponSlots) for (const k of POOL_WEAPONS) if (!owned.has(k)) pool.push({ type: 'weapon', key: k, cur: 0, max: this.weaponMax(k), isNew: true });
     if (this.passiveOrder.length < this.passiveSlots) for (const k of Object.keys(PASSIVES)) if (!this.passives[k]) pool.push({ type: 'passive', key: k, cur: 0, max: this.passiveMax(k), isNew: true });
     return pool;
   }
@@ -1872,10 +1874,12 @@ export default class Game extends Phaser.Scene {
   // Confusion Potion: every weapon becomes a different random one at the same level
   confuseWeapons() {
     const old = this.weapons;
-    const pool = shuffle(Object.keys(WEAPONS).filter(k => !old.some(w => w.key === k)).concat(old.map(w => w.key)));
+    const pool = shuffle(POOL_WEAPONS.filter(k => !old.some(w => w.key === k)).concat(old.map(w => w.key).filter(k => !WEAPONS[k].signature)));
     this.weapons = [];
     const used = new Set();
     for (const w of old) {
+      // A character's own weapon stays theirs
+      if (WEAPONS[w.key].signature) { this.weapons.push(w); continue; }
       w.sprites.forEach(sp => sp.destroy());
       if (w.ring) w.ring.destroy();
       const k = pool.find(x => !used.has(x) && x !== w.key) || pool.find(x => !used.has(x));
@@ -1933,7 +1937,7 @@ export default class Game extends Phaser.Scene {
       }
       case 'weapon': {
         const owned = new Set(this.weapons.map(w => w.key));
-        const opts = Object.keys(WEAPONS).filter(k => !owned.has(k));
+        const opts = POOL_WEAPONS.filter(k => !owned.has(k));
         if (!opts.length || this.weapons.length >= this.weaponSlots) return false;
         const k = pick(opts); this.addWeapon(k);
         this.checkCombos();
@@ -2021,13 +2025,14 @@ export default class Game extends Phaser.Scene {
   // ------------------------------------------------------------------
   // Weapon combos: owning both weapons of a pair turns on a bonus
   comboWith(key) {
-    const owned = new Set(this.weapons.map(w => w.key));
+    const owned = new Set(this.weapons.map(w => baseWeapon(w.key)));
+    key = baseWeapon(key);
     if (owned.has(key)) return null;
     return COMBOS.find(c => !this.combos.has(c.id) && ((c.a === key && owned.has(c.b)) || (c.b === key && owned.has(c.a))));
   }
 
   checkCombos() {
-    const owned = new Set(this.weapons.map(w => w.key));
+    const owned = new Set(this.weapons.map(w => baseWeapon(w.key)));
     for (const c of COMBOS) {
       const on = owned.has(c.a) && owned.has(c.b);
       if (on && !this.combos.has(c.id)) {

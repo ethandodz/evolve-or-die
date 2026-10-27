@@ -9,6 +9,7 @@ A survivors-like roguelike where you fight through the ages of history. Move to 
 - 6 characters, each with a perk and a drawback. Grug the caveman to start, plus one unlocked by each age's boss: Taka the Dino Tamer (T-Rex, a pet raptor fights with you), Ora the Shaman (Hydra), Edric the Knight (Dragon) and Nico the Inventor (Steam Mech, weapons attack faster). Marcus the Centurion unlocks at 1500 total kills
 - 4 ages: Stone Age (boss: T-Rex), Roman Empire (boss: Hydra), Middle Ages (boss: Dragon) and Renaissance (boss: Steam Mech, which overheats and takes double damage)
 - 6 weapons: Club, Orbiting Axes, Spear, Fire Ring, Rock Fall, Sky Bolt
+- Each character starts with their own signature weapon that no one else can get, and later unlocks have stronger ones: Bone Club (Grug), Amber Meteors (Taka), Spirit Fire (Ora), Golden Pilum (Marcus), Holy Blades (Edric), Tesla Coil (Nico). They count as their normal weapon for combos and stay put when a Confusion Potion is used.
 - 6 passives: Mammoth Heart, Swift Sandals, Tribal Totem, Sharp Flint, Giant Tusk, Lodestone
 - 3 weapon slots, 3 passive slots, 3 choices per level, 3 rerolls per run
 - Mini-boss at the halfway mark, stampede events, and the time police if you don't summon the boss within 5 minutes

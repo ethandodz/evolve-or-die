@@ -4,7 +4,7 @@
 export const DEFAULT_CONFIG = {
   version: 1,
   // Bump when new built-in content is added, so saved editor edits get it too (see config.js)
-  contentVersion: 6,
+  contentVersion: 7,
 
   balance: {
     ageLength: 300,        // seconds until the time police arrive
@@ -50,17 +50,17 @@ export const DEFAULT_CONFIG = {
   // pet: an enemy sprite that fights at your side.
   // unlock: 'start', a boss key, or 'kills:N' (total enemies defeated over all runs).
   characters: [
-    { key: 'caveman', name: 'GRUG', title: 'The Caveman', sprite: 'caveman', weapon: 'club', hearts: 5, speed: 1, unlock: 'start',
+    { key: 'caveman', name: 'GRUG', title: 'The Caveman', sprite: 'caveman', weapon: 'boneclub', hearts: 5, speed: 1, unlock: 'start',
       dmgMul: 1.3, weaponSlots: 2, perk: '+30% damage', drawback: 'Only 2 weapon slots' },
-    { key: 'tamer', name: 'TAKA', title: 'The Dino Tamer', sprite: 'tamer', weapon: 'rocks', hearts: 4, speed: 1, unlock: 'trex',
+    { key: 'tamer', name: 'TAKA', title: 'The Dino Tamer', sprite: 'tamer', weapon: 'amber', hearts: 4, speed: 1, unlock: 'trex',
       pet: 'raptor', perk: 'A baby raptor fights with you', drawback: 'Only 4 hearts' },
-    { key: 'shaman', name: 'ORA', title: 'The Shaman', sprite: 'shaman', weapon: 'fire', hearts: 3, speed: 1, unlock: 'hydra',
+    { key: 'shaman', name: 'ORA', title: 'The Shaman', sprite: 'shaman', weapon: 'spiritfire', hearts: 3, speed: 1, unlock: 'hydra',
       xpMul: 1.3, areaMul: 1.25, perk: '+30% XP, +25% area', drawback: 'Only 3 hearts' },
-    { key: 'knight', name: 'EDRIC', title: 'The Knight', sprite: 'knight', weapon: 'axes', hearts: 5, speed: 0.85, unlock: 'dragon',
-      damageTaken: 0.5, perk: 'Hits only take half a heart', drawback: '15% slower' },
-    { key: 'centurion', name: 'MARCUS', title: 'The Centurion', sprite: 'centurion', weapon: 'spear', hearts: 5, speed: 0.95, unlock: 'kills:1500',
+    { key: 'centurion', name: 'MARCUS', title: 'The Centurion', sprite: 'centurion', weapon: 'pilum', hearts: 5, speed: 0.95, unlock: 'kills:1500',
       bonusCount: 1, dmgMul: 0.85, perk: '+1 attack for every weapon', drawback: '-15% damage' },
-    { key: 'inventor', name: 'NICO', title: 'The Inventor', sprite: 'inventor', weapon: 'bolt', hearts: 4, speed: 1, unlock: 'mech',
+    { key: 'knight', name: 'EDRIC', title: 'The Knight', sprite: 'knight', weapon: 'holyblades', hearts: 5, speed: 0.85, unlock: 'dragon',
+      damageTaken: 0.5, perk: 'Hits only take half a heart', drawback: '15% slower' },
+    { key: 'inventor', name: 'NICO', title: 'The Inventor', sprite: 'inventor', weapon: 'tesla', hearts: 4, speed: 1, unlock: 'mech',
       cdMul: 0.8, areaMul: 0.8, perk: 'Weapons attack 25% faster', drawback: '-20% area and range' },
   ],
 
@@ -101,6 +101,44 @@ export const DEFAULT_CONFIG = {
       blurb: 'Lightning strikes enemies around you.',
       stats: { cd: { base: 1.7, per: -0.1 }, dmg: { base: 32, per: 10 }, radius: { base: 28, per: 2 }, count: { base: 1, at: [3, 5, 7] }, chain: { base: 0, at: [5, 5] }, range: { base: 270 } },
       levels: ['', '+10 damage, faster', '+1 bolt', '+10 damage, faster', '+1 bolt, bolts chain', '+10 damage, faster', '+1 bolt'],
+    },
+    // Signature weapons: each character starts with their own, never offered to anyone else.
+    // tier = power rank (later unlocks are stronger); base = the normal weapon it counts as for combos.
+    boneclub: {
+      name: 'Bone Club', icon: 'boneclub', behavior: 'swing', kind: 'Melee', max: 7, signature: 'caveman', tier: 1, base: 'club',
+      blurb: "Grug's mammoth-bone club. Hits harder and knocks enemies further.",
+      stats: { cd: { base: 0.95, per: -0.06 }, dmg: { base: 17, per: 7 }, radius: { base: 82, per: 6 }, count: { base: 1, at: [3, 6] }, knockback: { base: 330 } },
+      levels: ['', '+7 damage', '+1 swing', 'Faster, +7 damage', 'Bigger swing, +7 damage', '+1 swing', 'Faster, +7 damage'],
+    },
+    amber: {
+      name: 'Amber Meteors', icon: 'amber', behavior: 'rockfall', kind: 'Area', max: 7, signature: 'tamer', tier: 2, base: 'rocks',
+      blurb: "Taka's glowing amber stones rain down, three at a time.",
+      stats: { cd: { base: 1.9, per: -0.1 }, dmg: { base: 34, per: 13 }, radius: { base: 40, per: 3 }, count: { base: 3, at: [2, 4, 6] } },
+      levels: ['', '+13 damage, +1 stone', 'Faster, +13 damage', '+13 damage, +1 stone', 'Bigger, +13 damage', '+13 damage, +1 stone', 'Faster, +13 damage'],
+    },
+    spiritfire: {
+      name: 'Spirit Fire', icon: 'spiritflame', behavior: 'aura', kind: 'Aura', max: 7, signature: 'shaman', tier: 3, base: 'fire', ringColor: [0x3ac8e0, 0xa0f4ff],
+      blurb: "Ora's blue spirit flames. Wider, hotter and slows more than fire.",
+      stats: { dmg: { base: 7.5, per: 3.5 }, radius: { base: 64, per: 7 }, tick: { base: 0.45, per: -0.02 }, slow: { base: 0.4, per: 0.03 } },
+      levels: ['', '+3.5 damage, wider', '+3.5 damage, burns faster', '+3.5 damage, wider', '+3.5 damage, slows more', '+3.5 damage, wider', '+3.5 damage, burns faster'],
+    },
+    pilum: {
+      name: 'Golden Pilum', icon: 'pilum', behavior: 'thrust', kind: 'Melee', max: 7, signature: 'centurion', tier: 4, base: 'spear',
+      blurb: "Marcus's golden javelin. Long reach, pierces everything.",
+      stats: { cd: { base: 1.1, per: -0.07 }, dmg: { base: 36, per: 13 }, length: { base: 150, per: 12 }, count: { base: 1, at: [3, 6] } },
+      levels: ['', '+13 damage, longer', '+1 pilum', 'Faster, +13 damage', '+13 damage, longer', '+1 pilum', 'Faster, +13 damage'],
+    },
+    holyblades: {
+      name: 'Holy Blades', icon: 'holyblade', behavior: 'orbit', kind: 'Orbit', max: 7, signature: 'knight', tier: 5, base: 'axes',
+      blurb: "Edric's three blessed swords spin around him.",
+      stats: { dmg: { base: 15, per: 7 }, radius: { base: 72, per: 5 }, count: { base: 3, at: [3, 5, 7] }, spin: { base: 3.8, per: 0.25 }, hitDelay: { base: 0.4 } },
+      levels: ['', '+7 damage, faster', '+1 blade', '+7 damage, wider', '+1 blade', '+7 damage, faster', '+1 blade'],
+    },
+    tesla: {
+      name: 'Tesla Coil', icon: 'tesla', behavior: 'lightning', kind: 'Area', max: 7, signature: 'inventor', tier: 6, base: 'bolt', boltColor: 0x7ae0ff,
+      blurb: "Nico's invention. Blue lightning that always chains to more enemies.",
+      stats: { cd: { base: 1.4, per: -0.09 }, dmg: { base: 60, per: 18 }, radius: { base: 32, per: 2 }, count: { base: 2, at: [3, 5, 7] }, chain: { base: 2, at: [5] }, range: { base: 300 } },
+      levels: ['', '+18 damage, faster', '+1 bolt', '+18 damage, faster', '+1 bolt, +1 chain', '+18 damage, faster', '+1 bolt'],
     },
   },
 

@@ -24,7 +24,7 @@ export const EVENTS = CFG.events || [];
 // Level-up card rarities. mult = how much bigger this level's stat boost is
 // (a Rare Sharp Flint gives +14% damage instead of +12%).
 export const RARITIES = [
-  { name: 'COMMON', color: 0xe8c070, text: '#e8c070', mult: 1 },
+  { name: 'COMMON', color: 0x9a9aa6, text: '#b8b8c4', mult: 1 },
   { name: 'RARE', color: 0x4a9aff, text: '#7ab8ff', mult: 1.2 },
   { name: 'EPIC', color: 0xb05aff, text: '#c890ff', mult: 1.5 },
   { name: 'LEGENDARY', color: 0xffa020, text: '#ffc040', mult: 2 },

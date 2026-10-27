@@ -53,7 +53,7 @@ export default class Game extends Phaser.Scene {
   stage() { return this.loop * AGES.length + this.ageIndex; }
 
   // Weapons and passives can level higher in later ages
-  weaponMax(key) { return WEAPONS[key].max + Math.round((BAL.maxLevelPerAge || 0) * this.stage()); }
+  weaponMax(key) { return WEAPONS[key].max + Math.round((BAL.maxLevelPerAge || 0) * this.stage()) + (this.relics && this.relics.has('declaration') ? 5 : 0); }
   passiveMax(key) { return PASSIVES[key].max + Math.round((BAL.maxLevelPerAge || 0) * this.stage()); }
 
   // Daily challenge twists change these
@@ -125,7 +125,8 @@ export default class Game extends Phaser.Scene {
     this.hitSrc = null;        // weapon doing the hitting, for per-weapon quests
     this.runHits = {};
     this.relics = new Set();   // relics taken this run
-    this.grailT = 30;
+    this.aliens = [];          // Alien Egg swarm
+    this.sword = null;         // Excalibur
     this.lucky = 0;            // level-ups left whose cards are all Rare or better (chest Lucky Star)         // damage and kills per weapon this run, for the stats screen
     this.coinsEarned = 0;
     this.questsDone = doneIds();
@@ -225,14 +226,8 @@ export default class Game extends Phaser.Scene {
     this.separate();
     this.updateWeapons(dt);
     this.updatePet(dt);
-    if (this.relics.has('grail')) {
-      this.grailT -= dt;
-      if (this.grailT <= 0) {
-        this.grailT = 30;
-        const p = this.player;
-        if (p.hearts < p.maxHearts) { p.hearts = Math.min(p.maxHearts, p.hearts + 1); this.floatText(p.x, p.y - 30, '+1 HEART', '#ff8080'); audio.play('buy'); }
-      }
-    }
+    this.updateAliens(dt);
+    this.updateSword(dt);
     this.updateBoss(dt);
     this.updateHazards(dt);
     this.checkContacts();
@@ -1140,8 +1135,81 @@ export default class Game extends Phaser.Scene {
       const k = e.def.heavy ? 120 : 380;
       e.kx += (dx / d) * k; e.ky += (dy / d) * k;
     });
+    if (this.relics.has('alienegg') && p.hearts > 0) this.releaseAliens();
     if (p.hearts <= 0 && this.revives > 0) { this.revive(); return; }
     if (p.hearts <= 0) { p.hearts = 0; this.playerDied(); }
+  }
+
+  // ------------------------------------------------------------------
+  // Alien Egg: getting hit hatches a swarm that hunts nearby enemies for a few seconds
+  releaseAliens() {
+    const p = this.player;
+    const n = 6 + Math.floor(this.level / 8);
+    for (let i = 0; i < n; i++) {
+      const a = (i / n) * TAU;
+      const spr = this.add.sprite(p.x, p.y, 'alien', 0).setScale(1.6);
+      this.aliens.push({ x: p.x, y: p.y, vx: Math.cos(a) * 260, vy: Math.sin(a) * 260, spr, life: 6, cd: 0, target: null });
+    }
+    this.burst(p.x, p.y, 0x8ad060, 16, 180);
+    this.floatText(p.x, p.y - 40, 'THE SWARM!', '#a8f08a');
+    audio.play('gift');
+  }
+
+  updateAliens(dt) {
+    if (!this.aliens.length) return;
+    const p = this.player;
+    for (let i = this.aliens.length - 1; i >= 0; i--) {
+      const a = this.aliens[i];
+      a.life -= dt; a.cd -= dt;
+      if (a.life <= 0) { this.burst(a.x, a.y, 0x8ad060, 4, 80); a.spr.destroy(); this.aliens.splice(i, 1); continue; }
+      if (!a.target || !a.target.alive) a.target = this.nearestEnemyTo(a.x, a.y, 300);
+      const tx = a.target ? a.target.x : p.x + Math.cos(a.life * 3 + i) * 50;
+      const ty = a.target ? a.target.y : p.y + Math.sin(a.life * 3 + i) * 50;
+      const dx = tx - a.x, dy = ty - a.y, d = Math.hypot(dx, dy) || 1;
+      const k = Math.min(1, dt * 6);
+      a.vx += ((dx / d) * 300 - a.vx) * k; a.vy += ((dy / d) * 300 - a.vy) * k;
+      a.x += a.vx * dt; a.y += a.vy * dt;
+      if (a.target && d < a.target.r + 8 && a.cd <= 0) {
+        a.cd = 0.35;
+        this.hitSrc = 'aliens';
+        this.hitEnemy(a.target, 6 + this.level * 1.2, a.x, a.y, 40);
+        this.hitSrc = null;
+      }
+      a.spr.setPosition(a.x, a.y).setDepth(a.y).setFlipX(a.vx < 0).setAlpha(a.life < 1 ? a.life : 1);
+    }
+  }
+
+  nearestEnemyTo(x, y, range) {
+    let best = null, bd = range * range;
+    for (const e of this.enemies) {
+      if (!e.alive || e.flying) continue;
+      const d = (e.x - x) ** 2 + (e.y - y) ** 2;
+      if (d < bd) { bd = d; best = e; }
+    }
+    return best;
+  }
+
+  // Excalibur: held out in the direction you move, it cuts whatever it touches
+  updateSword(dt) {
+    const s = this.sword;
+    if (!s) return;
+    const p = this.player;
+    const want = p.moving ? p.aim : s.ang;
+    const diff = Math.atan2(Math.sin(want - s.ang), Math.cos(want - s.ang));
+    s.ang += diff * Math.min(1, dt * 14);
+    const len = 120 * this.stats.area;
+    const x0 = p.x + Math.cos(s.ang) * 10, y0 = p.y - 10 + Math.sin(s.ang) * 10;
+    s.spr.setPosition(x0, y0).setRotation(s.ang).setScale(len / 44, 1.8).setDepth(p.y + (Math.sin(s.ang) > 0 ? 1 : -1));
+    s.glow.setPosition(x0 + Math.cos(s.ang) * len * 0.55, y0 + Math.sin(s.ang) * len * 0.55).setScale(len / 40, 0.9).setRotation(s.ang);
+    const x2 = x0 + Math.cos(s.ang) * len, y2 = y0 + Math.sin(s.ang) * len;
+    this.hitSrc = 'excalibur';
+    this.query((x0 + x2) / 2, (y0 + y2) / 2, len / 2 + 10, (e) => {
+      if (distToSeg(e.x, e.y, x0, y0, x2, y2) > e.r + 8) return;
+      if (this.totalTime - (e.hitBy.excalibur || -9) < 0.4) return;
+      e.hitBy.excalibur = this.totalTime;
+      this.hitEnemy(e, 18 + this.level * 2.5, p.x, p.y, 160);
+    });
+    this.hitSrc = null;
   }
 
   revive() {
@@ -2073,9 +2141,12 @@ export default class Game extends Phaser.Scene {
     this.relics.add(id);
     bump('relics');
     switch (id) {
-      case 'rosetta': this.mods.xp *= 1.5; break;
-      case 'fleece': this.mods.coin *= 2; this.bonusHearts--; this.recomputeStats(); break;
-      case 'pandora': this.mods.spawn *= 1.5; this.mods.xp *= 1.5; this.mods.coin *= 1.5; break;
+      case 'excalibur': {
+        const spr = this.add.image(0, 0, 'excalibur').setOrigin(0.05, 0.5).setDepth(1e7);
+        const glow = this.add.image(0, 0, 'glow').setTint(0x8ad0ff).setAlpha(0.35).setBlendMode(Phaser.BlendModes.ADD).setDepth(1e7 - 1);
+        this.sword = { spr, glow, ang: p.facing > 0 ? 0 : Math.PI };
+        break;
+      }
       case 'ark': {
         // Every weapon and slot gives way to the Ark, at the best level you had
         const best = Math.max(1, ...this.weapons.map(w => w.level));

@@ -58,7 +58,7 @@ export default class Title extends Phaser.Scene {
       button(this, W / 2 + 68, 536, 124, 48, 'EVOLVE', () => this.showUpgrades(), { size: 10, icon: 'spark', iconScale: 1.8 }),
       button(this, W / 2 - 68, 594, 124, 48, 'QUESTS', () => this.showQuests(), { size: 10, icon: 'scroll', iconScale: 1.6 }),
       button(this, W / 2 + 68, 594, 124, 48, 'SCORES', () => this.showScores(), { size: 10, icon: 'trophy', iconScale: 1.6 }),
-      button(this, W / 2 - 68, 650, 124, 40, 'RELICS', () => this.showRelics(), { size: 8, icon: 'grail', iconScale: 1.4, color: COLORS.purple, hi: COLORS.purpleHi }),
+      button(this, W / 2 - 68, 650, 124, 40, 'RELICS', () => this.showRelics(), { size: 8, icon: 'monalisa', iconScale: 1.2, color: COLORS.purple, hi: COLORS.purpleHi }),
       button(this, W / 2 + 68, 650, 124, 40, 'SETTINGS', () => this.openSettings(), { size: 8 }),
       button(this, 52, 26, 84, 30, 'EDITOR', () => { window.location.href = 'editor.html'; }, { size: 6, color: COLORS.grey, hi: COLORS.button }),
     ];
@@ -377,9 +377,13 @@ export default class Title extends Phaser.Scene {
         g.fillStyle(0x1e1009, 1).fillRect(W / 2 - 196, y - 37, 392, 76);
         g.fillStyle(owned ? 0x3a2a40 : 0x3a2618, 1).fillRect(W / 2 - 194, y - 35, 388, 72);
         rows.add(g);
-        if (this.textures.exists(r.icon)) rows.add(fit(this.add.image(W / 2 - 166, y, r.icon, 0), 42));
-        rows.add(text(this, W / 2 - 136, y - 22, r.name.toUpperCase(), 9, owned ? '#ffc040' : '#ffffff', 0));
-        rows.add(this.add.text(W / 2 - 136, y - 10, r.blurb, { fontFamily: FONT, fontSize: '7px', color: '#d0b890', wordWrap: { width: 200 }, lineSpacing: 3 }).setOrigin(0, 0));
+        if (this.textures.exists(r.icon)) {
+          const ic = fit(this.add.image(W / 2 - 166, y, r.icon, 0), 42);
+          if (!owned) ic.setTintFill(0x0c0604);
+          rows.add(ic);
+        }
+        rows.add(text(this, W / 2 - 136, y - 22, owned ? r.name.toUpperCase() : '???', owned && r.name.length > 18 ? 7 : 9, owned ? '#ffc040' : '#ffffff', 0));
+        rows.add(this.add.text(W / 2 - 136, y - 10, owned ? r.blurb : '???', { fontFamily: FONT, fontSize: '7px', color: '#d0b890', wordWrap: { width: 200 }, lineSpacing: 3 }).setOrigin(0, 0));
         const b = button(this, W / 2 + 145, y, 86, 40, owned ? 'UNLOCKED' : String(r.cost), () => {
           if (owned) return;
           if (save.sparks < r.cost) { audio.play('deny'); return; }

@@ -28,7 +28,7 @@ A survivors-like roguelike where you fight through the ages of history. Move to 
 - Treasure chests (from bosses, the treasure thief and rarely a glowing elite) spin out 1, 3 or 5 rewards: coins, a full heal, a Lucky Star (next level-up cards are all Rare or better), a reroll, an XP magnet or Sparks. They never give upgrades, so every upgrade is still your pick on level-up.
 - Weapon combos: owning both weapons of a pair turns on a bonus (Whirlwind, Torch Club, Lightning Rod, Magma Rocks, Thunderstorm, Hunter's Pack)
 - Random events twice an age: Gold Rush, Eclipse, Meteor Shower, Treasure Thief
-- Relics: unlock them with Sparks (RELICS on the main menu), then they can turn up in treasure chests, where you take one or leave it for coins. Mona Lisa (first hit stuns each enemy), Rosetta Stone (+50% XP), Holy Grail (heal every 30s), Golden Fleece (double coins, -1 max heart), Pandora's Box (+50% enemies, XP and coins), Ark of the Covenant (all weapons and slots replaced by piercing beams of holy light)
+- Relics: unlock them with Sparks (RELICS on the main menu; locked ones stay a mystery), then they can turn up in treasure chests, where you take one or leave it for coins. Mona Lisa (first hit stuns each enemy), Alien Egg (getting hit releases an alien swarm), Excalibur (a sword held out the way you move), Declaration of Independence (+5 max level for weapons), Ark of the Covenant (all weapons and slots replaced by piercing beams of holy light)
 - Quests on the main menu pay Sparks; a note on the results screen shows what's closest to done
 - First-run tips, and settings for vibration and screen shake
 - Character select shows each character's weapon, its type (Melee, Orbit, Aura, Area) and what that type does

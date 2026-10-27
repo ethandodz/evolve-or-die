@@ -45,6 +45,12 @@ function load() {
 
 export const save = load();
 
+// Relics that were taken out of the game give their Sparks back
+const REMOVED_RELICS = { rosetta: 800, grail: 1000, fleece: 1000, pandora: 1500 };
+for (const [id, cost] of Object.entries(REMOVED_RELICS)) {
+  if (save.relics[id]) { delete save.relics[id]; save.sparks += cost; }
+}
+
 export function persist() {
   try { localStorage.setItem(KEY, JSON.stringify(save)); } catch { /* private mode */ }
 }

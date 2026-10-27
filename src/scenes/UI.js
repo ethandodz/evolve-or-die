@@ -535,6 +535,7 @@ export default class UI extends Phaser.Scene {
     card.add(hit);
     // Short delay so a finger still on the joystick can't pick by accident
     this.time.delayedCall(320, () => {
+      if (!hit.scene) return; // the card was already closed or rerolled
       hit.setInteractive({ useHandCursor: true });
       hit.on('pointerover', () => draw(true));
       hit.on('pointerout', () => draw(false));
@@ -718,6 +719,8 @@ export default class UI extends Phaser.Scene {
       pet: { name: this.g.charDef.pet && ENEMIES[this.g.charDef.pet] ? `Pet ${ENEMIES[this.g.charDef.pet].name}` : 'Pet', icon: this.g.charDef.pet && ENEMIES[this.g.charDef.pet] ? ENEMIES[this.g.charDef.pet].sprite : 'star' },
       burn: { name: 'Burning', icon: 'flame' },
       clear: { name: 'Boss shockwave', icon: 'skull' },
+      aliens: { name: 'Alien swarm', icon: 'alien' },
+      excalibur: { name: 'Excalibur', icon: 'excalibur' },
       other: { name: 'Other', icon: 'star' },
     };
     // Weapons held at the end show even if they never landed a hit

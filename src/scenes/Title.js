@@ -113,7 +113,8 @@ export default class Title extends Phaser.Scene {
       return `Beat ${boss ? boss.name : 'a boss'}`;
     };
     const list = CHARACTERS.slice(0, 8);
-    const cols = list.length > 4 ? 3 : Math.max(1, list.length);
+    // Up to 3 per row (4 cards don't fit in one row, so they go 2 x 2)
+    const cols = list.length === 4 ? 2 : Math.min(3, Math.max(1, list.length));
     const cw = 112, ch0 = 120, gap = 122;
     let selected = list.find(isOpen) || list[0];
     const desc = text(this, W / 2, H / 2 + 92, '', 8, '#e8d0b0');

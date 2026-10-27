@@ -4,7 +4,7 @@
 export const DEFAULT_CONFIG = {
   version: 1,
   // Bump when new built-in content is added, so saved editor edits get it too (see config.js)
-  contentVersion: 3,
+  contentVersion: 4,
 
   balance: {
     ageLength: 300,        // seconds until the time police arrive
@@ -48,8 +48,6 @@ export const DEFAULT_CONFIG = {
   characters: [
     { key: 'caveman', name: 'GRUG', title: 'The Caveman', sprite: 'caveman', weapon: 'club', hearts: 5, speed: 1, unlock: 'start',
       dmgMul: 1.3, weaponSlots: 2, perk: '+30% damage', drawback: 'Only 2 weapon slots' },
-    { key: 'hunter', name: 'ROKA', title: 'The Hunter', sprite: 'hunter', weapon: 'spear', hearts: 4, speed: 1.15, unlock: 'trex',
-      critMul: 3, perk: 'Fast, crits 3x as often', drawback: 'Only 4 hearts' },
     { key: 'shaman', name: 'ORA', title: 'The Shaman', sprite: 'shaman', weapon: 'fire', hearts: 3, speed: 1, unlock: 'hydra',
       xpMul: 1.3, areaMul: 1.25, perk: '+30% XP, +25% area', drawback: 'Only 3 hearts' },
     { key: 'knight', name: 'EDRIC', title: 'The Knight', sprite: 'knight', weapon: 'axes', hearts: 5, speed: 0.85, unlock: 'dragon',

@@ -25,7 +25,7 @@ A survivors-like roguelike where you fight through the ages of history. Move to 
 - Weapons and passives can level higher in each later age
 - After the last boss, the wizard sells a Magic Mirror that loops the run back to the first age with tougher enemies
 - Daily challenge: two twists a day, the same for everyone, +10 Sparks for the first run
-- Treasure chests (from mini-bosses, bosses, some elites and the treasure thief) spin out 1, 3 or 5 free upgrades
+- Treasure chests (from bosses, the treasure thief and rarely a glowing elite) spin out 1, 3 or 5 rewards: coins, a full heal, a Lucky Star (next level-up cards are all Rare or better), a reroll, an XP magnet or Sparks. They never give upgrades, so every upgrade is still your pick on level-up.
 - Weapon combos: owning both weapons of a pair turns on a bonus (Whirlwind, Torch Club, Lightning Rod, Magma Rocks, Thunderstorm, Hunter's Pack)
 - Random events twice an age: Gold Rush, Eclipse, Meteor Shower, Treasure Thief
 - Quests on the main menu pay Sparks; a note on the results screen shows what's closest to done

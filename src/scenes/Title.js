@@ -18,7 +18,7 @@ export function todaysDaily() {
   const pool = (TWISTS || []).slice();
   const twists = [];
   while (twists.length < 2 && pool.length) twists.push(pool.splice(Math.floor(rnd() * pool.length), 1)[0].id);
-  const keys = Object.keys(WEAPONS);
+  const keys = Object.keys(WEAPONS).filter(k => !WEAPONS[k].signature);
   const weapon = twists.includes('random') ? keys[Math.floor(rnd() * keys.length)] : null;
   return { date, twists, weapon };
 }
@@ -284,6 +284,7 @@ export default class Title extends Phaser.Scene {
       return `Beat ${boss ? boss.name : 'a boss'}`;
     };
     const list = CHARACTERS.slice(0, 8);
+    const maxTier = Math.max(1, ...Object.values(WEAPONS).map(x => x.tier || 0));
     // Up to 3 per row (4 cards don't fit in one row, so they go 2 x 2)
     const cols = list.length === 4 ? 2 : Math.min(3, Math.max(1, list.length));
     const cw = 112, ch0 = 120, gap = 122;
@@ -301,7 +302,8 @@ export default class Title extends Phaser.Scene {
         g.lineStyle(3, sel ? 0xf0c060 : open ? COLORS.border : 0x4a3a30, 1).strokeRect(x - cw / 2, y - ch0 / 2, cw, ch0);
       });
       const w = WEAPONS[selected.weapon];
-      desc.setText(`${selected.name}, ${selected.title.toUpperCase()}\nStarts with: ${w ? w.name : '?'}\n${selected.hearts || 5} hearts`);
+      const own = w && w.signature === selected.key ? `Own weapon: ${w.name} (power ${w.tier}/${maxTier})` : `Starts with: ${w ? w.name : '?'}`;
+      desc.setText(`${selected.name}, ${selected.title.toUpperCase()}\n${own}\n${selected.hearts || 5} hearts`);
       perk.setText(selected.perk ? `+ ${selected.perk}` : '');
       drawback.setText(selected.drawback ? `- ${selected.drawback}` : '');
     };

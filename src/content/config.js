@@ -64,6 +64,12 @@ function addNewContent(cfg, d) {
       else for (const [f, v] of Object.entries(val)) if (have[f] === undefined) have[f] = v;
     }
   }
+  // Characters moved from a shared starting weapon to their own signature weapon
+  const OLD_START = { caveman: 'club', tamer: 'rocks', shaman: 'fire', knight: 'axes', centurion: 'spear', inventor: 'bolt' };
+  for (const c of cfg.characters) {
+    const nd = d.characters.find(x => x.key === c.key);
+    if (nd && OLD_START[c.key] && c.weapon === OLD_START[c.key]) c.weapon = nd.weapon;
+  }
   // Characters that were taken out of the game
   const REMOVED_CHARS = ['hunter'];
   cfg.characters = cfg.characters.filter(c => !REMOVED_CHARS.includes(c.key));

@@ -274,12 +274,12 @@ export const DEFAULT_CONFIG = {
 
   // Relics: unlocked on the menu with Sparks, then found in treasure chests (take it or leave it)
   relics: [
-    { id: 'monalisa', name: 'Mona Lisa', icon: 'monalisa', cost: 60, blurb: 'Every enemy stops to admire the masterpiece the first time it is hit (stunned for 1.5s).' },
-    { id: 'rosetta', name: 'Rosetta Stone', icon: 'rosetta', cost: 80, blurb: 'You understand everything: +50% XP.' },
-    { id: 'grail', name: 'Holy Grail', icon: 'grail', cost: 100, blurb: 'Heal 1 heart every 30 seconds.' },
-    { id: 'fleece', name: 'Golden Fleece', icon: 'fleece', cost: 100, blurb: 'Coins are worth double, but -1 max heart.' },
-    { id: 'pandora', name: "Pandora's Box", icon: 'pandora', cost: 150, blurb: 'Chaos! +50% enemies, but +50% XP and coins.' },
-    { id: 'ark', name: 'Ark of the Covenant', icon: 'ark', cost: 250, blurb: 'All your weapons and weapon slots are replaced by the Ark: piercing beams of holy light that do huge damage.' },
+    { id: 'monalisa', name: 'Mona Lisa', icon: 'monalisa', cost: 600, blurb: 'Every enemy stops to admire the masterpiece the first time it is hit (stunned for 1.5s).' },
+    { id: 'rosetta', name: 'Rosetta Stone', icon: 'rosetta', cost: 800, blurb: 'You understand everything: +50% XP.' },
+    { id: 'grail', name: 'Holy Grail', icon: 'grail', cost: 1000, blurb: 'Heal 1 heart every 30 seconds.' },
+    { id: 'fleece', name: 'Golden Fleece', icon: 'fleece', cost: 1000, blurb: 'Coins are worth double, but -1 max heart.' },
+    { id: 'pandora', name: "Pandora's Box", icon: 'pandora', cost: 1500, blurb: 'Chaos! +50% enemies, but +50% XP and coins.' },
+    { id: 'ark', name: 'Ark of the Covenant', icon: 'ark', cost: 2500, blurb: 'All your weapons and weapon slots are replaced by the Ark: piercing beams of holy light that do huge damage.' },
   ],
   relicChance: 0.5,  // chance a treasure chest holds a relic (when you have unlocked ones left to find)
 

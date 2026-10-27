@@ -1,7 +1,7 @@
 import Phaser from 'phaser';
 import { audio } from '../audio.js';
 import { save, persist } from '../save.js';
-import { AGES, ENEMIES, WEAPONS, PASSIVES, SHOP_ITEMS, RARE_ITEMS, META, CFG, RARITIES, wholeEffect, AGE_LENGTH, BAL, CHARACTERS, COMBOS, EVENTS, statsOf, xpForLevel, POOL_WEAPONS, baseWeapon } from '../data.js';
+import { AGES, ENEMIES, WEAPONS, PASSIVES, SHOP_ITEMS, RARE_ITEMS, META, CFG, RARITIES, wholeEffect, AGE_LENGTH, BAL, CHARACTERS, COMBOS, EVENTS, statsOf, xpForLevel, POOL_WEAPONS, baseWeapon, RELICS, RELIC_CHANCE } from '../data.js';
 import { W, H, FONT, buzz } from '../ui.js';
 import { stats, bump, best, allQuests, isDone, doneIds } from '../quests.js';
 import { submitScore, cloudBackup, onlineEnabled } from '../online.js';
@@ -124,6 +124,8 @@ export default class Game extends Phaser.Scene {
     this.event = null;         // random event going on (gold rush, eclipse...)
     this.hitSrc = null;        // weapon doing the hitting, for per-weapon quests
     this.runHits = {};
+    this.relics = new Set();   // relics taken this run
+    this.grailT = 30;
     this.lucky = 0;            // level-ups left whose cards are all Rare or better (chest Lucky Star)         // damage and kills per weapon this run, for the stats screen
     this.coinsEarned = 0;
     this.questsDone = doneIds();
@@ -223,6 +225,14 @@ export default class Game extends Phaser.Scene {
     this.separate();
     this.updateWeapons(dt);
     this.updatePet(dt);
+    if (this.relics.has('grail')) {
+      this.grailT -= dt;
+      if (this.grailT <= 0) {
+        this.grailT = 30;
+        const p = this.player;
+        if (p.hearts < p.maxHearts) { p.hearts = Math.min(p.maxHearts, p.hearts + 1); this.floatText(p.x, p.y - 30, '+1 HEART', '#ff8080'); audio.play('buy'); }
+      }
+    }
     this.updateBoss(dt);
     this.updateHazards(dt);
     this.checkContacts();
@@ -713,6 +723,8 @@ export default class Game extends Phaser.Scene {
       } else audio.play('clang');
     }
     this.logHit(Math.min(dmg, Math.max(0, e.hp)));
+    // Mona Lisa: the first hit stops each enemy to admire the painting
+    if (this.relics.has('monalisa') && !e.admired && !e.boss) { e.admired = true; e.slowT = 1.5; e.slowAmt = 1; }
     e.hp -= dmg;
     if (this.fireGem && !e.boss) { e.burnT = 3; e.burnDps = Math.max(e.burnDps, dmg * 0.4); }
     else if (this.fireGem) { e.burnT = 3; e.burnDps = Math.max(e.burnDps, dmg * 0.15); }
@@ -814,7 +826,7 @@ export default class Game extends Phaser.Scene {
   updateWeapons(dt) {
     for (const w of this.weapons) {
       const st = statsOf(w.key, w.level);
-      st.icon = WEAPONS[w.key].icon;
+      st.icon = WEAPONS[w.key].fx || WEAPONS[w.key].icon;
       // Rare+ level-ups add a bigger share of each stat's per-level step
       if (w.boost) for (const [k, s] of Object.entries(WEAPONS[w.key].stats || {})) if (s && s.per) st[k] += s.per * w.boost;
       if (w.dmgMul) st.dmg *= w.dmgMul;
@@ -2012,6 +2024,16 @@ export default class Game extends Phaser.Scene {
   openTreasure() {
     if (this.over) return;
     bump('chests');
+    // Sometimes the chest holds a relic you have unlocked: take it or leave it
+    const relics = RELICS.filter(r => save.relics[r.id] && !this.relics.has(r.id));
+    if (relics.length && Math.random() < RELIC_CHANCE) {
+      const relic = pick(relics);
+      this.frozen = true;
+      audio.play('chest');
+      buzz(40);
+      this.time.delayedCall(10, () => { this.scene.pause(); this.ui.showRelic(relic); });
+      return;
+    }
     // Chests never give upgrades (those are chosen on level-ups), only loot and help
     const roll = Math.random();
     const n = roll < 0.08 ? 5 : roll < 0.35 ? 3 : 1;
@@ -2044,6 +2066,36 @@ export default class Game extends Phaser.Scene {
     audio.play('chest');
     buzz(40);
     this.time.delayedCall(10, () => { this.scene.pause(); this.ui.showTreasure(rewards); });
+  }
+
+  takeRelic(id) {
+    const p = this.player;
+    this.relics.add(id);
+    bump('relics');
+    switch (id) {
+      case 'rosetta': this.mods.xp *= 1.5; break;
+      case 'fleece': this.mods.coin *= 2; this.bonusHearts--; this.recomputeStats(); break;
+      case 'pandora': this.mods.spawn *= 1.5; this.mods.xp *= 1.5; this.mods.coin *= 1.5; break;
+      case 'ark': {
+        // Every weapon and slot gives way to the Ark, at the best level you had
+        const best = Math.max(1, ...this.weapons.map(w => w.level));
+        for (const w of this.weapons) { w.sprites.forEach(sp => sp.destroy()); if (w.ring) w.ring.destroy(); }
+        this.weapons = [];
+        this.combos = new Set();
+        this.weaponSlots = 1;
+        const w = this.addWeapon('ark');
+        w.level = Math.min(best, this.weaponMax('ark'));
+        this.cameras.main.flash(400, 255, 240, 180);
+        break;
+      }
+    }
+    p.hearts = Math.min(p.hearts, p.maxHearts);
+  }
+
+  // Leaving a relic behind still pays a little
+  leaveRelic() {
+    const c = 40 * (this.ageIndex + 1);
+    this.coins += c; this.coinsEarned += c;
   }
 
   closeTreasure() {

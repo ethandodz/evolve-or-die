@@ -35,6 +35,7 @@ export function allQuests() {
     { id: 'level40', name: 'Evolved', blurb: 'Reach level 40 in one run', target: 40, reward: 30, value: () => st().bestLevel || 0 },
     { id: 'kills10k', name: 'Slayer', blurb: 'Defeat 10,000 enemies', target: 10000, reward: 60, value: () => st().kills },
     { id: 'comboall', name: 'Combo Master', blurb: `Discover all ${COMBOS.length} weapon combos`, target: Math.max(1, COMBOS.length), reward: 50, value: () => Object.keys(st().combos).length },
+    { id: 'relic1', name: 'Collector', blurb: 'Take a relic from a treasure chest', target: 1, reward: 20, value: () => st().relics || 0 },
     { id: 'loop', name: 'Time Loop', blurb: 'Loop back in time with the Magic Mirror', target: 1, reward: 50, value: () => st().loops || 0 },
   ];
   // One per age boss

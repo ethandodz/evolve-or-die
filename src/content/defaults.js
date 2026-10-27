@@ -4,7 +4,7 @@
 export const DEFAULT_CONFIG = {
   version: 1,
   // Bump when new built-in content is added, so saved editor edits get it too (see config.js)
-  contentVersion: 8,
+  contentVersion: 9,
 
   balance: {
     ageLength: 300,        // seconds until the time police arrive
@@ -140,6 +140,13 @@ export const DEFAULT_CONFIG = {
       stats: { cd: { base: 1.4, per: -0.09 }, dmg: { base: 60, per: 18 }, radius: { base: 32, per: 2 }, count: { base: 2, at: [3, 5, 7] }, chain: { base: 2, at: [5] }, range: { base: 300 } },
       levels: ['', '+18 damage, faster', '+1 bolt', '+18 damage, faster', '+1 bolt, +1 chain', '+18 damage, faster', '+1 bolt'],
     },
+    // Only from the Ark of the Covenant relic
+    ark: {
+      name: 'Ark of the Covenant', icon: 'ark', fx: 'lightray', behavior: 'thrust', kind: 'Melee', max: 7, signature: 'relic',
+      blurb: 'Beams of holy light that pierce everything in their path.',
+      stats: { cd: { base: 0.95, per: -0.05 }, dmg: { base: 70, per: 22 }, length: { base: 240, per: 15 }, count: { base: 3, at: [3, 5, 7] } },
+      levels: ['', '+22 damage, longer', '+1 beam', '+22 damage, faster', '+1 beam', '+22 damage, longer', '+1 beam'],
+    },
   },
 
   // effect: hearts | speed | count | damage | area | pickup. amount is per level.
@@ -264,6 +271,17 @@ export const DEFAULT_CONFIG = {
     { id: 'coins', name: 'Pouch', icon: 'coin', max: 3, base: 40, grow: 40, amount: 20, blurb: 'Start with +20 coins.' },
     { id: 'revive', name: 'Second Wind', icon: 'feather', max: 1, base: 300, grow: 0, amount: 1, blurb: 'Come back to life once per run.' },
   ],
+
+  // Relics: unlocked on the menu with Sparks, then found in treasure chests (take it or leave it)
+  relics: [
+    { id: 'monalisa', name: 'Mona Lisa', icon: 'monalisa', cost: 60, blurb: 'Every enemy stops to admire the masterpiece the first time it is hit (stunned for 1.5s).' },
+    { id: 'rosetta', name: 'Rosetta Stone', icon: 'rosetta', cost: 80, blurb: 'You understand everything: +50% XP.' },
+    { id: 'grail', name: 'Holy Grail', icon: 'grail', cost: 100, blurb: 'Heal 1 heart every 30 seconds.' },
+    { id: 'fleece', name: 'Golden Fleece', icon: 'fleece', cost: 100, blurb: 'Coins are worth double, but -1 max heart.' },
+    { id: 'pandora', name: "Pandora's Box", icon: 'pandora', cost: 150, blurb: 'Chaos! +50% enemies, but +50% XP and coins.' },
+    { id: 'ark', name: 'Ark of the Covenant', icon: 'ark', cost: 250, blurb: 'All your weapons and weapon slots are replaced by the Ark: piercing beams of holy light that do huge damage.' },
+  ],
+  relicChance: 0.5,  // chance a treasure chest holds a relic (when you have unlocked ones left to find)
 
   // Owning both weapons of a combo gives a bonus (weapons keep their type)
   combos: [

@@ -508,6 +508,14 @@ const ITEMS = {
   potion_purple: () => paint(12, 15, (s) => { s.rect(5, 1, 2, 4, CREAM); s.ell(6, 9, 5, 5, PURPLE); s.put(4, 7, '#ffffff'); s.put(7, 10, '#f0d040'); s.put(5, 11, '#7ad0f4'); }),
   rabbitfoot: () => paint(12, 16, (s) => { s.ell(6, 10, 4, 5, CREAM, 0.1); s.ell(4, 5, 1.6, 3, CREAM); s.ell(8, 5, 1.6, 3, CREAM); s.rect(3, 14, 6, 1, GOLD); s.put(6, 13, GOLD[1]); }),
   firegem: () => paint(12, 14, (s) => { for (let y = 1; y < 13; y++) { const w = y < 5 ? y : 13 - y; s.line(6 - w * 0.6, y, 6 + w * 0.6, y, FIRE[y < 4 ? 0 : y < 8 ? 1 : 2]); } s.put(5, 4, '#ffffff'); }),
+  // Relics
+  ark: () => paint(20, 16, (s) => { s.rect(3, 6, 14, 8, GOLD, 0.1); s.rect(3, 6, 14, 1, GOLD[3]); s.line(1, 13, 19, 13, WOOD[1]); s.ell(6, 4, 3, 2, GOLD); s.ell(14, 4, 3, 2, GOLD); s.line(4, 3, 1, 1, GOLD[0]); s.line(16, 3, 19, 1, GOLD[0]); s.put(10, 9, '#fffbe0'); s.put(9, 10, GOLD[3]); s.put(11, 10, GOLD[3]); }),
+  monalisa: () => paint(14, 18, (s) => { s.rect(0, 0, 14, 18, GOLD, 0.1); s.rect(2, 2, 10, 14, ['#6a7a4a', '#4a5a34', '#3a4426', '#262e18']); s.ell(7, 7, 2.6, 3.2, ['#e8c8a0', '#d0a878', '#b08858', '#806040']); s.ell(7, 6, 3.4, 3.6, ['#3a2416', '#2a1a10', '#1a100a', '#100804']); s.ell(7, 7.5, 2, 2.5, ['#e8c8a0', '#d0a878', '#b08858', '#806040']); s.ell(7, 14, 4, 3, ['#3a2416', '#2a1a10', '#1a100a', '#100804']); s.put(6, 9, '#804030'); s.put(7, 9, '#804030'); }),
+  rosetta: () => paint(14, 16, (s) => { s.ell(7, 8, 6.5, 7.5, DARKSTEEL, 0.15); for (let y = 3; y < 14; y += 2) s.line(3, y, 11 - (y % 4 ? 1 : 0), y, '#9a9aaa'); }),
+  grail: () => paint(14, 16, (s) => { s.ell(7, 4, 6, 3.5, GOLD, 0.1); s.ell(7, 2.5, 5, 1.2, ['#a8202a', '#86181e', '#5a1014', '#3a0a0c']); s.rect(6, 7, 2, 5, GOLD); s.ell(7, 13, 4, 1.8, GOLD); s.put(4, 4, '#fffbe0'); s.put(9, 5, '#7ae0ff'); }),
+  fleece: () => paint(18, 14, (s) => { for (let i = 0; i < 9; i++) s.ell(3 + (i % 5) * 3, 4 + Math.floor(i / 5) * 4 + (i % 2), 2.6, 2.4, GOLD); s.ell(9, 7, 7, 4, GOLD, 0.3); s.ell(16, 5, 2, 2, GOLD); s.put(16, 4, EYE); }),
+  pandora: () => paint(16, 16, (s) => { s.ell(8, 3, 6, 3, ['#d0a0f0', '#a674d8', '#7e4cb4', '#5a3088']); s.rect(2, 6, 12, 8, WOOD, 0.15); s.rect(1, 5, 14, 2, GOLD); s.rect(7, 8, 2, 3, GOLD); for (const [x, y] of [[3, 1], [12, 0], [8, 0]]) s.put(x, y, '#f0d0ff'); }),
+  lightray: () => paint(32, 8, (s) => { s.line(0, 3, 30, 3, '#fff4b0', 2); s.line(0, 3, 30, 3, '#ffffff'); s.ell(29, 3.5, 3, 3, GOLD); }),
   mirror: () => paint(14, 18, (s) => { s.ell(7, 7, 6, 7, GOLD); s.ell(7, 7, 4.2, 5.2, ['#e0fcff', '#a8e0f0', '#7ab0d0', '#4a80a8']); s.put(5, 4, '#ffffff'); s.put(6, 5, '#ffffff'); s.rect(6, 13, 3, 4, GOLD); }),
   crystal: () => paint(12, 16, (s) => { const C = ['#e0fcff', '#7ae0ff', '#3aa0e0', '#1a60a0']; for (let y = 0; y < 14; y++) { const w = y < 5 ? y : 14 - y; s.line(6 - w * 0.6, y, 6 + w * 0.6, y, C[y < 4 ? 0 : y < 8 ? 1 : 2]); } s.put(5, 4, '#ffffff'); }),
   feather: () => paint(14, 16, (s) => { for (let i = 0; i < 11; i++) s.ell(4 + i * 0.7, 13 - i * 1.1, 2.6 - Math.abs(i - 5) * 0.2, 1.5, FIRE, 0.1); s.line(2, 15, 11, 2, FIRE[3]); }),
@@ -589,7 +597,7 @@ export const SPRITE_GROUPS = {
   'Medieval enemies': ['peasant', 'footman', 'jester', 'blackknight', 'slime', 'slimelet', 'troll', 'dragon'],
   'Renaissance enemies': ['apprentice', 'duelist', 'halberdier', 'clockwork', 'gearling', 'cog', 'automaton', 'thief', 'mech'],
   Weapons: ['club', 'axe', 'spear', 'flame', 'rock', 'bolt', 'boneclub', 'amber', 'spiritflame', 'pilum', 'holyblade', 'tesla'],
-  Items: ['treasure', 'chest_open', 'scroll', 'trophy', 'combo', 'cogicon', 'heart_half', 'shieldicon', 'potion_purple', 'rabbitfoot', 'firegem', 'mirror', 'gem_s', 'gem_m', 'gem_l', 'coin', 'spark', 'meat', 'magnet', 'chest', 'potion', 'star', 'reroll', 'skull', 'lock', 'crystal', 'feather', 'idol'],
+  Items: ['treasure', 'chest_open', 'scroll', 'trophy', 'combo', 'cogicon', 'heart_half', 'shieldicon', 'potion_purple', 'rabbitfoot', 'firegem', 'mirror', 'gem_s', 'gem_m', 'gem_l', 'coin', 'spark', 'meat', 'magnet', 'chest', 'potion', 'star', 'reroll', 'skull', 'lock', 'crystal', 'feather', 'idol', 'ark', 'monalisa', 'rosetta', 'grail', 'fleece', 'pandora', 'lightray'],
   Icons: ['heart', 'heart_empty', 'sandal', 'totem', 'flint', 'tusk', 'lodestone'],
   Scenery: ['boulder', 'fern', 'bones', 'tree', 'campfire', 'handprint', 'deer', 'hunters', 'column', 'broken', 'urn', 'cypress', 'brazier', 'banner', 'haybale', 'shrub', 'torch', 'gravestone', 'easel', 'gearpile', 'statue', 'lantern'],
 };

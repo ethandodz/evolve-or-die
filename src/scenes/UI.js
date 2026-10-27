@@ -1,7 +1,7 @@
 import Phaser from 'phaser';
 import { audio } from '../audio.js';
 import { save } from '../save.js';
-import { WEAPONS, PASSIVES, AGES, RARITIES, CHARACTERS, COMBOS, ENEMIES, boostedBlurb } from '../data.js';
+import { WEAPONS, PASSIVES, AGES, RARITIES, CHARACTERS, COMBOS, ENEMIES, RELICS, boostedBlurb } from '../data.js';
 import { closestGoal } from '../quests.js';
 import { W, H, text, button, panel, settingsPanel, COLORS, fmtTime, FONT } from '../ui.js';
 import { controls } from '../controls.js';
@@ -52,6 +52,10 @@ export default class UI extends Phaser.Scene {
       const lv = this.add.text(x + 14, y + 14, '', { fontFamily: FONT, fontSize: '8px', color: '#ffffff', stroke: '#120c18', strokeThickness: 3 }).setOrigin(1, 1);
       this.slots.push({ bg, ic, lv });
     }
+
+    // Relics taken this run
+    this.relicIcons = this.add.container(0, 0);
+    this.relicCount = 0;
 
     // Summon boss button
     this.summon = button(this, W - 80, 160, 140, 44, 'SUMMON', () => this.g.summonBoss(), { size: 10, color: COLORS.red, hi: COLORS.redHi, icon: 'skull', iconScale: 2 });
@@ -174,6 +178,15 @@ export default class UI extends Phaser.Scene {
       if (i < 3 && g.weapons[i]) s.lv.setColor(g.weapons[i].legendary ? '#ffc040' : '#ffffff');
     }
 
+    if (g.relics && g.relics.size !== this.relicCount) {
+      this.relicCount = g.relics.size;
+      this.relicIcons.removeAll(true);
+      [...g.relics].forEach((id, i) => {
+        const r = RELICS.find(x => x.id === id);
+        if (r && this.textures.exists(r.icon)) this.relicIcons.add(fit(this.add.image(16 + i * 24, 148, r.icon, 0), 20));
+      });
+    }
+
     const canSummon = g.canSummon();
     this.summon.setVisible(canSummon);
     this.lootText.setVisible(canSummon);
@@ -265,6 +278,40 @@ export default class UI extends Phaser.Scene {
       this.tweens.add({ targets: a, y: 222, yoyo: true, repeat: -1, duration: 300 });
     }
     this.tweens.add({ targets: c, alpha: 1, duration: 250 });
+  }
+
+  // ------------------------------------------------------------------
+  // A relic in the chest: take it (it changes the run) or leave it for some coins
+  showRelic(relic) {
+    const c = this.openModal();
+    c.kind = 'treasure';
+    c.add(text(this, W / 2, 110, 'A RELIC!', 28, '#ffc040'));
+    const glow = this.add.image(W / 2, 260, 'glow').setScale(5).setAlpha(0).setBlendMode(Phaser.BlendModes.ADD).setTint(0xffd080);
+    c.add(glow);
+    const chest = this.add.image(W / 2, 260, 'treasure').setScale(6);
+    c.add(chest);
+    this.tweens.add({ targets: chest, angle: { from: -8, to: 8 }, yoyo: true, repeat: 5, duration: 70 });
+    this.time.delayedCall(450, () => {
+      chest.setTexture('chest_open');
+      this.cameras.main.flash(250, 255, 220, 140);
+      this.tweens.add({ targets: glow, alpha: 0.9, scale: 7, duration: 300 });
+      this.tweens.add({ targets: glow, angle: 360, duration: 4000, repeat: -1 });
+      this.tweens.add({ targets: chest, alpha: 0, duration: 250 });
+      const ic = fit(this.add.image(W / 2, 260, relic.icon, 0), 90);
+      const s0 = ic.scaleX;
+      ic.setScale(0.1);
+      this.tweens.add({ targets: ic, scale: s0, duration: 400, ease: 'Back.out' });
+      this.tweens.add({ targets: ic, y: 252, yoyo: true, repeat: -1, duration: 700, delay: 400 });
+      c.add(ic);
+      audio.play('gift');
+      c.add(text(this, W / 2, 360, relic.name.toUpperCase(), 16, '#ffffff'));
+      c.add(this.add.text(W / 2, 410, relic.blurb, { fontFamily: FONT, fontSize: '9px', color: '#e8d0b0', align: 'center', wordWrap: { width: 340 }, lineSpacing: 6 }).setOrigin(0.5, 0));
+      const coins = 40 * (this.g.ageIndex + 1);
+      c.add(text(this, W / 2, 520, `Leave it and take ${coins} coins instead.`, 7, '#a090b0'));
+      const done = () => { this.closeModal(); this.g.closeTreasure(); };
+      c.add(button(this, W / 2, 600, 260, 56, 'TAKE IT', () => { this.g.takeRelic(relic.id); audio.play('buy'); done(); }, { size: 16, color: COLORS.green, hi: COLORS.greenHi }));
+      c.add(button(this, W / 2, 672, 200, 46, 'LEAVE IT', () => { this.g.leaveRelic(); audio.play('coin'); done(); }, { size: 12 }));
+    });
   }
 
   // ------------------------------------------------------------------
@@ -380,7 +427,8 @@ export default class UI extends Phaser.Scene {
     const lines = g.weapons.map(w => `${WEAPONS[w.key].name} LV ${w.level}`)
       .concat(g.passiveOrder.map(k => `${PASSIVES[k].name} LV ${g.passives[k]}`));
     const combos = COMBOS.filter(cb => g.combos.has(cb.id)).map(cb => `COMBO: ${cb.name}`);
-    c.add(text(this, W / 2, H / 2 - 100, lines.concat(combos).join('\n') || '', 8, '#c0b0d0'));
+    const relics = RELICS.filter(r => g.relics.has(r.id)).map(r => `RELIC: ${r.name}`);
+    c.add(text(this, W / 2, H / 2 - 100, lines.concat(combos, relics).join('\n') || '', 8, '#c0b0d0'));
     c.add(button(this, W / 2, H / 2 + 20, 240, 50, 'RESUME', () => this.togglePause(), { color: COLORS.green, hi: COLORS.greenHi }));
     c.add(button(this, W / 2, H / 2 + 90, 240, 46, 'SETTINGS', () => {
       c.setVisible(false);

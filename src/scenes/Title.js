@@ -1,7 +1,7 @@
 import Phaser from 'phaser';
 import { audio } from '../audio.js';
 import { save, persist, resetProgress } from '../save.js';
-import { CHARACTERS, AGES, WEAPONS, ENEMIES, META, TWISTS } from '../data.js';
+import { CHARACTERS, AGES, WEAPONS, ENEMIES, META, TWISTS, RELICS } from '../data.js';
 import { W, H, text, button, panel, settingsPanel, COLORS, fmtTime, FONT } from '../ui.js';
 import { allQuests, progress, isDone, isClaimed, claimable, claim } from '../quests.js';
 import { onlineEnabled, topScores, playerName, cloudCode, cloudBackup, cloudRestore } from '../online.js';
@@ -58,8 +58,9 @@ export default class Title extends Phaser.Scene {
       button(this, W / 2 + 68, 536, 124, 48, 'EVOLVE', () => this.showUpgrades(), { size: 10, icon: 'spark', iconScale: 1.8 }),
       button(this, W / 2 - 68, 594, 124, 48, 'QUESTS', () => this.showQuests(), { size: 10, icon: 'scroll', iconScale: 1.6 }),
       button(this, W / 2 + 68, 594, 124, 48, 'SCORES', () => this.showScores(), { size: 10, icon: 'trophy', iconScale: 1.6 }),
-      button(this, W / 2 - 68, 650, 124, 40, 'SETTINGS', () => this.openSettings(), { size: 8 }),
-      button(this, W / 2 + 68, 650, 124, 40, 'EDITOR', () => { window.location.href = 'editor.html'; }, { size: 8, color: COLORS.purple, hi: COLORS.purpleHi }),
+      button(this, W / 2 - 68, 650, 124, 40, 'RELICS', () => this.showRelics(), { size: 8, icon: 'grail', iconScale: 1.4, color: COLORS.purple, hi: COLORS.purpleHi }),
+      button(this, W / 2 + 68, 650, 124, 40, 'SETTINGS', () => this.openSettings(), { size: 8 }),
+      button(this, 52, 26, 84, 30, 'EDITOR', () => { window.location.href = 'editor.html'; }, { size: 6, color: COLORS.grey, hi: COLORS.button }),
     ];
     // Red badge when quest rewards are waiting
     if (ready) {
@@ -349,6 +350,52 @@ export default class Title extends Phaser.Scene {
     persist();
     audio.stopMusic();
     this.scene.start('Game', { character, daily });
+  }
+
+  // Relics: unlock with Sparks, then find them in treasure chests during runs
+  showRelics() {
+    audio.unlock();
+    this.mainButtons.forEach(b => b.setVisible(false));
+    const c = this.add.container(0, 0).setDepth(500);
+    c.add(this.add.rectangle(W / 2, H / 2, W, H, 0x000000, 0.75).setInteractive());
+    c.add(panel(this, W / 2, H / 2, 420, 740));
+    c.add(text(this, W / 2, 62, 'RELICS', 22, '#e8c070'));
+    c.add(text(this, W / 2, 90, 'Unlock them here. Then they can turn up\nin treasure chests: take one to change your run.', 7, '#c0a080'));
+    c.add(this.add.image(W / 2 - 40, 126, 'spark').setScale(2));
+    const have = text(this, W / 2 - 22, 126, '', 12, '#ffe060', 0);
+    c.add(have);
+    const rows = this.add.container(0, 0);
+    c.add(rows);
+    const draw = () => {
+      rows.removeAll(true);
+      have.setText(String(save.sparks));
+      this.sparkText.setText(String(save.sparks));
+      RELICS.forEach((r, i) => {
+        const y = 182 + i * 82;
+        const owned = !!save.relics[r.id];
+        const g = this.add.graphics();
+        g.fillStyle(0x1e1009, 1).fillRect(W / 2 - 196, y - 37, 392, 76);
+        g.fillStyle(owned ? 0x3a2a40 : 0x3a2618, 1).fillRect(W / 2 - 194, y - 35, 388, 72);
+        rows.add(g);
+        if (this.textures.exists(r.icon)) rows.add(fit(this.add.image(W / 2 - 166, y, r.icon, 0), 42));
+        rows.add(text(this, W / 2 - 136, y - 22, r.name.toUpperCase(), 9, owned ? '#ffc040' : '#ffffff', 0));
+        rows.add(this.add.text(W / 2 - 136, y - 10, r.blurb, { fontFamily: FONT, fontSize: '7px', color: '#d0b890', wordWrap: { width: 200 }, lineSpacing: 3 }).setOrigin(0, 0));
+        const b = button(this, W / 2 + 145, y, 86, 40, owned ? 'UNLOCKED' : String(r.cost), () => {
+          if (owned) return;
+          if (save.sparks < r.cost) { audio.play('deny'); return; }
+          save.sparks -= r.cost;
+          save.relics[r.id] = true;
+          persist();
+          audio.play('buy');
+          draw();
+        }, { size: owned ? 7 : 10, icon: owned ? null : 'spark', iconScale: 1.4, color: owned ? COLORS.grey : COLORS.green, hi: owned ? COLORS.grey : COLORS.greenHi });
+        if (!owned && save.sparks < r.cost) b.setAlpha(0.55);
+        if (owned) b.setDisabled(true);
+        rows.add(b);
+      });
+    };
+    draw();
+    c.add(button(this, W / 2, 742, 160, 36, 'BACK', () => { c.destroy(); this.mainButtons.forEach(b => b.setVisible(true)); }, { size: 12 }));
   }
 
   // Permanent upgrades bought with Sparks

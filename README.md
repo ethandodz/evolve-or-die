@@ -6,7 +6,7 @@ A survivors-like roguelike where you fight through the ages of history. Move to 
 
 ## Contents
 
-- 5 characters, each with a perk and a drawback: Grug the caveman, plus Roka, Ora and Edric (unlocked by beating bosses) and Marcus the Centurion (1500 total kills)
+- 4 characters, each with a perk and a drawback: Grug the caveman, plus Ora and Edric (unlocked by beating bosses) and Marcus the Centurion (1500 total kills)
 - 3 ages: Stone Age (boss: T-Rex), Roman Empire (boss: Hydra) and Middle Ages (boss: Dragon)
 - 6 weapons: Club, Orbiting Axes, Spear, Fire Ring, Rock Fall, Sky Bolt
 - 6 passives: Mammoth Heart, Swift Sandals, Tribal Totem, Sharp Flint, Giant Tusk, Lodestone

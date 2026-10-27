@@ -64,6 +64,9 @@ function addNewContent(cfg, d) {
       else for (const [f, v] of Object.entries(val)) if (have[f] === undefined) have[f] = v;
     }
   }
+  // Characters that were taken out of the game
+  const REMOVED_CHARS = ['hunter'];
+  cfg.characters = cfg.characters.filter(c => !REMOVED_CHARS.includes(c.key));
   // Old default that the faster start replaced
   if (cfg.balance.spawnBase === 1.1) cfg.balance.spawnBase = d.balance.spawnBase;
   cfg.contentVersion = d.contentVersion;

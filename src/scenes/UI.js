@@ -1,7 +1,7 @@
 import Phaser from 'phaser';
 import { audio } from '../audio.js';
 import { save } from '../save.js';
-import { WEAPONS, PASSIVES, AGES } from '../data.js';
+import { WEAPONS, PASSIVES, AGES, RARITIES } from '../data.js';
 import { W, H, text, button, panel, settingsPanel, COLORS, fmtTime, FONT } from '../ui.js';
 import { controls } from '../controls.js';
 
@@ -134,7 +134,7 @@ export default class UI extends Phaser.Scene {
     }
     this.hearts.forEach((h, i) => {
       h.setVisible(i < p.maxHearts);
-      h.setTexture(i < p.hearts ? 'heart' : 'heart_empty');
+      h.setTexture(i + 1 <= p.hearts ? 'heart' : i < p.hearts ? 'heart_half' : 'heart_empty');
     });
 
     const left = g.ageLen - g.ageTime;
@@ -156,9 +156,12 @@ export default class UI extends Phaser.Scene {
       let icon = null, lvl = 0;
       if (i < 3) { const w = g.weapons[i]; if (w) { icon = WEAPONS[w.key].icon; lvl = w.level; } }
       else { const k = g.passiveOrder[i - 3]; if (k) { icon = PASSIVES[k].icon; lvl = g.passives[k]; } }
-      s.ic.setVisible(!!icon);
-      if (icon) fit(s.ic.setTexture(icon, 0), 24);
+      const locked = i < 3 && i >= g.weaponSlots;
+      s.ic.setVisible(!!icon || locked);
+      if (icon) fit(s.ic.setTexture(icon, 0), 24).setAlpha(1);
+      else if (locked) fit(s.ic.setTexture('lock', 0), 18).setAlpha(0.6);
       s.lv.setText(icon ? String(lvl) : '');
+      if (i < 3 && g.weapons[i]) s.lv.setColor(g.weapons[i].legendary ? '#ffc040' : '#ffffff');
     }
 
     const canSummon = g.canSummon();
@@ -171,10 +174,14 @@ export default class UI extends Phaser.Scene {
       this.lootText.setColor(m >= 2 ? '#f2c84b' : m > 1 ? '#e8c070' : '#a090b0');
     }
 
-    const b = g.boss;
+    // Boss bar, or the mini-boss's when no boss is out
+    const b = g.boss || (g.mini && g.mini.alive ? g.mini : null);
     this.bossBox.setVisible(!!b);
     if (b) {
-      this.bossName.setText(g.age.bossName);
+      this.bossName.setText(b.boss ? g.age.bossName : `GIANT ${b.def.name.toUpperCase()}`);
+      this.bossFill.setFillStyle(b.boss ? 0xd83c3c : 0xf08a32);
+      // Below the Summon button while that is still showing
+      this.bossBox.y = b.boss ? 196 : 228;
       this.bossFill.width = 360 * Math.max(0, b.hp / b.maxHp);
     }
   }
@@ -270,12 +277,15 @@ export default class UI extends Phaser.Scene {
     if (ch.type === 'weapon') {
       const d = WEAPONS[ch.key];
       name = d.name; icon = d.icon;
-      desc = ch.isNew ? `${d.kind}. ${d.blurb}` : d.levels[ch.level - 1];
+      desc = ch.isNew ? `${d.kind}. ${d.blurb}` : (d.levels[ch.level - 1] || 'More damage, faster');
       tag = ch.isNew ? 'NEW WEAPON' : `LV ${ch.level}`; tagColor = ch.isNew ? '#f2c84b' : '#7ad0f4';
+      if (ch.isNew && ch.level > 1) tag = `NEW, LV ${ch.level}`;
+      if (ch.legendary) desc = `${desc}\nLEGENDARY: +30% damage, +1 attack`;
     } else if (ch.type === 'passive') {
       const d = PASSIVES[ch.key];
       name = d.name; icon = d.icon; desc = d.blurb;
       tag = ch.isNew ? 'NEW PASSIVE' : `LV ${ch.level}`; tagColor = ch.isNew ? '#c08aff' : '#7ad0f4';
+      if (ch.isNew && ch.level > 1) tag = `NEW, LV ${ch.level}`;
     } else if (ch.type === 'heal') {
       name = 'Roast Meat'; icon = 'meat'; desc = 'Heal all hearts.'; tag = ''; tagColor = '#fff';
     } else {
@@ -284,11 +294,14 @@ export default class UI extends Phaser.Scene {
     const card = this.add.container(0, 0);
     const w = 390, h = 112;
     const bg = this.add.graphics();
+    const rar = RARITIES[ch.rarity || 0];
+    const fancy = (ch.rarity || 0) > 0;
     const draw = (hi) => {
       bg.clear();
       bg.fillStyle(0x0c0810, 1).fillRect(x - w / 2 - 3, y - h / 2 - 3, w + 6, h + 9);
       bg.fillStyle(hi ? 0x4a3460 : 0x2e2240, 1).fillRect(x - w / 2, y - h / 2, w, h);
-      bg.lineStyle(3, ch.type === 'passive' ? 0x7a48b0 : 0xe8c070, 1).strokeRect(x - w / 2, y - h / 2, w, h);
+      if (fancy) bg.fillStyle(rar.color, hi ? 0.22 : 0.14).fillRect(x - w / 2, y - h / 2, w, h);
+      bg.lineStyle(fancy ? 4 : 3, fancy ? rar.color : ch.type === 'passive' ? 0x7a48b0 : 0xe8c070, 1).strokeRect(x - w / 2, y - h / 2, w, h);
     };
     draw(false);
     card.add(bg);
@@ -296,6 +309,12 @@ export default class UI extends Phaser.Scene {
     card.add(fit(this.add.image(x - w / 2 + 50, y, icon, 0), 60));
     card.add(text(this, x - w / 2 + 100, y - 30, name.toUpperCase(), 12, '#ffffff', 0));
     if (tag) card.add(text(this, x + w / 2 - 12, y - 30, tag, 8, tagColor, 1));
+    if (fancy) {
+      const label = `${rar.name}${ch.gain > 1 ? ` +${ch.gain} LV` : ''}`;
+      const rt = text(this, x + w / 2 - 12, y + h / 2 - 12, label, 8, rar.text, 1);
+      card.add(rt);
+      if (ch.rarity >= 2) this.tweens.add({ targets: rt, alpha: 0.4, yoyo: true, repeat: -1, duration: 400 });
+    }
     const dt = this.add.text(x - w / 2 + 100, y + 8, desc, {
       fontFamily: FONT, fontSize: '8px', color: '#d0c0e0', wordWrap: { width: 270 }, lineSpacing: 6,
     }).setOrigin(0, 0.5);

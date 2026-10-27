@@ -25,6 +25,8 @@ function fillMissing(cfg) {
   for (const k of Object.keys(d)) if (cfg[k] === undefined) cfg[k] = d[k];
   if (!Array.isArray(cfg.requests)) cfg.requests = [];
   cfg.balance = { ...d.balance, ...cfg.balance };
+  // Not editable in the editor, so they always come from the game itself
+  for (const k of ['meta', 'rareShop', 'twists', 'mirror', 'miniAttacks']) cfg[k] = d[k];
   if (seen < d.contentVersion) addNewContent(cfg, d);
   return cfg;
 }
@@ -38,6 +40,23 @@ function addNewContent(cfg, d) {
       else for (const [f, v] of Object.entries(val)) if (cfg[k][key][f] === undefined) cfg[k][key][f] = v;
     }
   }
+  // Boss patterns that were never edited move to the new, more unique ones
+  const OLD_ATTACKS = {
+    stone: ['charge', 'rocks', 'stomp', 'charge'], roman: ['lunge', 'pools', 'lunge', 'summon'],
+    medieval: ['breath', 'meteors', 'charge', 'breath', 'summon'],
+  };
+  for (const a of cfg.ages) {
+    const nd = d.ages.find(x => x.key === a.key);
+    if (nd && OLD_ATTACKS[a.key] && JSON.stringify(a.bossAttacks) === JSON.stringify(OLD_ATTACKS[a.key])) a.bossAttacks = nd.bossAttacks;
+  }
+  // Character stats that changed with perks, if they were never edited
+  const OLD_CHARS = { hunter: { speed: 1.12 }, shaman: { hearts: 4 }, knight: { hearts: 6, speed: 0.92 } };
+  for (const c of cfg.characters) {
+    const nd = d.characters.find(x => x.key === c.key);
+    for (const [f, v] of Object.entries(OLD_CHARS[c.key] || {})) if (nd && c[f] === v) c[f] = nd[f];
+  }
+  // New wizard shop items
+  for (const it of d.shop) if (!cfg.shop.find(x => x.id === it.id)) cfg.shop.push(it);
   for (const k of ['ages', 'characters']) {
     for (const val of d[k]) {
       const have = cfg[k].find(x => x.key === val.key);

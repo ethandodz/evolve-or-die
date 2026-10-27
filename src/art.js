@@ -406,6 +406,17 @@ const ITEMS = {
     s.line(6.5, 0, 6.5, 12, S[1]); s.line(0, 6.5, 12, 6.5, S[1]);
     s.ell(6.5, 6.5, 3.2, 3.2, S); s.put(6, 5, '#ffffff'); s.put(2, 2, S[2]); s.put(11, 11, S[2]); s.put(11, 2, S[2]); s.put(2, 11, S[2]);
   }),
+  heart_half: () => paint(13, 12, (s) => {
+    const D = ['#5a3a30', '#4a2e26', '#3a221c', '#2a1812'];
+    s.ell(3.5, 3.5, 3, 3, RED); s.ell(8.5, 3.5, 3, 3, D); s.ell(6, 6, 5, 4, D); s.line(9, 7, 6, 10, D[2]);
+    for (let y = 2; y < 11; y++) for (let x = 1; x <= 6; x++) if ((x - 6) ** 2 / 25 + (y - 6) ** 2 / 16 <= 1 || (x - 3.5) ** 2 + (y - 3.5) ** 2 <= 9) s.put(x, y, y < 5 ? RED[0] : RED[1]);
+    s.put(3, 2, '#ffffff');
+  }),
+  shieldicon: () => paint(10, 12, (s) => { const B = ['#e0f0ff', '#a8c8f0', '#6a8ac8', '#3a5a9a']; s.rect(1, 1, 8, 5, B); s.ell(5, 6, 4, 4.5, B); s.put(5, 3, '#ffffff'); }),
+  potion_purple: () => paint(12, 15, (s) => { s.rect(5, 1, 2, 4, CREAM); s.ell(6, 9, 5, 5, PURPLE); s.put(4, 7, '#ffffff'); s.put(7, 10, '#f0d040'); s.put(5, 11, '#7ad0f4'); }),
+  rabbitfoot: () => paint(12, 16, (s) => { s.ell(6, 10, 4, 5, CREAM, 0.1); s.ell(4, 5, 1.6, 3, CREAM); s.ell(8, 5, 1.6, 3, CREAM); s.rect(3, 14, 6, 1, GOLD); s.put(6, 13, GOLD[1]); }),
+  firegem: () => paint(12, 14, (s) => { for (let y = 1; y < 13; y++) { const w = y < 5 ? y : 13 - y; s.line(6 - w * 0.6, y, 6 + w * 0.6, y, FIRE[y < 4 ? 0 : y < 8 ? 1 : 2]); } s.put(5, 4, '#ffffff'); }),
+  mirror: () => paint(14, 18, (s) => { s.ell(7, 7, 6, 7, GOLD); s.ell(7, 7, 4.2, 5.2, ['#e0fcff', '#a8e0f0', '#7ab0d0', '#4a80a8']); s.put(5, 4, '#ffffff'); s.put(6, 5, '#ffffff'); s.rect(6, 13, 3, 4, GOLD); }),
   crystal: () => paint(12, 16, (s) => { const C = ['#e0fcff', '#7ae0ff', '#3aa0e0', '#1a60a0']; for (let y = 0; y < 14; y++) { const w = y < 5 ? y : 14 - y; s.line(6 - w * 0.6, y, 6 + w * 0.6, y, C[y < 4 ? 0 : y < 8 ? 1 : 2]); } s.put(5, 4, '#ffffff'); }),
   feather: () => paint(14, 16, (s) => { for (let i = 0; i < 11; i++) s.ell(4 + i * 0.7, 13 - i * 1.1, 2.6 - Math.abs(i - 5) * 0.2, 1.5, FIRE, 0.1); s.line(2, 15, 11, 2, FIRE[3]); }),
   idol: () => paint(12, 16, (s) => { s.ell(6, 4, 4, 4, GOLD); s.rect(3, 7, 6, 7, GOLD); s.rect(2, 13, 8, 2, GOLD); s.put(4, 4, EYE); s.put(7, 4, EYE); s.put(5, 10, GOLD[3]); s.put(6, 10, GOLD[3]); }),
@@ -479,7 +490,7 @@ export const SPRITE_GROUPS = {
   'Roman enemies': ['legionary', 'spearman', 'gladiator', 'centurion', 'testudo', 'chariot', 'hydra', 'timecop'],
   'Medieval enemies': ['peasant', 'footman', 'jester', 'blackknight', 'slime', 'slimelet', 'troll', 'dragon'],
   Weapons: ['club', 'axe', 'spear', 'flame', 'rock', 'bolt'],
-  Items: ['gem_s', 'gem_m', 'gem_l', 'coin', 'spark', 'meat', 'magnet', 'chest', 'potion', 'star', 'reroll', 'skull', 'lock', 'crystal', 'feather', 'idol'],
+  Items: ['heart_half', 'shieldicon', 'potion_purple', 'rabbitfoot', 'firegem', 'mirror', 'gem_s', 'gem_m', 'gem_l', 'coin', 'spark', 'meat', 'magnet', 'chest', 'potion', 'star', 'reroll', 'skull', 'lock', 'crystal', 'feather', 'idol'],
   Icons: ['heart', 'heart_empty', 'sandal', 'totem', 'flint', 'tusk', 'lodestone'],
   Scenery: ['boulder', 'fern', 'bones', 'tree', 'campfire', 'handprint', 'deer', 'hunters', 'column', 'broken', 'urn', 'cypress', 'brazier', 'banner', 'haybale', 'shrub', 'torch', 'gravestone'],
 };

@@ -3,7 +3,7 @@
 import '@fontsource/press-start-2p';
 import './editor.css';
 import { loadConfig, saveConfig, resetConfig, baseConfig, weaponStats, takeUpdateNotice, getBackup } from '../content/config.js';
-import { BEHAVIORS, PASSIVE_EFFECTS, BOSS_ATTACKS, MUSIC, GROUNDS, ENEMY_AI } from '../content/defaults.js';
+import { BEHAVIORS, PASSIVE_EFFECTS, BOSS_ATTACKS, BOSS_STYLES, MUSIC, GROUNDS, ENEMY_AI } from '../content/defaults.js';
 import { buildDefaultSprites, getSprite, spriteToCanvas, SPRITE_GROUPS, CHARS } from '../art.js';
 import { PixelEditor } from './pixel.js';
 
@@ -205,7 +205,18 @@ function renderCharacters(main) {
       sel(cur, 'weapon', 'Starting weapon', Object.entries(cfg.weapons).map(([k, w]) => [k, w.name])),
       num(cur, 'hearts', 'Hearts', 'Starting max hearts'),
       num(cur, 'speed', 'Speed multiplier', '1 = normal, 1.2 = 20% faster'),
-      sel(cur, 'unlock', 'How to unlock', [['start', 'Unlocked from the start'], ...bosses]),
+      sel(cur, 'unlock', 'How to unlock', [['start', 'Unlocked from the start'], ...bosses, ['kills:500', 'Defeat 500 enemies'], ['kills:1500', 'Defeat 1500 enemies'], ['kills:5000', 'Defeat 5000 enemies']]),
+    ),
+    h('h3', {}, 'PERK AND DRAWBACK'),
+    h('div', { class: 'grid' },
+      txt(cur, 'perk', 'Perk (shown on select screen)'),
+      txt(cur, 'drawback', 'Drawback (shown on select screen)'),
+      num(cur, 'dmgMul', 'Damage multiplier', '1.3 = +30%'),
+      num(cur, 'weaponSlots', 'Weapon slots', 'Normally 3'),
+      num(cur, 'damageTaken', 'Damage taken per hit', '1 = a heart, 0.5 = half a heart'),
+      num(cur, 'critMul', 'Crit chance multiplier', '2 = crits twice as often'),
+      num(cur, 'xpMul', 'XP multiplier'), num(cur, 'areaMul', 'Area multiplier'),
+      num(cur, 'bonusCount', 'Extra attacks', '+N attacks for every weapon'),
     ),
   ));
 }
@@ -438,9 +449,10 @@ function renderAges(main) {
     h('div', { class: 'grid' },
       sel(a, 'boss', 'Boss', bossOpts.length ? bossOpts : [['', 'Mark an enemy as Boss first']]),
       txt(a, 'bossName', 'Boss name on screen', null, { upper: true }),
+      sel(a, 'bossStyle', 'Boss fight style', BOSS_STYLES.map(x => [x, { '': 'Basic (walks at you)', hunter: 'Hunter (chases, faster when hurt)', rooted: 'Rooted (burrows, angrier at half health)', flyer: 'Flyer (cannot be hit while flying)' }[x]])),
     ),
     field('Attack pattern (repeats in order). Click a step to remove it.', orderedList(a.bossAttacks, BOSS_ATTACKS, () => changed())),
-    h('div', { class: 'note', style: 'margin-top:6px' }, 'charge = dash at you, stomp = shockwave ring, rocks = falling rocks, lunge = 3 bite lines, pools = poison puddles, summon = calls 10 enemies, breath = wide fire cone, meteors = burning rocks.'),
+    h('div', { class: 'note', style: 'margin-top:6px' }, 'charge = dash at you, stomp = shockwave ring, rocks = falling rocks, lunge = 3 bite lines, pools = poison puddles, summon = calls 10 enemies, breath = wide fire cone, meteors = burning rocks, charge3 = three charges in a row, roar = slows you and calls the pack, ring = poison ring around you, fly = takes off and dives at you, sweep = sweeping fire breath.'),
     h('h3', {}, 'SCENERY'),
     field('Things scattered on the ground (campfires and braziers light up boss fights)', multiChips(a.decor, scenery.map(k => [k, k]), () => changed(), true)),
   ));
@@ -450,7 +462,7 @@ function renderShop(main) {
   const S = cfg.shop;
   let i = Math.min(state.sel.shop || 0, S.length - 1);
   state.sel.shop = i;
-  const effects = [['potion', 'Heal 2 hearts'], ['heartmax', '+1 max heart, full heal'], ['upgrade', 'Level up a random weapon'], ['weapon', 'Random new weapon'], ['power', '+15% damage for the run'], ['reroll', '+2 rerolls']];
+  const effects = [['potion', 'Heal 2 hearts'], ['heartmax', '+1 max heart, full heal'], ['upgrade', 'Level up a random weapon'], ['weapon', 'Random new weapon'], ['power', '+15% damage for the run'], ['reroll', '+2 rerolls'], ['confusion', 'Swap every weapon for a random one'], ['rabbit', '+30% speed, -1 max heart']];
   main.append(listPanel(S.map((it, j) => ({ key: j, label: `${it.name} (${it.cost})`, sprite: it.icon })), i, (j) => { state.sel.shop = j; render(); }, [
     h('button', { class: 'btn small', onclick: () => { S.push({ id: 'potion', name: 'New Item', icon: 'potion', cost: 30, blurb: '' }); state.sel.shop = S.length - 1; changed(true); } }, '+ New'),
     S.length > 1 ? h('button', { class: 'btn small danger', onclick: () => { S.splice(i, 1); state.sel.shop = 0; changed(true); } }, 'Delete') : null,

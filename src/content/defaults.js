@@ -4,7 +4,7 @@
 export const DEFAULT_CONFIG = {
   version: 1,
   // Bump when new built-in content is added, so saved editor edits get it too (see config.js)
-  contentVersion: 2,
+  contentVersion: 3,
 
   balance: {
     ageLength: 300,        // seconds until the time police arrive
@@ -29,6 +29,12 @@ export const DEFAULT_CONFIG = {
     eliteChance: 0.04,     // chance a normal enemy spawns as a glowing elite (after 45s)
     specialChance: 0.08,   // chance of an age's special enemies (after 45s)
     hitStop: 1,            // tiny freeze on big hits (0 = off)
+    maxLevelPerAge: 1,     // weapons and passives can level this much higher in each later age
+    sparkTimeEvery: 60,    // +1 Spark per this many seconds survived
+    sparkCoinsEvery: 25,   // +1 Spark per this many coins left over
+    sparkBoss: 4,          // Sparks from a boss (plus 3 per age, times the early-summon bonus)
+    rarityChances: [0.7, 0.2, 0.08, 0.02], // common, rare, epic, legendary level-up cards
+    loopHp: 2.5,           // extra enemy health for each Magic Mirror loop
     miniBossHp: 6,
     stampedeSize: 26,
     bossDarkness: 0.75,    // how dark boss fights get (0 = off)
@@ -36,11 +42,20 @@ export const DEFAULT_CONFIG = {
     passiveSlots: 3,
   },
 
+  // Each character has a perk and a drawback. Optional stats: dmgMul, critMul, xpMul,
+  // areaMul, damageTaken (0.5 = half a heart per hit), weaponSlots, bonusCount.
+  // unlock: 'start', a boss key, or 'kills:N' (total enemies defeated over all runs).
   characters: [
-    { key: 'caveman', name: 'GRUG', title: 'The Caveman', sprite: 'caveman', weapon: 'club', hearts: 5, speed: 1, unlock: 'start' },
-    { key: 'hunter', name: 'ROKA', title: 'The Hunter', sprite: 'hunter', weapon: 'spear', hearts: 4, speed: 1.12, unlock: 'trex' },
-    { key: 'shaman', name: 'ORA', title: 'The Shaman', sprite: 'shaman', weapon: 'fire', hearts: 4, speed: 1, unlock: 'hydra' },
-    { key: 'knight', name: 'EDRIC', title: 'The Knight', sprite: 'knight', weapon: 'axes', hearts: 6, speed: 0.92, unlock: 'dragon' },
+    { key: 'caveman', name: 'GRUG', title: 'The Caveman', sprite: 'caveman', weapon: 'club', hearts: 5, speed: 1, unlock: 'start',
+      dmgMul: 1.3, weaponSlots: 2, perk: '+30% damage', drawback: 'Only 2 weapon slots' },
+    { key: 'hunter', name: 'ROKA', title: 'The Hunter', sprite: 'hunter', weapon: 'spear', hearts: 4, speed: 1.15, unlock: 'trex',
+      critMul: 3, perk: 'Fast, crits 3x as often', drawback: 'Only 4 hearts' },
+    { key: 'shaman', name: 'ORA', title: 'The Shaman', sprite: 'shaman', weapon: 'fire', hearts: 3, speed: 1, unlock: 'hydra',
+      xpMul: 1.3, areaMul: 1.25, perk: '+30% XP, +25% area', drawback: 'Only 3 hearts' },
+    { key: 'knight', name: 'EDRIC', title: 'The Knight', sprite: 'knight', weapon: 'axes', hearts: 5, speed: 0.85, unlock: 'dragon',
+      damageTaken: 0.5, perk: 'Hits only take half a heart', drawback: '15% slower' },
+    { key: 'centurion', name: 'MARCUS', title: 'The Centurion', sprite: 'centurion', weapon: 'spear', hearts: 5, speed: 0.95, unlock: 'kills:1500',
+      bonusCount: 1, dmgMul: 0.85, perk: '+1 attack for every weapon', drawback: '-15% damage' },
   ],
 
   // stats: each value is base + per * (level - 1) + one for every level in "at" that is reached
@@ -124,13 +139,16 @@ export const DEFAULT_CONFIG = {
     dragon:     { name: 'Dragon', sprite: 'dragon', hp: 26000, speed: 40, r: 36, xp: 0, scale: 2.2, color: '#d84a2a', boss: true, heavy: true },
   },
 
+  // Mini-bosses (the giant elite at the halfway mark) use these moves: stomp, charge, summon, throw
+  miniAttacks: ['stomp', 'charge', 'throw', 'summon'],
+
   ages: [
     {
       key: 'stone', name: 'STONE AGE', ground: 'cave', bg: '#b88c58',
       decor: ['boulder', 'fern', 'bones', 'fern', 'boulder', 'tree', 'campfire'],
       paintings: true,
       basic: ['rival', 'raptor', 'wolf'], medium: 'sabertooth', elite: 'mammoth', specials: ['golem'],
-      stampede: 'wolf', stampedeName: 'STAMPEDE!', boss: 'trex', bossName: 'T-REX', bossAttacks: ['charge', 'rocks', 'stomp', 'charge'],
+      stampede: 'wolf', stampedeName: 'STAMPEDE!', boss: 'trex', bossName: 'T-REX', bossAttacks: ['charge3', 'stomp', 'rocks', 'charge3', 'roar'], bossStyle: 'hunter',
       music: 'stone', bossMusic: 'stoneBoss', hpMul: 1, xpMul: 1,
     },
     {
@@ -138,7 +156,7 @@ export const DEFAULT_CONFIG = {
       decor: ['column', 'urn', 'broken', 'cypress', 'brazier', 'broken'],
       paintings: false,
       basic: ['legionary', 'gladiator', 'spearman'], medium: 'centurion', elite: 'chariot', specials: ['testudo'],
-      stampede: 'chariot', stampedeName: 'CHARIOT RACE!', boss: 'hydra', bossName: 'HYDRA', bossAttacks: ['lunge', 'pools', 'lunge', 'summon'],
+      stampede: 'chariot', stampedeName: 'CHARIOT RACE!', boss: 'hydra', bossName: 'HYDRA', bossAttacks: ['lunge', 'ring', 'pools', 'lunge', 'summon'], bossStyle: 'rooted',
       music: 'roman', bossMusic: 'romanBoss', hpMul: 2.4, xpMul: 2,
     },
     {
@@ -146,7 +164,7 @@ export const DEFAULT_CONFIG = {
       decor: ['banner', 'haybale', 'shrub', 'torch', 'gravestone', 'shrub'],
       paintings: false,
       basic: ['peasant', 'footman', 'jester'], medium: 'blackknight', elite: 'troll', specials: ['slime'],
-      stampede: 'peasant', stampedeName: 'PEASANT MOB!', boss: 'dragon', bossName: 'DRAGON', bossAttacks: ['breath', 'meteors', 'charge', 'breath', 'summon'],
+      stampede: 'peasant', stampedeName: 'PEASANT MOB!', boss: 'dragon', bossName: 'DRAGON', bossAttacks: ['fly', 'breath', 'meteors', 'fly', 'sweep'], bossStyle: 'flyer',
       music: 'medieval', bossMusic: 'medievalBoss', hpMul: 4.5, xpMul: 3.2,
     },
   ],
@@ -158,6 +176,8 @@ export const DEFAULT_CONFIG = {
     { id: 'weapon', name: 'New Weapon', icon: 'club', cost: 50, blurb: 'Get a random new weapon.' },
     { id: 'power', name: 'Power Brew', icon: 'potion', cost: 40, blurb: '+15% damage for this run.' },
     { id: 'reroll', name: 'Lucky Bones', icon: 'reroll', cost: 25, blurb: '+2 rerolls.' },
+    { id: 'confusion', name: 'Confusion Potion', icon: 'potion_purple', cost: 30, blurb: 'Swap every weapon for a random one. Keeps levels.' },
+    { id: 'rabbit', name: "Rabbit's Foot", icon: 'rabbitfoot', cost: 40, blurb: '+30% move speed, -1 max heart.' },
   ],
   shopRerollCost: 10,       // goes up by this much each time
 
@@ -166,19 +186,22 @@ export const DEFAULT_CONFIG = {
     { id: 'crystal', name: 'Time Crystal', icon: 'crystal', cost: 90, blurb: 'Every weapon gains a level.' },
     { id: 'phoenix', name: 'Phoenix Feather', icon: 'feather', cost: 80, blurb: 'Come back to life once this run.' },
     { id: 'idol', name: 'Golden Idol', icon: 'idol', cost: 85, blurb: '+1 attack for every weapon.' },
-    { id: 'sparkjar', name: 'Jar of Sparks', icon: 'spark', cost: 60, blurb: '+25 Sparks to keep forever.' },
+    { id: 'sparkjar', name: 'Jar of Sparks', icon: 'spark', cost: 70, blurb: '+10 Sparks to keep forever.' },
+    { id: 'firegem', name: 'Fire Gem', icon: 'firegem', cost: 90, blurb: 'Every hit sets enemies on fire.' },
   ],
+  // Sold by the wizard after the last age's boss: loops the run back to the first age
+  mirror: { id: 'mirror', name: 'Magic Mirror', icon: 'mirror', cost: 120, blurb: 'Loop back to the first age. Keep all your gear.' },
 
   // Permanent upgrades bought with Sparks on the main menu. cost = base + grow * level owned
   meta: [
-    { id: 'hearts', name: 'Thick Skin', icon: 'heart', max: 3, base: 40, grow: 40, amount: 1, blurb: '+1 starting heart.' },
-    { id: 'damage', name: 'Strong Arm', icon: 'flint', max: 5, base: 20, grow: 20, amount: 0.06, blurb: '+6% damage.' },
-    { id: 'speed', name: 'Quick Feet', icon: 'sandal', max: 5, base: 20, grow: 15, amount: 0.04, blurb: '+4% move speed.' },
-    { id: 'xp', name: 'Wisdom', icon: 'gem_m', max: 5, base: 25, grow: 20, amount: 0.08, blurb: '+8% XP.' },
-    { id: 'pickup', name: 'Long Reach', icon: 'lodestone', max: 3, base: 15, grow: 15, amount: 0.15, blurb: '+15% pickup range.' },
-    { id: 'rerolls', name: 'Lucky Charm', icon: 'reroll', max: 3, base: 30, grow: 30, amount: 1, blurb: '+1 reroll each run.' },
-    { id: 'coins', name: 'Pouch', icon: 'coin', max: 3, base: 20, grow: 20, amount: 20, blurb: 'Start with +20 coins.' },
-    { id: 'revive', name: 'Second Wind', icon: 'feather', max: 1, base: 150, grow: 0, amount: 1, blurb: 'Come back to life once per run.' },
+    { id: 'hearts', name: 'Thick Skin', icon: 'heart', max: 3, base: 80, grow: 80, amount: 1, blurb: '+1 starting heart.' },
+    { id: 'damage', name: 'Strong Arm', icon: 'flint', max: 5, base: 40, grow: 40, amount: 0.06, blurb: '+6% damage.' },
+    { id: 'speed', name: 'Quick Feet', icon: 'sandal', max: 5, base: 40, grow: 30, amount: 0.04, blurb: '+4% move speed.' },
+    { id: 'xp', name: 'Wisdom', icon: 'gem_m', max: 5, base: 50, grow: 40, amount: 0.08, blurb: '+8% XP.' },
+    { id: 'pickup', name: 'Long Reach', icon: 'lodestone', max: 3, base: 30, grow: 30, amount: 0.15, blurb: '+15% pickup range.' },
+    { id: 'rerolls', name: 'Lucky Charm', icon: 'reroll', max: 3, base: 60, grow: 60, amount: 1, blurb: '+1 reroll each run.' },
+    { id: 'coins', name: 'Pouch', icon: 'coin', max: 3, base: 40, grow: 40, amount: 20, blurb: 'Start with +20 coins.' },
+    { id: 'revive', name: 'Second Wind', icon: 'feather', max: 1, base: 300, grow: 0, amount: 1, blurb: 'Come back to life once per run.' },
   ],
 
   // Daily challenge twists. Two are picked each day.
@@ -207,7 +230,8 @@ export const BEHAVIORS = {
 };
 
 export const PASSIVE_EFFECTS = ['hearts', 'speed', 'count', 'damage', 'area', 'pickup'];
-export const BOSS_ATTACKS = ['charge', 'stomp', 'rocks', 'lunge', 'pools', 'summon', 'breath', 'meteors'];
+export const BOSS_ATTACKS = ['charge', 'charge3', 'stomp', 'rocks', 'roar', 'lunge', 'ring', 'pools', 'summon', 'breath', 'meteors', 'fly', 'sweep'];
+export const BOSS_STYLES = ['', 'hunter', 'rooted', 'flyer'];
 export const MUSIC = ['stone', 'stoneBoss', 'roman', 'romanBoss', 'medieval', 'medievalBoss', 'police', 'title'];
 export const GROUNDS = ['cave', 'mosaic', 'tapestry'];
 export const ENEMY_AI = ['', 'charge', 'shield', 'split', 'zigzag'];

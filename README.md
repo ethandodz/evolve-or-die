@@ -6,8 +6,8 @@ A survivors-like roguelike where you fight through the ages of history. Move to 
 
 ## Contents
 
-- 4 characters, each with a perk and a drawback: Grug the caveman, plus Ora and Edric (unlocked by beating bosses) and Marcus the Centurion (1500 total kills)
-- 3 ages: Stone Age (boss: T-Rex), Roman Empire (boss: Hydra) and Middle Ages (boss: Dragon)
+- 5 characters, each with a perk and a drawback: Grug the caveman, plus Taka the Dino Tamer (a pet raptor fights with you), Ora and Edric (unlocked by beating bosses) and Marcus the Centurion (1500 total kills)
+- 4 ages: Stone Age (boss: T-Rex), Roman Empire (boss: Hydra), Middle Ages (boss: Dragon) and Renaissance (boss: Steam Mech, which overheats and takes double damage)
 - 6 weapons: Club, Orbiting Axes, Spear, Fire Ring, Rock Fall, Sky Bolt
 - 6 passives: Mammoth Heart, Swift Sandals, Tribal Totem, Sharp Flint, Giant Tusk, Lodestone
 - 3 weapon slots, 3 passive slots, 3 choices per level, 3 rerolls per run
@@ -24,6 +24,12 @@ A survivors-like roguelike where you fight through the ages of history. Move to 
 - Weapons and passives can level higher in each later age
 - After the last boss, the wizard sells a Magic Mirror that loops the run back to the first age with tougher enemies
 - Daily challenge: two twists a day, the same for everyone, +10 Sparks for the first run
+- Treasure chests (from mini-bosses, bosses, some elites and the treasure thief) spin out 1, 3 or 5 free upgrades
+- Weapon combos: owning both weapons of a pair turns on a bonus (Whirlwind, Torch Club, Lightning Rod, Magma Rocks, Thunderstorm, Hunter's Pack)
+- Random events twice an age: Gold Rush, Eclipse, Meteor Shower, Treasure Thief
+- Quests on the main menu pay Sparks; a note on the results screen shows what's closest to done
+- First-run tips, and settings for vibration and screen shake
+- Scores: your best runs on this device, plus an online top 10 and cloud saves once Supabase is set up (see supabase/README.md)
 
 ## Controls
 

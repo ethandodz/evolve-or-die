@@ -26,7 +26,7 @@ function fillMissing(cfg) {
   if (!Array.isArray(cfg.requests)) cfg.requests = [];
   cfg.balance = { ...d.balance, ...cfg.balance };
   // Not editable in the editor, so they always come from the game itself
-  for (const k of ['meta', 'rareShop', 'twists', 'mirror', 'miniAttacks']) cfg[k] = d[k];
+  for (const k of ['meta', 'rareShop', 'twists', 'mirror', 'miniAttacks', 'combos', 'events']) cfg[k] = d[k];
   if (seen < d.contentVersion) addNewContent(cfg, d);
   return cfg;
 }

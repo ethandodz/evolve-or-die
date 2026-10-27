@@ -68,20 +68,21 @@ export function button(scene, x, y, w, h, label, onClick, opt = {}) {
   return c;
 }
 
-// Settings: volume and damage numbers. Returns a container; onClose removes it.
-export function settingsPanel(scene, onClose) {
+// Settings: volume, damage numbers, vibration, screen shake and cloud save.
+// Returns a container; onClose removes it.
+export function settingsPanel(scene, onClose, opt = {}) {
   const c = scene.add.container(0, 0).setDepth(1000);
   const shade = scene.add.rectangle(W / 2, H / 2, W, H, 0x000000, 0.6).setInteractive();
   c.add(shade);
-  c.add(panel(scene, W / 2, H / 2, 360, 380));
-  c.add(text(scene, W / 2, H / 2 - 150, 'SETTINGS', 20, '#e8c070'));
+  c.add(panel(scene, W / 2, H / 2, 380, 600));
+  c.add(text(scene, W / 2, H / 2 - 250, 'SETTINGS', 20, '#e8c070'));
   const s = save.settings;
   const rows = [
     { label: 'MUSIC', key: 'music' },
     { label: 'SOUND', key: 'sfx' },
   ];
   rows.forEach((r, i) => {
-    const y = H / 2 - 80 + i * 70;
+    const y = H / 2 - 180 + i * 64;
     c.add(text(scene, W / 2 - 150, y, r.label, 12, '#ffffff', 0));
     const val = text(scene, W / 2 + 70, y, `${Math.round(s[r.key] * 100)}%`, 12);
     const set = (d) => {
@@ -94,16 +95,33 @@ export function settingsPanel(scene, onClose) {
     c.add(button(scene, W / 2 + 10, y, 40, 36, '-', () => set(-0.1)));
     c.add(button(scene, W / 2 + 130, y, 40, 36, '+', () => set(0.1)));
   });
-  const y3 = H / 2 + 60;
-  c.add(text(scene, W / 2 - 150, y3, 'DAMAGE\nNUMBERS', 12, '#ffffff', 0));
-  const dn = button(scene, W / 2 + 70, y3, 120, 40, s.damageNumbers ? 'ON' : 'OFF', () => {
-    s.damageNumbers = !s.damageNumbers;
-    dn.label.setText(s.damageNumbers ? 'ON' : 'OFF');
-    persist();
+  const toggles = [
+    { label: 'DAMAGE\nNUMBERS', key: 'damageNumbers' },
+    { label: 'VIBRATION', key: 'vibration' },
+    { label: 'SCREEN\nSHAKE', key: 'shake' },
+  ];
+  toggles.forEach((r, i) => {
+    const y = H / 2 - 50 + i * 60;
+    c.add(text(scene, W / 2 - 160, y, r.label, 10, '#ffffff', 0));
+    const on = () => s[r.key] !== false;
+    const b = button(scene, W / 2 + 90, y, 110, 40, on() ? 'ON' : 'OFF', () => {
+      s[r.key] = !on();
+      b.label.setText(on() ? 'ON' : 'OFF');
+      if (r.key === 'vibration' && on()) buzz(40);
+      persist();
+    });
+    c.add(b);
   });
-  c.add(dn);
-  c.add(button(scene, W / 2, H / 2 + 140, 200, 48, 'BACK', () => { c.destroy(); onClose && onClose(); }, { color: COLORS.green, hi: COLORS.greenHi }));
+  if (opt.onCloud) {
+    c.add(button(scene, W / 2, H / 2 + 140, 240, 44, 'CLOUD SAVE', () => { c.destroy(); opt.onCloud(); }, { size: 10, color: COLORS.purple, hi: COLORS.purpleHi }));
+  }
+  c.add(button(scene, W / 2, H / 2 + 230, 200, 48, 'BACK', () => { c.destroy(); onClose && onClose(); }, { color: COLORS.green, hi: COLORS.greenHi }));
   return c;
+}
+
+// Phone vibration, when the player has it on
+export function buzz(ms) {
+  try { if (save.settings.vibration !== false && navigator.vibrate) navigator.vibrate(ms); } catch { /* not supported */ }
 }
 
 export function fmtTime(sec) {

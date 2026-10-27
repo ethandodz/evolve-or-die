@@ -4,11 +4,11 @@ The game works offline. Online scores and cloud saves switch on once it knows yo
 
 1. Make a free account at https://supabase.com and create a new project (any name, pick a region near you).
 2. In the project, open **SQL Editor**, paste everything from `setup.sql`, and press **Run**.
-3. Open **Project Settings > API** and copy the **Project URL** and the **anon public** key.
+3. Copy the **Project URL** (Project Settings > Data API) and the **publishable** key (Project Settings > API Keys, starts with `sb_publishable_`). An older **anon public** key works too.
 4. Put them in `src/content/online.json`:
 
    ```json
-   { "url": "https://YOUR-PROJECT.supabase.co", "key": "YOUR-ANON-KEY" }
+   { "url": "https://YOUR-PROJECT.supabase.co", "key": "YOUR-PUBLISHABLE-KEY" }
    ```
 
    The anon key is meant to be public. The tables are locked and the game can only call the four functions in `setup.sql`.

@@ -11,7 +11,8 @@ async function rpc(fn, body) {
   if (!onlineEnabled) throw new Error('offline');
   const res = await fetch(`${URL}/rest/v1/rpc/${fn}`, {
     method: 'POST',
-    headers: { apikey: KEY, Authorization: `Bearer ${KEY}`, 'Content-Type': 'application/json' },
+    // New-style publishable keys (sb_publishable_...) go in apikey only; older anon keys are JWTs and go in both
+    headers: { apikey: KEY, ...(KEY.startsWith('sb_') ? {} : { Authorization: `Bearer ${KEY}` }), 'Content-Type': 'application/json' },
     body: JSON.stringify(body),
   });
   if (!res.ok) throw new Error(`${fn} failed: ${res.status}`);

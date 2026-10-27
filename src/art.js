@@ -144,6 +144,7 @@ function human(o, f) {
     if (o.hair) { s.ell(10.5, 5 + oy, 7, 4, o.hair, 0.2); s.ell(5.5, 9 + oy, 2.5, 4, o.hair, 0.2); }
     if (o.beard) s.ell(12.5, 12 + oy, 4, 2.4, o.beard, 0.2);
     if (o.band) s.rect(6, 5 + oy, 12, 1, o.band);
+    if (o.goggles) { s.rect(6, 5 + oy, 12, 1, LEATHER); s.ell(11.5, 5 + oy, 1.6, 1.5, o.goggles); s.ell(15, 5 + oy, 1.6, 1.5, o.goggles); s.put(11, 4 + oy, '#c8f0ff'); s.put(15, 4 + oy, '#c8f0ff'); }
     if (o.feathers) { s.line(8, 2 + oy, 6, -3 + oy, '#e8e0d0'); s.line(11, 1 + oy, 11, -4 + oy, '#d84a2a'); s.line(14, 2 + oy, 16, -3 + oy, '#e8e0d0'); }
     if (o.helmet) {
       s.ell(11.5, 6 + oy, 6, 4.5, o.helmet);
@@ -188,6 +189,7 @@ const CHAR_LOOKS = {
   duelist: { skin: SKIN, hair: BLACKH, body: NAVY, cape: RED, belt: '#f0c060', sword: true, legs: NAVY, boots: LEATHER },
   halberdier: { skin: SKIN, helmet: STEEL, body: RED, halves: GOLD, belt: '#3a2a20', spear: true, legs: GOLD, boots: LEATHER },
   thief: { skin: SKIN2, hood: PURPLE, body: SACK, belt: '#f0c060', legs: LEATHER, boots: LEATHER },
+  inventor: { skin: SKIN, hair: HAIR, goggles: BRASS, body: CREAM, arms: CREAM, tabard: LEATHER, belt: '#d8a848', staff: BRASS, legs: LEATHER, boots: LEATHER },
   timecop: { skin: SKIN, cap: NAVY, body: BLUE, badge: true, belt: '#1a1a2a', legs: NAVY, boots: ['#2a2a2a', '#1a1a1a', '#101010', '#080808'] },
 };
 
@@ -574,7 +576,7 @@ export function buildDefaultSprites() {
 }
 
 export const SPRITE_GROUPS = {
-  Characters: ['caveman', 'tamer', 'shaman', 'knight', 'centurion', 'wizard'],
+  Characters: ['caveman', 'tamer', 'shaman', 'knight', 'centurion', 'inventor', 'wizard'],
   'Stone Age enemies': ['rival', 'wolf', 'raptor', 'sabertooth', 'golem', 'pebble', 'mammoth', 'trex'],
   'Roman enemies': ['legionary', 'spearman', 'gladiator', 'centurion', 'testudo', 'chariot', 'hydra', 'timecop'],
   'Medieval enemies': ['peasant', 'footman', 'jester', 'blackknight', 'slime', 'slimelet', 'troll', 'dragon'],

@@ -804,6 +804,7 @@ export default class Game extends Phaser.Scene {
       // Rare+ level-ups add a bigger share of each stat's per-level step
       if (w.boost) for (const [k, s] of Object.entries(WEAPONS[w.key].stats || {})) if (s && s.per) st[k] += s.per * w.boost;
       if (w.dmgMul) st.dmg *= w.dmgMul;
+      if (st.cd && this.charDef.cdMul) st.cd *= this.charDef.cdMul;
       if (w.bonusCount && st.count !== undefined) st.count += w.bonusCount;
       if (this.combos.has('pack') && (w.key === 'spear' || w.key === 'axes') && st.count !== undefined) st.count += 1;
       this.hitSrc = w.key;

@@ -198,7 +198,7 @@ export default class Title extends Phaser.Scene {
         g.fillStyle(i % 2 ? 0x3a2618 : 0x2e1e12, 1).fillRect(W / 2 - 190, y - 20, 380, 40);
         rows.add(g);
         rows.add(text(this, W / 2 - 178, y, `${i + 1}`, 10, i === 0 ? '#ffe060' : '#ffffff', 0));
-        rows.add(text(this, W / 2 - 144, y - 8, String(r.name || r.character || '').toUpperCase(), 8, '#ffffff', 0));
+        rows.add(text(this, W / 2 - 144, y - 8, String(r.name || r.hero || '').toUpperCase(), 8, '#ffffff', 0));
         rows.add(text(this, W / 2 - 144, y + 9, `${r.age}  ${r.kills} kills`, 6, '#c0a080', 0));
         rows.add(text(this, W / 2 + 178, y, fmtTime(r.time_s ?? r.time), 10, '#9ae07a', 1));
       });

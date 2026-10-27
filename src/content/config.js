@@ -75,6 +75,7 @@ function addNewContent(cfg, d) {
   cfg.characters = cfg.characters.filter(c => !REMOVED_CHARS.includes(c.key));
   // Old default that the faster start replaced
   if (cfg.balance.spawnBase === 1.1) cfg.balance.spawnBase = d.balance.spawnBase;
+  if (cfg.balance.treasureChance === 0.15) cfg.balance.treasureChance = d.balance.treasureChance;
   cfg.contentVersion = d.contentVersion;
 }
 

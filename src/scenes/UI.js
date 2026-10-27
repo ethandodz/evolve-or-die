@@ -279,7 +279,15 @@ export default class UI extends Phaser.Scene {
     const chest = this.add.image(W / 2, 250, 'treasure').setScale(6);
     c.add(chest);
     this.tweens.add({ targets: chest, angle: { from: -8, to: 8 }, yoyo: true, repeat: 5, duration: 70 });
-    const icons = [...Object.values(WEAPONS).map(w => w.icon), ...Object.values(PASSIVES).map(p2 => p2.icon)];
+    const LOOT = {
+      coins: (r) => ['coin', `+${r.amount} COINS`, 'Spend them at the wizard'],
+      heal: () => ['meat', 'FULL HEAL', 'All hearts back'],
+      lucky: () => ['star', 'LUCKY STAR', 'Next level-up: all cards Rare or better'],
+      reroll: () => ['reroll', '+1 REROLL', 'For level-up cards'],
+      magnet: () => ['magnet', 'XP MAGNET', 'Pulls in every XP gem'],
+      sparks: (r) => ['spark', `+${r.amount} SPARKS`, 'Kept between runs'],
+    };
+    const icons = ['coin', 'meat', 'star', 'reroll', 'magnet', 'spark'];
     const reels = [];
     const n = rewards.length;
     const startY = n > 3 ? 360 : 400;
@@ -305,17 +313,15 @@ export default class UI extends Phaser.Scene {
     };
     const land = (rl) => {
       const r = rl.r;
-      const rar = RARITIES[r.rarity || 0];
-      let icon = 'coin', name = '+30 COINS', what = '';
-      if (r.type === 'weapon') { icon = WEAPONS[r.key].icon; name = WEAPONS[r.key].name.toUpperCase(); what = r.isNew ? 'NEW WEAPON' : `LEVEL ${r.level}`; }
-      if (r.type === 'passive') { icon = PASSIVES[r.key].icon; name = PASSIVES[r.key].name.toUpperCase(); what = r.isNew ? 'NEW PASSIVE' : `LEVEL ${r.level}`; }
+      const [icon, name, what] = (LOOT[r.type] || LOOT.coins)(r);
+      const special = r.type === 'lucky' || r.type === 'sparks';
       fit(rl.ic.setTexture(icon, 0), 44);
       rl.label.setText(name);
-      rl.sub.setText(r.type === 'coins' ? 'Nothing left to upgrade' : `${what}${(r.rarity || 0) > 0 ? `  ${rar.name}` : ''}`).setColor((r.rarity || 0) > 0 ? rar.text : '#d0c0e0');
-      drawBox(rl, (r.rarity || 0) > 0 ? rar.color : 0xe8c070);
+      rl.sub.setText(what).setColor(special ? '#ffc040' : '#d0c0e0');
+      drawBox(rl, special ? 0xffa020 : 0xe8c070);
       rl.ic.setScale(rl.ic.scaleX * 1.6);
       this.tweens.add({ targets: rl.ic, scale: rl.ic.scaleX / 1.6, duration: 250, ease: 'Back.out' });
-      audio.play((r.rarity || 0) >= 2 ? 'gift' : 'select');
+      audio.play(special ? 'gift' : 'select');
     };
     // Open the lid
     this.time.delayedCall(450, () => {

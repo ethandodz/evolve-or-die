@@ -123,7 +123,8 @@ export default class Game extends Phaser.Scene {
     this.combos = new Set();   // weapon combos that are active
     this.event = null;         // random event going on (gold rush, eclipse...)
     this.hitSrc = null;        // weapon doing the hitting, for per-weapon quests
-    this.runHits = {};         // damage and kills per weapon this run, for the stats screen
+    this.runHits = {};
+    this.lucky = 0;            // level-ups left whose cards are all Rare or better (chest Lucky Star)         // damage and kills per weapon this run, for the stats screen
     this.coinsEarned = 0;
     this.questsDone = doneIds();
     this.questT = 1;
@@ -774,7 +775,7 @@ export default class Game extends Phaser.Scene {
     const r = Math.random();
     const coin = this.mods.coin;
     const coinChance = BAL.coinChance * (this.event && this.event.id === 'gold' ? 5 : 1);
-    if (e.mini) { this.dropPickup('treasure', e.x, e.y); this.dropPickup('chest', e.x + 24, e.y); this.dropPickup('spark', e.x + 16, e.y + 16, 2); }
+    if (e.mini) { this.dropPickup('chest', e.x + 24, e.y); this.dropPickup('spark', e.x + 16, e.y + 16, 2); }
     else if (e.def.heavy || e.elite) {
       for (let i = 0; i < 4; i++) this.dropPickup('coin', e.x + rand(-14, 14), e.y + rand(-14, 14), coin);
       if (Math.random() < (e.def.heavy ? 0.35 : 0.25)) this.dropPickup('spark', e.x, e.y - 8, 1);
@@ -1338,20 +1339,23 @@ export default class Game extends Phaser.Scene {
 
   makeChoices() {
     const pool = shuffle(this.upgradePool());
-    const out = pool.slice(0, 3).map(c => this.rollRarity(c));
+    const lucky = this.lucky > 0;
+    if (lucky) this.lucky--;
+    const out = pool.slice(0, 3).map(c => this.rollRarity(c, lucky));
     if (!out.length) return [{ type: 'heal' }, { type: 'coins' }];
     return out;
   }
 
   // Cards can come up Rare, Epic or Legendary for a bigger stat boost (still one level)
-  rollRarity(c) {
+  rollRarity(c, lucky = false) {
     const ch = BAL.rarityChances || [1, 0, 0, 0];
     let r = Math.random(), ri = 0;
     for (let i = ch.length - 1; i > 0; i--) {
       const above = ch.slice(i).reduce((a, b) => a + b, 0);
       if (r < above) { ri = i; break; }
     }
-    if (c.type === 'passive' && wholeEffect(PASSIVES[c.key].effect) && ri < 3) ri = 0;
+    if (lucky && ri < 1) ri = 1;
+    if (c.type === 'passive' && wholeEffect(PASSIVES[c.key].effect) && ri < 3) ri = lucky ? 3 : 0;
     c.rarity = ri;
     c.mult = RARITIES[ri].mult;
     c.level = c.cur + 1;
@@ -2008,21 +2012,34 @@ export default class Game extends Phaser.Scene {
   openTreasure() {
     if (this.over) return;
     bump('chests');
+    // Chests never give upgrades (those are chosen on level-ups), only loot and help
     const roll = Math.random();
-    const n = roll < 0.1 ? 5 : roll < 0.4 ? 3 : 1;
+    const n = roll < 0.08 ? 5 : roll < 0.35 ? 3 : 1;
+    const p = this.player;
+    const coins = 40 * (this.ageIndex + 1);
+    const table = [
+      { type: 'coins', w: 4, amount: coins },
+      { type: 'heal', w: p.hearts < p.maxHearts ? 3 : 0 },
+      { type: 'lucky', w: 2 },
+      { type: 'reroll', w: 2 },
+      { type: 'magnet', w: 1.5 },
+      { type: 'sparks', w: 1, amount: 2 },
+    ];
     const rewards = [];
     for (let i = 0; i < n; i++) {
-      const pool = this.upgradePool();
-      if (pool.length) {
-        const c = this.rollRarity(pick(pool));
-        this.applyUpgrade(c);
-        rewards.push(c);
-      } else {
-        this.coins += 30; this.coinsEarned += 30;
-        rewards.push({ type: 'coins' });
+      const opts = table.filter(t => t.w > 0 && (t.type === 'coins' || !rewards.some(r => r.type === t.type)));
+      let x = Math.random() * opts.reduce((s, t) => s + t.w, 0);
+      const t = opts.find(o => (x -= o.w) <= 0) || opts[0];
+      rewards.push({ ...t });
+      switch (t.type) {
+        case 'coins': this.coins += t.amount; this.coinsEarned += t.amount; break;
+        case 'heal': p.hearts = p.maxHearts; break;
+        case 'lucky': this.lucky += 1; break;
+        case 'reroll': this.rerolls += 1; break;
+        case 'magnet': for (const o of this.pickups) if (o.kind === 'gem') { o.fly = true; o.v = 200; } break;
+        case 'sparks': this.sparks += t.amount; break;
       }
     }
-    this.recomputeStats();
     this.frozen = true;
     audio.play('chest');
     buzz(40);

@@ -23,7 +23,7 @@ export function allQuests() {
     { id: 'kills1k', name: 'Hunter', blurb: 'Defeat 1,000 enemies', target: 1000, reward: 20, value: () => st().kills },
     { id: 'level20', name: 'Growing Strong', blurb: 'Reach level 20 in one run', target: 20, reward: 15, value: () => st().bestLevel || 0 },
     { id: 'legend', name: 'Legendary!', blurb: 'Get a Legendary card', target: 1, reward: 15, value: () => st().legendary || 0 },
-    { id: 'chests10', name: 'Treasure Hunter', blurb: 'Open 10 treasure chests', target: 10, reward: 20, value: () => st().chests || 0 },
+    { id: 'chests10', name: 'Treasure Hunter', blurb: 'Open 5 treasure chests', target: 5, reward: 20, value: () => st().chests || 0 },
     { id: 'combo3', name: 'Combo Maker', blurb: 'Discover 3 weapon combos', target: 3, reward: 25, value: () => Object.keys(st().combos).length },
     { id: 'thief3', name: 'Thief Catcher', blurb: 'Catch 3 treasure thieves', target: 3, reward: 25, value: () => st().thieves || 0 },
     { id: 'coins400', name: 'Deep Pockets', blurb: 'Collect 400 coins in one run', target: 400, reward: 20, value: () => st().bestCoins || 0 },

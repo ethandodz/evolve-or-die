@@ -8,6 +8,7 @@ const DEFAULTS = {
   bestTime: 0,
   totalKills: 0,
   seenHint: false,
+  seenShield: false,
   sparks: 0,          // carry-over currency, spent on permanent upgrades
   upgrades: {},       // meta upgrade id -> level
   daily: { date: '', best: 0, bestKills: 0, played: false },

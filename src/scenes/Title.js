@@ -99,49 +99,62 @@ export default class Title extends Phaser.Scene {
     this.mainButtons.forEach(b => b.setVisible(false));
     const c = this.add.container(0, 0).setDepth(500);
     c.add(this.add.rectangle(W / 2, H / 2, W, H, 0x000000, 0.7).setInteractive());
-    c.add(panel(this, W / 2, H / 2, 410, 560));
-    c.add(text(this, W / 2, H / 2 - 245, 'CHOOSE YOUR\nCHARACTER', 16, '#e8c070'));
+    c.add(panel(this, W / 2, H / 2, 410, 600));
+    c.add(text(this, W / 2, H / 2 - 262, 'CHOOSE YOUR\nCHARACTER', 16, '#e8c070'));
     const beatenBosses = new Set(AGES.filter(a => save.bossesBeaten[a.key]).map(a => a.boss));
-    const isOpen = (ch) => !ch.unlock || ch.unlock === 'start' || beatenBosses.has(ch.unlock) || this.unlockAll;
+    // unlock: 'start', a boss key, or 'kills:N' (enemies defeated over all runs)
+    const killsNeeded = (ch) => (String(ch.unlock || '').startsWith('kills:') ? parseInt(ch.unlock.slice(6), 10) || 0 : 0);
+    const isOpen = (ch) => !ch.unlock || ch.unlock === 'start' || beatenBosses.has(ch.unlock)
+      || (killsNeeded(ch) && save.totalKills >= killsNeeded(ch)) || this.unlockAll;
+    const lockText = (ch) => {
+      const k = killsNeeded(ch);
+      if (k) return `${Math.min(save.totalKills, k)}/${k} kills`;
+      const boss = ENEMIES[ch.unlock];
+      return `Beat ${boss ? boss.name : 'a boss'}`;
+    };
     const list = CHARACTERS.slice(0, 8);
-    const cols = Math.min(4, list.length);
-    const cw = 94, gap = 98;
+    const cols = list.length > 4 ? 3 : Math.max(1, list.length);
+    const cw = 112, ch0 = 120, gap = 122;
     let selected = list.find(isOpen) || list[0];
-    const desc = text(this, W / 2, H / 2 + 112, '', 8, '#e8d0b0');
-    c.add(desc);
+    const desc = text(this, W / 2, H / 2 + 92, '', 8, '#e8d0b0');
+    const perk = text(this, W / 2, H / 2 + 140, '', 8, '#9ae07a');
+    const drawback = text(this, W / 2, H / 2 + 160, '', 8, '#ff9a8a');
+    c.add([desc, perk, drawback]);
     const cards = [];
     const refresh = () => {
       cards.forEach(({ ch, g, x, y }) => {
         const open = isOpen(ch), sel = ch === selected;
         g.clear();
-        g.fillStyle(open ? (sel ? 0x5a3a22 : 0x3a2618) : 0x2a1c14, 1).fillRect(x - cw / 2, y - 76, cw, 150);
-        g.lineStyle(3, sel ? 0xf0c060 : open ? COLORS.border : 0x4a3a30, 1).strokeRect(x - cw / 2, y - 76, cw, 150);
+        g.fillStyle(open ? (sel ? 0x5a3a22 : 0x3a2618) : 0x2a1c14, 1).fillRect(x - cw / 2, y - ch0 / 2, cw, ch0);
+        g.lineStyle(3, sel ? 0xf0c060 : open ? COLORS.border : 0x4a3a30, 1).strokeRect(x - cw / 2, y - ch0 / 2, cw, ch0);
       });
       const w = WEAPONS[selected.weapon];
       desc.setText(`${selected.name}, ${selected.title.toUpperCase()}\nStarts with: ${w ? w.name : '?'}\n${selected.hearts || 5} hearts`);
+      perk.setText(selected.perk ? `+ ${selected.perk}` : '');
+      drawback.setText(selected.drawback ? `- ${selected.drawback}` : '');
     };
     list.forEach((ch, i) => {
       const col = i % cols, row = Math.floor(i / cols);
-      const x = W / 2 - ((cols - 1) * gap) / 2 + col * gap, y = H / 2 - 120 + row * 160;
+      const inRow = Math.min(cols, list.length - row * cols);
+      const x = W / 2 - ((inRow - 1) * gap) / 2 + col * gap, y = H / 2 - 160 + row * 130;
       const g = this.add.graphics();
       c.add(g);
       cards.push({ ch, g, x, y });
       const open = isOpen(ch);
-      const spr = this.add.sprite(x, y - 18, this.textures.exists(ch.sprite) ? ch.sprite : 'caveman', 0).setScale(2.3);
+      const spr = this.add.sprite(x, y - 14, this.textures.exists(ch.sprite) ? ch.sprite : 'caveman', 0).setScale(2);
       if (!open) spr.setTintFill(0x140a06);
-      else this.tweens.add({ targets: spr, y: y - 23, yoyo: true, repeat: -1, duration: 500 + i * 40 });
+      else this.tweens.add({ targets: spr, y: y - 18, yoyo: true, repeat: -1, duration: 500 + i * 40 });
       c.add(spr);
-      if (!open) c.add(this.add.image(x, y - 18, 'lock').setScale(2.2));
-      c.add(text(this, x, y + 46, open ? ch.name : '???', 9, open ? '#ffffff' : '#7a6a5a'));
-      const boss = Object.values(ENEMIES).find((e, k) => Object.keys(ENEMIES)[k] === ch.unlock);
-      c.add(text(this, x, y + 62, open ? ch.title : `Beat ${boss ? boss.name : 'a boss'}`, 6, '#c0a080'));
-      const hit = this.add.rectangle(x, y, cw, 150, 0xffffff, 0.001).setInteractive({ useHandCursor: true });
+      if (!open) c.add(this.add.image(x, y - 14, 'lock').setScale(2));
+      c.add(text(this, x, y + 34, open ? ch.name : '???', 9, open ? '#ffffff' : '#7a6a5a'));
+      c.add(text(this, x, y + 49, open ? ch.title : lockText(ch), 6, '#c0a080'));
+      const hit = this.add.rectangle(x, y, cw, ch0, 0xffffff, 0.001).setInteractive({ useHandCursor: true });
       hit.on('pointerup', () => { if (!open) { audio.play('deny'); return; } audio.play('select'); selected = ch; refresh(); });
       c.add(hit);
     });
     refresh();
-    c.add(button(this, W / 2, H / 2 + 175, 260, 56, 'START RUN', () => this.startRun(selected.key), { size: 18, color: COLORS.green, hi: COLORS.greenHi }));
-    c.add(button(this, W / 2, H / 2 + 240, 160, 40, 'BACK', () => { c.destroy(); this.mainButtons.forEach(b => b.setVisible(true)); }, { size: 12 }));
+    c.add(button(this, W / 2, H / 2 + 210, 260, 52, 'START RUN', () => this.startRun(selected.key), { size: 18, color: COLORS.green, hi: COLORS.greenHi }));
+    c.add(button(this, W / 2, H / 2 + 268, 160, 36, 'BACK', () => { c.destroy(); this.mainButtons.forEach(b => b.setVisible(true)); }, { size: 12 }));
   }
 
   startRun(character, daily = null) {
@@ -229,7 +242,7 @@ export default class Title extends Phaser.Scene {
     c.add(text(this, W / 2, H / 2 + 70, today && d.best ? `TODAY'S BEST: ${fmtTime(d.best)}  (${d.bestKills} kills)` : 'No run yet today', 9, '#e8c070'));
     if (!(today && d.played)) {
       c.add(this.add.image(W / 2 - 92, H / 2 + 100, 'spark').setScale(1.6));
-      c.add(text(this, W / 2 - 78, H / 2 + 100, 'First run today: +20 Sparks', 8, '#ffe060', 0));
+      c.add(text(this, W / 2 - 78, H / 2 + 100, 'First run today: +10 Sparks', 8, '#ffe060', 0));
     }
     c.add(button(this, W / 2, H / 2 + 165, 260, 56, 'START', () => this.startRun(CHARACTERS[0].key, daily), { size: 18, color: COLORS.green, hi: COLORS.greenHi }));
     c.add(button(this, W / 2, H / 2 + 232, 160, 40, 'BACK', () => { c.destroy(); this.mainButtons.forEach(b => b.setVisible(true)); }, { size: 12 }));

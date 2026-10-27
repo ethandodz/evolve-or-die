@@ -1,7 +1,7 @@
 import Phaser from 'phaser';
 import { audio } from '../audio.js';
 import { save, persist } from '../save.js';
-import { AGES, ENEMIES, WEAPONS, PASSIVES, SHOP_ITEMS, RARE_ITEMS, META, CFG, AGE_LENGTH, BAL, CHARACTERS, statsOf, xpForLevel } from '../data.js';
+import { AGES, ENEMIES, WEAPONS, PASSIVES, SHOP_ITEMS, RARE_ITEMS, META, CFG, RARITIES, AGE_LENGTH, BAL, CHARACTERS, statsOf, xpForLevel } from '../data.js';
 import { W, H, FONT } from '../ui.js';
 import { controls } from '../controls.js';
 
@@ -47,6 +47,13 @@ export default class Game extends Phaser.Scene {
     return out;
   }
 
+  // How far into the run we are (each Magic Mirror loop counts as more ages)
+  stage() { return this.loop * AGES.length + this.ageIndex; }
+
+  // Weapons and passives can level higher in later ages
+  weaponMax(key) { return WEAPONS[key].max + Math.round((BAL.maxLevelPerAge || 0) * this.stage()); }
+  passiveMax(key) { return PASSIVES[key].max + Math.round((BAL.maxLevelPerAge || 0) * this.stage()); }
+
   // Daily challenge twists change these
   makeMods() {
     const m = { dmg: 1, hearts: 1, speed: 1, enemySpeed: 1, spawn: 1, enemyHp: 1, enemyScale: 1, xp: 1, coin: 1, noMeat: false, ageLen: AGE_TIME, randomWeapon: false };
@@ -74,7 +81,11 @@ export default class Game extends Phaser.Scene {
     this.coins = this.meta.coins;
     this.sparks = 0;
     this.revives = this.meta.revive;
-    this.bonusCount = 0;
+    this.loop = 0;           // Magic Mirror loops back to the first age
+    this.fireGem = false;
+    this.speedMul = 1;       // Rabbit's Foot
+    this.lostHearts = 0;     // Rabbit's Foot
+    this.mini = null;
     this.hitStop = 0; this.hitStopCd = 0;
     this.levelFx = 0;
     this.giftGiven = !BAL.giftWeaponAt;
@@ -85,6 +96,9 @@ export default class Game extends Phaser.Scene {
     this.pendingLevels = 0;
     this.rerolls = BAL.rerolls + this.meta.rerolls;
     this.charDef = CHARACTERS.find(c => c.key === this.character) || CHARACTERS[0];
+    this.bonusCount = this.charDef.bonusCount || 0;
+    this.weaponSlots = this.charDef.weaponSlots || BAL.weaponSlots || 3;
+    this.passiveSlots = BAL.passiveSlots || 3;
     this.powerMul = 1;
     this.bonusHearts = 0;
     this.gemStreak = 0; this.gemStreakT = 0;
@@ -239,8 +253,10 @@ export default class Game extends Phaser.Scene {
     else { mx = controls.x; my = controls.y; }
     const mag = Math.hypot(mx, my);
     p.moving = mag > 0.05;
-    p.x += mx * this.stats.speed * dt;
-    p.y += my * this.stats.speed * dt;
+    let spd = this.stats.speed;
+    if (p.slowT > 0) { p.slowT -= dt; spd *= 0.55; }
+    p.x += mx * spd * dt;
+    p.y += my * spd * dt;
     if (p.moving) {
       p.aim = Math.atan2(my, mx);
       if (Math.abs(mx) > 0.1) p.facing = mx > 0 ? 1 : -1;
@@ -261,7 +277,11 @@ export default class Game extends Phaser.Scene {
   // ------------------------------------------------------------------
   // Spawning: more enemies with more health over time
   hpScale() {
-    return this.age.hpMul * (1 + this.ageTime / BAL.hpGrowth);
+    return this.age.hpMul * (1 + this.ageTime / BAL.hpGrowth) * this.loopMul();
+  }
+
+  loopMul() {
+    return 1 + this.loop * (BAL.loopHp || 2.5);
   }
 
   updateDirector(dt) {
@@ -309,6 +329,8 @@ export default class Game extends Phaser.Scene {
       const e = this.spawnEnemy(this.age.elite);
       e.hp = e.maxHp = e.maxHp * BAL.miniBossHp;
       e.mini = true;
+      e.mt = 3; e.mn = 0; e.mstate = null;
+      this.mini = e;
       e.scaleMul *= 1.5;
       e.r *= 1.4;
       e.shieldHits = 0;
@@ -375,11 +397,58 @@ export default class Game extends Phaser.Scene {
       alive: true, mode: 'chase', hitBy: {}, mini: false, boss: !!def.boss, baseTint: null, scaleMul: big, squash: 0,
       anim: Math.random() * 10, elite: null, shieldHits: def.ai === 'shield' ? (def.shield || 2) : 0,
       aiState: null, aiT: rand(1.2, 3), zig: rand(0, TAU),
+      burnT: 0, burnDps: 0, burnAcc: 0, flying: false, lift: 0,
     });
+    if (e.def.boss) e.hp *= this.loopMul();
+    if (e.shieldIcon) e.shieldIcon.setVisible(false);
     if (e.shieldHits) { e.baseTint = 0xb8d0ff; e.spr.setTint(e.baseTint); }
     e.maxHp = e.hp;
     this.enemies.push(e);
     return e;
+  }
+
+  // Mini-boss special moves. Returns a velocity while it is busy, or null to just chase.
+  updateMini(e, dt, dx, dy, d) {
+    const moves = (CFG.miniAttacks || []).length ? CFG.miniAttacks : ['stomp', 'charge'];
+    const p = this.player;
+    e.mt -= dt;
+    if (e.mstate === 'windup') {
+      e.spr.x = e.x + Math.sin(this.totalTime * 60) * 2;
+      if (e.mt <= 0) e.onWindup();
+      return [0, 0];
+    }
+    if (e.mstate === 'dash') {
+      if (Math.random() < 0.5) this.burst(e.x, e.y, 0x8a6a3a, 1, 60);
+      if (e.mt <= 0) { e.mstate = null; e.mt = 2.5; }
+      return [e.cdx * 470, e.cdy * 470];
+    }
+    if (e.mstate === 'rest') {
+      if (e.mt <= 0) { e.mstate = null; e.mt = 2.5; }
+      return [0, 0];
+    }
+    if (e.mt > 0 || d > 420) return null;
+    const move = moves[e.mn++ % moves.length];
+    const ang = Math.atan2(dy, dx);
+    if (move === 'stomp') {
+      e.mstate = 'windup'; e.mt = 0.9;
+      this.addHazard({ kind: 'circle', x: e.x, y: e.y, r: 115, t: 0.9, follow: e, owner: e });
+      e.onWindup = () => { e.mstate = 'rest'; e.mt = 0.5; this.shake(160, 0.008); this.ringFx(e.x, e.y, 115, 0xffffff); audio.play('thud'); };
+    } else if (move === 'charge') {
+      e.mstate = 'windup'; e.mt = 0.8;
+      e.cdx = Math.cos(ang); e.cdy = Math.sin(ang);
+      this.addHazard({ kind: 'line', x: e.x, y: e.y, ang, len: 380, w: e.r * 2, t: 0.8, telegraphOnly: true, owner: e });
+      e.onWindup = () => { e.mstate = 'dash'; e.mt = 0.8; audio.play('dash'); };
+    } else if (move === 'throw') {
+      for (let i = 0; i < 3; i++) this.addHazard({ kind: 'circle', x: p.x + rand(-70, 70), y: p.y + rand(-70, 70), r: 40, t: 1.0 + i * 0.15, rock: true });
+      e.mstate = 'rest'; e.mt = 0.8; audio.play('roar');
+    } else {
+      for (let i = 0; i < 5; i++) {
+        const a = (i / 5) * TAU;
+        this.spawnEnemy(pick(this.age.basic), e.x - p.x + Math.cos(a) * 50, e.y - p.y + Math.sin(a) * 50);
+      }
+      e.mstate = 'rest'; e.mt = 0.7; audio.play('roar');
+    }
+    return [0, 0];
   }
 
   // Glowing elite: a normal enemy with a twist and better drops
@@ -441,7 +510,10 @@ export default class Game extends Phaser.Scene {
         }
         vx = (dx / d) * e.speed * slow; vy = (dy / d) * e.speed * slow;
         const ai = e.def.ai;
-        if (ai === 'zigzag') {
+        if (e.mini) {
+          const mv = this.updateMini(e, dt, dx, dy, d);
+          if (mv) { vx = mv[0]; vy = mv[1]; }
+        } else if (ai === 'zigzag') {
           e.zig += dt * 5;
           const side = Math.sin(e.zig) * e.speed * 1.1;
           vx += (-dy / d) * side; vy += (dx / d) * side;
@@ -464,13 +536,29 @@ export default class Game extends Phaser.Scene {
           }
         }
       }
+      // Fire Gem burn: damage over time
+      if (e.burnT > 0) {
+        e.burnT -= dt; e.burnAcc += dt;
+        if (Math.random() < 0.25) this.burst(e.x + rand(-6, 6), e.y - e.r, 0xff7a2a, 1, 30);
+        if (e.burnAcc >= 0.5) {
+          e.burnAcc -= 0.5;
+          const bd = Math.max(1, Math.round(e.burnDps * 0.5));
+          if (!e.flying) {
+            e.hp -= bd;
+            if (save.settings.damageNumbers) this.spawnNumber(e.x, e.y - e.r * 1.6, bd, false, '#ff9a4a');
+            if (e.hp <= 0) { this.killEnemy(e); continue; }
+          }
+        }
+      }
       e.x += (vx + e.kx) * dt;
       e.y += (vy + e.ky) * dt;
       e.kx *= damp; e.ky *= damp;
       if (Math.abs(vx) > 1) e.spr.setFlipX(vx < 0);
       e.anim += dt * (4 + e.speed / 20);
       e.spr.setFrame(Math.floor(e.anim) % 2);
-      if (e.aiState !== 'aim') e.spr.setPosition(e.x, e.y); else e.spr.y = e.y;
+      if (e.aiState !== 'aim' && e.mstate !== 'windup') e.spr.setPosition(e.x, e.y - e.lift); else e.spr.y = e.y - e.lift;
+      if (e.shieldHits > 0 && !e.shieldIcon) e.shieldIcon = this.add.image(0, 0, 'shieldicon').setScale(1.3);
+      if (e.shieldIcon) e.shieldIcon.setVisible(e.shieldHits > 0).setPosition(e.x, e.y - e.r * 2.6 - 4).setDepth(e.y + 1);
       // Squash when hit
       const sc = e.def.scale * e.scaleMul;
       if (e.squash > 0) {
@@ -492,6 +580,8 @@ export default class Game extends Phaser.Scene {
     e.spr.setVisible(false);
     e.shadow.setVisible(false);
     if (e.glow) e.glow.setVisible(false);
+    if (e.shieldIcon) e.shieldIcon.setVisible(false);
+    if (e === this.mini) this.mini = null;
   }
 
   gridKey(cx, cy) { return cx * 73856093 ^ cy * 19349663; }
@@ -563,9 +653,13 @@ export default class Game extends Phaser.Scene {
   }
 
   hitEnemy(e, base, sx, sy, kb = 0) {
-    if (!e.alive) return;
-    const crit = Math.random() < BAL.critChance;
+    if (!e.alive || e.flying) return;
+    const crit = Math.random() < BAL.critChance * (this.charDef.critMul || 1);
     let dmg = Math.max(1, Math.round(base * this.stats.dmg * (crit ? 2 : 1)));
+    if (e.shieldHits > 0 && !save.seenShield) {
+      save.seenShield = true; persist();
+      this.ui.banner('SHIELDS!', 'Blue enemies block most damage\nuntil their shield breaks', 2600, '#b8d0ff');
+    }
     // Shields soak most of a hit, and break after a few
     if (e.shieldHits > 0) {
       e.shieldHits--;
@@ -573,11 +667,14 @@ export default class Game extends Phaser.Scene {
       if (e.shieldHits === 0) {
         audio.play('break');
         this.burst(e.x, e.y - e.r, 0xb8d0ff, 10, 160);
-        this.floatText(e.x, e.y - e.r * 2, 'BREAK!', '#b8d0ff');
+        this.floatText(e.x, e.y - e.r * 2, 'SHIELD BROKEN!', '#b8d0ff');
         if (!e.elite) e.baseTint = null;
+        if (e.shieldIcon) e.shieldIcon.setVisible(false);
       } else audio.play('clang');
     }
     e.hp -= dmg;
+    if (this.fireGem && !e.boss) { e.burnT = 3; e.burnDps = Math.max(e.burnDps, dmg * 0.4); }
+    else if (this.fireGem) { e.burnT = 3; e.burnDps = Math.max(e.burnDps, dmg * 0.15); }
     e.flash = 0.07;
     e.squash = 1;
     e.spr.setTintFill(0xffffff);
@@ -618,10 +715,10 @@ export default class Game extends Phaser.Scene {
     }
     const r = Math.random();
     const coin = this.mods.coin;
-    if (e.mini) { this.dropPickup('chest', e.x, e.y); this.dropPickup('spark', e.x + 16, e.y, 3); }
+    if (e.mini) { this.dropPickup('chest', e.x, e.y); this.dropPickup('spark', e.x + 16, e.y, 2); }
     else if (e.def.heavy || e.elite) {
       for (let i = 0; i < 4; i++) this.dropPickup('coin', e.x + rand(-14, 14), e.y + rand(-14, 14), coin);
-      if (e.def.heavy || Math.random() < 0.5) this.dropPickup('spark', e.x, e.y - 8, 1);
+      if (Math.random() < (e.def.heavy ? 0.35 : 0.25)) this.dropPickup('spark', e.x, e.y - 8, 1);
     }
     else if (r < BAL.coinChance) this.dropPickup('coin', e.x + 6, e.y, coin);
     else if (r < BAL.coinChance + BAL.meatChance) { if (!this.mods.noMeat) this.dropPickup('meat', e.x, e.y); }
@@ -657,6 +754,8 @@ export default class Game extends Phaser.Scene {
     for (const w of this.weapons) {
       const st = statsOf(w.key, w.level);
       st.icon = WEAPONS[w.key].icon;
+      if (w.dmgMul) st.dmg *= w.dmgMul;
+      if (w.bonusCount && st.count !== undefined) st.count += w.bonusCount;
       switch (WEAPONS[w.key].behavior) {
         case 'swing': this.updateClub(w, st, dt); break;
         case 'orbit': this.updateAxes(w, st, dt); break;
@@ -924,13 +1023,13 @@ export default class Game extends Phaser.Scene {
   checkContacts() {
     const p = this.player;
     if (p.inv > 0) return;
-    this.query(p.x, p.y, p.r, (e) => { if (p.inv <= 0) this.hurtPlayer(1); });
+    this.query(p.x, p.y, p.r, (e) => { if (p.inv <= 0 && !e.flying) this.hurtPlayer(1); });
   }
 
   hurtPlayer(n) {
     const p = this.player;
     if (p.inv > 0 || this.over) return;
-    p.hearts -= n;
+    p.hearts -= n * (this.charDef.damageTaken || 1);
     p.inv = BAL.invincibility;
     audio.play('hurt');
     this.shake(120, 0.008);
@@ -980,15 +1079,15 @@ export default class Game extends Phaser.Scene {
     for (const k of this.pickups) if (k.kind === 'spark') this.sparks += k.value;
     const lines = [];
     if (this.sparks) lines.push(['Sparks found', this.sparks]);
-    const timeBonus = Math.floor(this.totalTime / 30);
+    const timeBonus = Math.floor(this.totalTime / (BAL.sparkTimeEvery || 60));
     if (timeBonus) lines.push(['Time survived', timeBonus]);
-    const coinBonus = Math.floor(this.coins / 10);
+    const coinBonus = Math.floor(this.coins / (BAL.sparkCoinsEvery || 25));
     if (coinBonus) lines.push(['Leftover coins', coinBonus]);
     let dailyNew = false;
     if (this.daily) {
       const d = save.daily;
       if (d.date !== this.daily.date) Object.assign(d, { date: this.daily.date, best: 0, bestKills: 0, played: false });
-      if (!d.played) lines.push(['First daily run', 20]);
+      if (!d.played) lines.push(['First daily run', 10]);
       d.played = true;
       if (this.totalTime > d.best) { d.best = Math.floor(this.totalTime); d.bestKills = this.kills; dailyNew = true; }
     }
@@ -1085,7 +1184,7 @@ export default class Game extends Phaser.Scene {
   }
 
   addXp(v) {
-    this.xp += v * (1 + this.meta.xp);
+    this.xp += v * (1 + this.meta.xp) * (this.charDef.xpMul || 1);
     while (this.xp >= this.xpNeed) {
       this.xp -= this.xpNeed;
       this.level++;
@@ -1126,14 +1225,32 @@ export default class Game extends Phaser.Scene {
   makeChoices() {
     const pool = [];
     const owned = new Set(this.weapons.map(w => w.key));
-    for (const w of this.weapons) if (w.level < WEAPONS[w.key].max) pool.push({ type: 'weapon', key: w.key, level: w.level + 1 });
-    for (const k of this.passiveOrder) if (this.passives[k] < PASSIVES[k].max) pool.push({ type: 'passive', key: k, level: this.passives[k] + 1 });
-    if (this.weapons.length < 3) for (const k of Object.keys(WEAPONS)) if (!owned.has(k)) pool.push({ type: 'weapon', key: k, level: 1, isNew: true });
-    if (this.passiveOrder.length < 3) for (const k of Object.keys(PASSIVES)) if (!this.passives[k]) pool.push({ type: 'passive', key: k, level: 1, isNew: true });
+    for (const w of this.weapons) if (w.level < this.weaponMax(w.key)) pool.push({ type: 'weapon', key: w.key, cur: w.level, max: this.weaponMax(w.key) });
+    for (const k of this.passiveOrder) if (this.passives[k] < this.passiveMax(k)) pool.push({ type: 'passive', key: k, cur: this.passives[k], max: this.passiveMax(k) });
+    if (this.weapons.length < this.weaponSlots) for (const k of Object.keys(WEAPONS)) if (!owned.has(k)) pool.push({ type: 'weapon', key: k, cur: 0, max: this.weaponMax(k), isNew: true });
+    if (this.passiveOrder.length < this.passiveSlots) for (const k of Object.keys(PASSIVES)) if (!this.passives[k]) pool.push({ type: 'passive', key: k, cur: 0, max: this.passiveMax(k), isNew: true });
     shuffle(pool);
-    const out = pool.slice(0, 3);
+    const out = pool.slice(0, 3).map(c => this.rollRarity(c));
     if (!out.length) return [{ type: 'heal' }, { type: 'coins' }];
     return out;
+  }
+
+  // Cards can come up Rare, Epic or Legendary for bigger upgrades
+  rollRarity(c) {
+    const ch = BAL.rarityChances || [1, 0, 0, 0];
+    let r = Math.random(), ri = 0;
+    for (let i = ch.length - 1; i > 0; i--) {
+      const above = ch.slice(i).reduce((a, b) => a + b, 0);
+      if (r < above) { ri = i; break; }
+    }
+    // Not enough room for the extra levels: a lower rarity (Legendary weapons still get their bonus)
+    const room = c.max - c.cur - 1;
+    while (ri > 0 && RARITIES[ri].extra > room && !(ri === 3 && c.type === 'weapon')) ri--;
+    c.rarity = ri;
+    c.gain = 1 + Math.min(RARITIES[ri].extra, Math.max(0, room));
+    c.level = c.cur + c.gain;
+    c.legendary = ri === 3 && c.type === 'weapon';
+    return c;
   }
 
   rerollChoices() {
@@ -1143,19 +1260,30 @@ export default class Game extends Phaser.Scene {
   }
 
   applyChoice(c) {
+    const gain = c.gain || 1;
     if (c.type === 'weapon') {
-      const w = this.weapons.find(x => x.key === c.key);
-      if (w) w.level++; else this.addWeapon(c.key);
+      let w = this.weapons.find(x => x.key === c.key);
+      if (w) w.level += gain; else { w = this.addWeapon(c.key); w.level = gain; }
+      if (c.legendary) {
+        w.dmgMul = (w.dmgMul || 1) * 1.3;
+        w.bonusCount = (w.bonusCount || 0) + 1;
+        w.legendary = true;
+      }
     } else if (c.type === 'passive') {
       if (!this.passives[c.key]) { this.passives[c.key] = 0; this.passiveOrder.push(c.key); }
-      this.passives[c.key]++;
-      if (PASSIVES[c.key].effect === 'hearts') { this.recomputeStats(); this.player.hearts = Math.min(this.player.maxHearts, this.player.hearts + 1); }
+      this.passives[c.key] += gain;
+      if (PASSIVES[c.key].effect === 'hearts') { this.recomputeStats(); this.player.hearts = Math.min(this.player.maxHearts, this.player.hearts + gain); }
     } else if (c.type === 'heal') {
       this.player.hearts = this.player.maxHearts;
     } else if (c.type === 'coins') {
       this.coins += 25;
     }
     this.recomputeStats();
+    if (c.rarity >= 2) {
+      audio.play('gift');
+      this.burst(this.player.x, this.player.y, RARITIES[c.rarity].color, 40, 260);
+      this.ringFx(this.player.x, this.player.y, 140, RARITIES[c.rarity].color);
+    }
     if (!c.gift) this.pendingLevels--;
     if (this.pendingLevels > 0 && !c.gift) {
       this.ui.showLevelUp(this.makeChoices());
@@ -1175,13 +1303,13 @@ export default class Game extends Phaser.Scene {
     }
     const ch = this.charDef;
     const m = this.meta, mods = this.mods;
-    this.stats.dmg = (1 + sum.damage + m.damage) * this.powerMul * mods.dmg;
-    this.stats.area = 1 + sum.area;
+    this.stats.dmg = (1 + sum.damage + m.damage) * this.powerMul * mods.dmg * (ch.dmgMul || 1);
+    this.stats.area = (1 + sum.area) * (ch.areaMul || 1);
     this.stats.count = Math.round(sum.count) + this.bonusCount;
     this.stats.pickup = BAL.pickupRange * (1 + sum.pickup + m.pickup);
-    this.stats.speed = BAL.playerSpeed * (ch.speed || 1) * (1 + sum.speed + m.speed) * mods.speed;
+    this.stats.speed = BAL.playerSpeed * (ch.speed || 1) * (1 + sum.speed + m.speed) * mods.speed * this.speedMul;
     const baseHearts = Math.max(1, Math.ceil(((ch.hearts || 5) + m.hearts) * mods.hearts));
-    this.player.maxHearts = baseHearts + Math.round(sum.hearts) + this.bonusHearts;
+    this.player.maxHearts = Math.max(1, baseHearts + Math.round(sum.hearts) + this.bonusHearts - this.lostHearts);
     this.player.hearts = Math.min(this.player.hearts, this.player.maxHearts);
   }
 
@@ -1200,7 +1328,7 @@ export default class Game extends Phaser.Scene {
     if (!this.canSummon()) return;
     const p = this.player;
     const e = this.spawnEnemy(this.age.boss, 0, -360);
-    e.ai = { state: 'walk', t: 2.5, n: 0 };
+    e.ai = { state: 'walk', t: 2.5, n: 0, style: this.age.bossStyle || '', fast: 1 };
     e.vx = 0; e.vy = 0;
     this.boss = e;
     this.bossSummoned = true;
@@ -1221,11 +1349,54 @@ export default class Game extends Phaser.Scene {
     const d = Math.hypot(dx, dy) || 1;
     ai.t -= dt;
     // Bosses that fall far behind teleport closer
-    if (d > 900) { b.x = p.x - (dx / d) * 450; b.y = p.y - (dy / d) * 450; }
+    if (d > 900 && !b.flying) { b.x = p.x - (dx / d) * 450; b.y = p.y - (dy / d) * 450; }
+    // Rooted bosses (Hydra) grow angrier at half health
+    if (ai.style === 'rooted' && !ai.enraged && b.hp < b.maxHp / 2) {
+      ai.enraged = true; ai.fast = 0.55;
+      this.ui.banner('TWO MORE HEADS!', 'It attacks faster', 1800, '#3ab8a4');
+      audio.play('roar'); this.shake(300, 0.01);
+    }
+    // The Hunter (T-Rex) gets faster as it gets hurt
+    const hunt = ai.style === 'hunter' ? 1.4 + 0.8 * (1 - b.hp / b.maxHp) : 1;
+    // Lift for flying bosses
+    b.lift += ((b.flying ? 90 : 0) - b.lift) * Math.min(1, dt * 4);
+    b.spr.setAlpha(b.flying ? 0.75 : 1);
     switch (ai.state) {
       case 'walk':
-        b.vx = (dx / d) * b.speed; b.vy = (dy / d) * b.speed;
+        if (ai.style === 'rooted') {
+          // Stays put; burrows over to you when you get too far
+          b.vx = 0; b.vy = 0;
+          if (d > 380 && ai.t > 0.4) { this.bossBurrow(b); break; }
+        } else { b.vx = (dx / d) * b.speed * hunt; b.vy = (dy / d) * b.speed * hunt; }
         if (ai.t <= 0) this.bossAttack(b);
+        break;
+      case 'burrow':
+        b.vx = 0; b.vy = 0;
+        if (ai.t <= 0) {
+          b.x = ai.tx; b.y = ai.ty;
+          b.spr.setVisible(true); b.shadow.setVisible(true); b.flying = false;
+          this.burst(b.x, b.y, 0x8a6a3a, 30, 200); this.shake(200, 0.01); audio.play('thud');
+          ai.state = 'rest'; ai.t = 0.6;
+        }
+        break;
+      case 'fly':
+        // High in the air: can't be hit, its shadow follows you
+        b.vx = (dx / d) * Math.min(260, d * 2); b.vy = (dy / d) * Math.min(260, d * 2);
+        if (Math.random() < 0.2) this.burst(b.x, b.y - 90, 0xff7a2a, 1, 40);
+        if (ai.t <= 0) {
+          ai.state = 'dive'; ai.t = 0.9;
+          ai.tx = p.x; ai.ty = p.y;
+          this.addHazard({ kind: 'circle', x: p.x, y: p.y, r: 100, t: 0.9, color: 0xff7a2a });
+        }
+        break;
+      case 'dive':
+        b.vx = (ai.tx - b.x) * 3; b.vy = (ai.ty - b.y) * 3;
+        if (ai.t <= 0) {
+          b.flying = false; b.x = ai.tx; b.y = ai.ty;
+          this.shake(300, 0.014); this.ringFx(b.x, b.y, 100, 0xff7a2a); this.burst(b.x, b.y, 0xff7a2a, 30, 220);
+          audio.play('thud');
+          ai.state = 'rest'; ai.t = 1.0;
+        }
         break;
       case 'windup':
         b.vx = 0; b.vy = 0;
@@ -1235,13 +1406,37 @@ export default class Game extends Phaser.Scene {
       case 'dash':
         b.vx = ai.dx * 520; b.vy = ai.dy * 520;
         if (Math.random() < 0.5) this.burst(b.x, b.y, 0x8a6a3a, 1, 60);
-        if (ai.t <= 0) { ai.state = 'walk'; ai.t = 1.6; }
+        if (ai.t <= 0) {
+          // Chained charges: aim again right away
+          if (ai.chain > 0) { ai.chain--; this.bossCharge(b, 0.5); }
+          else { ai.state = 'walk'; ai.t = 1.6 * ai.fast; }
+        }
         break;
       case 'rest':
         b.vx = 0; b.vy = 0;
-        if (ai.t <= 0) { ai.state = 'walk'; ai.t = 1.8; }
+        if (ai.t <= 0) { ai.state = 'walk'; ai.t = 1.8 * ai.fast; }
         break;
     }
+  }
+
+  bossCharge(b, windup = 0.9) {
+    const ai = b.ai, p = this.player;
+    const ang = Math.atan2(p.y - b.y, p.x - b.x);
+    ai.state = 'windup'; ai.t = windup;
+    this.addHazard({ kind: 'line', x: b.x, y: b.y, ang, len: 620, w: 70, t: windup, telegraphOnly: true });
+    ai.onWindup = () => { ai.state = 'dash'; ai.t = 1.0; ai.dx = Math.cos(ang); ai.dy = Math.sin(ang); audio.play('roar'); };
+  }
+
+  // Rooted boss sinks into the ground and comes up near you
+  bossBurrow(b) {
+    const ai = b.ai, p = this.player;
+    const a = rand(0, TAU);
+    ai.tx = p.x + Math.cos(a) * 200; ai.ty = p.y + Math.sin(a) * 200;
+    ai.state = 'burrow'; ai.t = 1.0;
+    b.flying = true; // can't be hit while underground
+    b.spr.setVisible(false); b.shadow.setVisible(false);
+    this.burst(b.x, b.y, 0x8a6a3a, 20, 160);
+    this.addHazard({ kind: 'circle', x: ai.tx, y: ai.ty, r: 90, t: 1.0, color: 0x3ab8a4 });
   }
 
   bossAttack(b) {
@@ -1277,6 +1472,41 @@ export default class Game extends Phaser.Scene {
       }
       this.addHazard({ kind: 'circle', x: p.x, y: p.y, r: 52, t: 1.0, persist: 4, color: 0x6ad04a });
       ai.state = 'rest'; ai.t = 0.6;
+    } else if (choice === 'charge3') {
+      ai.chain = 2;
+      this.bossCharge(b, 0.8);
+    } else if (choice === 'roar') {
+      // Roar: a shockwave that slows you, and the pack answers
+      ai.state = 'windup'; ai.t = 0.7;
+      this.addHazard({ kind: 'circle', x: b.x, y: b.y, r: 260, t: 0.7, follow: b, telegraphOnly: true, color: 0xffe06a });
+      ai.onWindup = () => {
+        ai.state = 'rest'; ai.t = 0.6;
+        audio.play('roar'); this.shake(350, 0.012); this.ringFx(b.x, b.y, 260, 0xffe06a);
+        if (Math.hypot(p.x - b.x, p.y - b.y) < 260) { this.player.slowT = 2; this.floatText(p.x, p.y - 30, 'SLOWED!', '#ffe06a'); }
+        const pack = this.age.basic && this.age.basic.length ? this.age.basic : [this.age.medium];
+        for (let i = 0; i < 4; i++) { const a = rand(0, TAU); this.spawnEnemy(pick(pack), Math.cos(a) * 320, Math.sin(a) * 320); }
+      };
+    } else if (choice === 'ring') {
+      // Poison ring around you: stay in the middle or dash through
+      for (let i = 0; i < 9; i++) {
+        const a = (i / 9) * TAU;
+        this.addHazard({ kind: 'circle', x: p.x + Math.cos(a) * 160, y: p.y + Math.sin(a) * 160, r: 46, t: 1.0, persist: 4, color: 0x6ad04a });
+      }
+      ai.state = 'rest'; ai.t = 0.6; audio.play('roar');
+    } else if (choice === 'fly') {
+      ai.state = 'fly'; ai.t = 3.0;
+      b.flying = true;
+      this.ui.banner('IT TAKES FLIGHT!', 'Watch for where it lands', 1400, '#ff9a4a');
+      audio.play('roar');
+    } else if (choice === 'sweep') {
+      // Fire breath that sweeps across
+      ai.state = 'windup'; ai.t = 1.6;
+      const dir = Math.random() < 0.5 ? 1 : -1;
+      for (let i = 0; i < 8; i++) {
+        this.addHazard({ kind: 'line', x: b.x, y: b.y - 20, ang: ang + dir * (-1 + i * 0.28), len: 380, w: 44, t: 0.7 + i * 0.12, color: 0xff7a2a, flash: 0xffc848 });
+      }
+      ai.onWindup = () => { ai.state = 'rest'; ai.t = 0.5; };
+      audio.play('roar');
     } else if (choice === 'breath') {
       ai.state = 'windup'; ai.t = 1.0;
       for (let i = -2; i <= 2; i++) this.addHazard({ kind: 'line', x: b.x, y: b.y - 20, ang: ang + i * 0.26, len: 400, w: 46, t: 1.0, color: 0xff7a2a, flash: 0xffc848 });
@@ -1338,7 +1568,7 @@ export default class Game extends Phaser.Scene {
             }, 0xff6060);
             h.dead = true;
           } else if (h.kind === 'circle') {
-            if (Math.hypot(p.x - h.x, p.y - h.y) < h.r + p.r) this.hurtPlayer(1);
+            if (!h.telegraphOnly && Math.hypot(p.x - h.x, p.y - h.y) < h.r + p.r) this.hurtPlayer(1);
             if (!h.persist) h.dead = true; else h.life = h.persist;
           } else {
             const ex = h.x + Math.cos(h.ang) * h.len, ey = h.y + Math.sin(h.ang) * h.len;
@@ -1384,7 +1614,7 @@ export default class Game extends Phaser.Scene {
     const lm = this.lootMul || 1;
     for (let i = 0; i < Math.round(12 * lm); i++) this.dropPickup('coin', b.x + rand(-50, 50), b.y + rand(-50, 50), 2);
     this.dropPickup('chest', b.x, b.y, lm);
-    this.dropPickup('spark', b.x + 20, b.y - 10, Math.round((8 + 6 * this.ageIndex) * lm));
+    this.dropPickup('spark', b.x + 20, b.y - 10, Math.round(((BAL.sparkBoss ?? 4) + 3 * this.ageIndex) * lm));
     if (lm > 1) this.ui.banner(`LOOT x${lm}`, 'Bonus for summoning early', 1600, '#f2c84b');
     // Everything flies to you
     this.time.delayedCall(900, () => { for (const k of this.pickups) { k.fly = true; k.v = 150; } });
@@ -1401,23 +1631,26 @@ export default class Game extends Phaser.Scene {
         title: 'AGE CONQUERED',
         unlock: next
           ? `${this.age.bossName} defeated for the first time!\nNext run, beating it opens the\nportal to the ${next.name}.`
-          : `${this.age.bossName} defeated! You beat the MVP.\nNext run, this age becomes endless.`,
+          : `${this.age.bossName} defeated! You beat every age.\nNext run, beat it again to go endless\nor loop back with the Magic Mirror.`,
       }));
       this.ui.banner(`${this.age.bossName} DEFEATED!`, 'First victory!', 2400, '#f2c84b');
     } else if (next) {
       this.ui.banner(`${this.age.bossName} DEFEATED!`, 'A portal opens...', 2400, '#f2c84b');
       this.time.delayedCall(1500, () => this.openPortal());
     } else {
-      // Last age: endless from here
-      this.ui.banner('ENDLESS', 'Survive as long as you can', 2400, '#7ad0f4');
+      // Last age: endless from here, and the wizard sells a Magic Mirror to loop back in time
+      this.ui.banner('ENDLESS', 'Survive, or buy the Magic Mirror\nfrom the wizard to loop back in time', 3000, '#7ad0f4');
       this.endless = true;
+      this.finalShop = true;
+      this.time.delayedCall(1500, () => this.openPortal(true));
       this.time.delayedCall(2500, () => { this.cleared = false; this.policeMode = true; this.policeAcc = 0; audio.playMusic('police'); });
     }
   }
 
   // ------------------------------------------------------------------
   // Portal and wizard shop
-  openPortal() {
+  // locked: only the wizard shows up; the portal opens when the Magic Mirror is bought
+  openPortal(locked = false) {
     const p = this.player;
     const x = p.x, y = p.y - 150;
     const portal = this.add.image(x, y, 'portal').setScale(0).setDepth(y);
@@ -1430,7 +1663,12 @@ export default class Game extends Phaser.Scene {
     this.tweens.add({ targets: wiz, alpha: 1, duration: 500, delay: 400 });
     this.tweens.add({ targets: wiz, y: wiz.y - 3, yoyo: true, repeat: -1, duration: 700 });
     const label = this.add.text(wiz.x, wiz.y - 52, 'SHOP', { fontFamily: FONT, fontSize: '10px', color: '#e8c070', stroke: '#120c18', strokeThickness: 3 }).setOrigin(0.5).setDepth(1e7 + 10);
-    this.portal = { x, y, spr: portal, glow, wiz, label, shopReady: true, entering: false };
+    this.portal = { x, y, spr: portal, glow, wiz, label, shopReady: true, entering: false, locked };
+    if (locked) {
+      this.tweens.killTweensOf([portal, glow]);
+      portal.setVisible(false); glow.setVisible(false);
+      this.tweens.add({ targets: glow, alpha: 0.2, yoyo: true, repeat: -1, duration: 600 });
+    }
     audio.play('portal');
   }
 
@@ -1447,17 +1685,20 @@ export default class Game extends Phaser.Scene {
       if (!this.shopItems) { this.shopItems = this.makeShop(); this.shopRerolls = 0; }
       this.ui.showShop(this.shopItems);
     } else if (dw > 90) pt.shopReady = true;
-    if (Math.hypot(p.x - pt.x, p.y - pt.y) < 30) this.enterPortal();
+    if (!pt.locked && Math.hypot(p.x - pt.x, p.y - pt.y) < 30) this.enterPortal();
   }
 
   // Three normal items and one rare one
   makeShop() {
-    const canUp = this.weapons.some(w => w.level < WEAPONS[w.key].max);
-    const items = SHOP_ITEMS.filter(it => (it.id !== 'weapon' || this.weapons.length < 3) && (it.id !== 'upgrade' || canUp));
+    const canUp = this.weapons.some(w => w.level < this.weaponMax(w.key));
+    const items = SHOP_ITEMS.filter(it => (it.id !== 'weapon' || this.weapons.length < this.weaponSlots) && (it.id !== 'upgrade' || canUp)
+      && (it.id !== 'rabbit' || this.player.maxHearts > 1));
     const priced = (it) => ({ ...it, cost: Math.round(it.cost * (1 + this.ageIndex * 0.25)) });
     const out = shuffle(items.slice()).slice(0, 3).map(priced);
-    const rares = (RARE_ITEMS || []).filter(it => it.id !== 'crystal' || canUp);
-    if (rares.length) out.push({ ...priced(pick(rares)), rare: true });
+    const rares = (RARE_ITEMS || []).filter(it => (it.id !== 'crystal' || canUp) && (it.id !== 'firegem' || !this.fireGem));
+    // After the last boss the wizard always has the Magic Mirror
+    if (this.finalShop && CFG.mirror) out.push({ ...priced(CFG.mirror), rare: true });
+    else if (rares.length) out.push({ ...priced(pick(rares)), rare: true });
     return out;
   }
 
@@ -1473,8 +1714,24 @@ export default class Game extends Phaser.Scene {
     return this.makeShop();
   }
 
+  // Confusion Potion: every weapon becomes a different random one at the same level
+  confuseWeapons() {
+    const old = this.weapons;
+    const pool = shuffle(Object.keys(WEAPONS).filter(k => !old.some(w => w.key === k)).concat(old.map(w => w.key)));
+    this.weapons = [];
+    const used = new Set();
+    for (const w of old) {
+      w.sprites.forEach(sp => sp.destroy());
+      if (w.ring) w.ring.destroy();
+      const k = pool.find(x => !used.has(x) && x !== w.key) || pool.find(x => !used.has(x));
+      used.add(k);
+      const nw = this.addWeapon(k);
+      Object.assign(nw, { level: Math.min(w.level, this.weaponMax(k)), dmgMul: w.dmgMul, bonusCount: w.bonusCount, legendary: w.legendary });
+    }
+  }
+
   upgradableWeapons() {
-    return this.weapons.filter(w => w.level < WEAPONS[w.key].max);
+    return this.weapons.filter(w => w.level < this.weaponMax(w.key));
   }
 
   buyItem(it, choice) {
@@ -1500,11 +1757,29 @@ export default class Game extends Phaser.Scene {
       }
       case 'phoenix': this.revives++; it.result = 'You will come back once'; break;
       case 'idol': this.bonusCount++; this.recomputeStats(); it.result = '+1 attack for every weapon'; break;
-      case 'sparkjar': this.sparks += 25; it.result = '+25 Sparks'; break;
+      case 'sparkjar': this.sparks += 10; it.result = '+10 Sparks'; break;
+      case 'firegem': this.fireGem = true; it.result = 'Your attacks now burn!'; break;
+      case 'rabbit': {
+        if (p.maxHearts <= 1) return false;
+        this.speedMul *= 1.3; this.lostHearts++; this.recomputeStats();
+        it.result = 'Faster, but one heart lighter';
+        break;
+      }
+      case 'confusion': this.confuseWeapons(); it.result = 'Your weapons changed!'; break;
+      case 'mirror': {
+        if (!this.portal) return false;
+        this.portal.locked = false;
+        this.portal.spr.setVisible(true); this.portal.glow.setVisible(true);
+        this.tweens.add({ targets: this.portal.spr, scale: 2.2, duration: 700, ease: 'Back.out' });
+        this.tweens.add({ targets: this.portal.glow, scale: 2.8, duration: 700, ease: 'Back.out' });
+        audio.play('portal');
+        it.result = 'The mirror opens a portal to the past!';
+        break;
+      }
       case 'weapon': {
         const owned = new Set(this.weapons.map(w => w.key));
         const opts = Object.keys(WEAPONS).filter(k => !owned.has(k));
-        if (!opts.length || this.weapons.length >= 3) return false;
+        if (!opts.length || this.weapons.length >= this.weaponSlots) return false;
         const k = pick(opts); this.addWeapon(k);
         it.result = `You got ${WEAPONS[k].name}`;
         break;
@@ -1540,11 +1815,16 @@ export default class Game extends Phaser.Scene {
           this.shopItems = null;
           for (const k of this.pickups) { if (k.kind === 'gem') this.addXp(k.value); k.spr.destroy(); }
           this.pickups = [];
-          this.startAge(this.ageIndex + 1);
-          p.spr.setScale(1.5).setAngle(0);
+          // The Magic Mirror loops back to the first age, with tougher enemies
+          let next = this.ageIndex + 1;
+          if (next >= AGES.length || this.finalShop) { next = 0; this.loop++; this.finalShop = false; }
+          this.startAge(next);
+          p.spr.setScale(this.charDef.scale || 1.5).setAngle(0);
           this.player.inv = 1.5;
           this.frozen = false;
-          this.ui.banner(this.age.name, `Summon the ${this.age.bossName} when you are ready`, 3000, '#e8c070');
+          const cap = WEAPONS[this.weapons[0].key] ? this.weaponMax(this.weapons[0].key) : 0;
+          if (this.loop && next === 0) this.ui.banner(`LOOP ${this.loop + 1}`, `Back to the ${this.age.name.toLowerCase()}. Tougher enemies.\nWeapons can now reach level ${cap}`, 3200, '#c890ff');
+          else this.ui.banner(this.age.name, `Weapons can now reach level ${cap}`, 3000, '#e8c070');
         });
       },
     });
@@ -1579,7 +1859,7 @@ export default class Game extends Phaser.Scene {
     }
   }
 
-  spawnNumber(x, y, val, crit) {
+  spawnNumber(x, y, val, crit, color) {
     let n = this.numbers.find(q => !q.alive);
     if (!n) {
       if (this.numbers.length > 40) return;
@@ -1587,7 +1867,7 @@ export default class Game extends Phaser.Scene {
       this.numbers.push(n);
     }
     Object.assign(n, { alive: true, x: x + rand(-6, 6), y, life: 0.55, vy: -70 });
-    n.txt.setVisible(true).setText(String(val)).setColor(crit ? '#ffd040' : '#ffffff').setFontSize(crit ? 12 : 8).setAlpha(1).setPosition(n.x, n.y);
+    n.txt.setVisible(true).setText(String(val)).setColor(color || (crit ? '#ffd040' : '#ffffff')).setFontSize(crit ? 12 : 8).setAlpha(1).setPosition(n.x, n.y);
   }
 
   floatText(x, y, str, color) {

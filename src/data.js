@@ -14,6 +14,14 @@ export const RARE_ITEMS = CFG.rareShop;
 export const META = CFG.meta;
 export const TWISTS = CFG.twists;
 
+// Level-up card rarities. extra = bonus levels on top of the normal one.
+export const RARITIES = [
+  { name: 'COMMON', color: 0xe8c070, text: '#e8c070', extra: 0 },
+  { name: 'RARE', color: 0x4a9aff, text: '#7ab8ff', extra: 1 },
+  { name: 'EPIC', color: 0xb05aff, text: '#c890ff', extra: 2 },
+  { name: 'LEGENDARY', color: 0xffa020, text: '#ffc040', extra: 2 },
+];
+
 export const statsOf = (key, level) => weaponStats(WEAPONS[key], level);
 
 // The first few levels are cheaper so a run gets going quickly

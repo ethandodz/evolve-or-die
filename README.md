@@ -6,7 +6,7 @@ A survivors-like roguelike where you fight through the ages of history. Move to 
 
 ## Contents
 
-- 4 characters: Grug the caveman (starts with the Club), plus Roka, Ora and Edric unlocked by beating bosses
+- 5 characters, each with a perk and a drawback: Grug the caveman, plus Roka, Ora and Edric (unlocked by beating bosses) and Marcus the Centurion (1500 total kills)
 - 3 ages: Stone Age (boss: T-Rex), Roman Empire (boss: Hydra) and Middle Ages (boss: Dragon)
 - 6 weapons: Club, Orbiting Axes, Spear, Fire Ring, Rock Fall, Sky Bolt
 - 6 passives: Mammoth Heart, Swift Sandals, Tribal Totem, Sharp Flint, Giant Tusk, Lodestone
@@ -19,7 +19,11 @@ A survivors-like roguelike where you fight through the ages of history. Move to 
 - Enemy moves: chargers (aim, then dash), shields (break after a few hits), splitters, zigzaggers, and rare glowing elites
 - Wizard shop: choose which weapon to upgrade, reroll the stock, and one rare item per visit
 - Sparks: a currency you keep between runs, spent on permanent upgrades (EVOLVE on the main menu)
-- Daily challenge: two twists a day, the same for everyone, +20 Sparks for the first run
+- Level-up cards can be Rare, Epic or Legendary for extra levels; Legendary weapons also get +30% damage and +1 attack
+- Mini-bosses have a health bar and special moves; each boss fights differently (T-Rex hunts, Hydra burrows and enrages, Dragon flies and dives)
+- Weapons and passives can level higher in each later age
+- After the last boss, the wizard sells a Magic Mirror that loops the run back to the first age with tougher enemies
+- Daily challenge: two twists a day, the same for everyone, +10 Sparks for the first run
 
 ## Controls
 

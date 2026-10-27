@@ -4,7 +4,7 @@
 export const DEFAULT_CONFIG = {
   version: 1,
   // Bump when new built-in content is added, so saved editor edits get it too (see config.js)
-  contentVersion: 9,
+  contentVersion: 10,
 
   balance: {
     ageLength: 300,        // seconds until the time police arrive
@@ -275,10 +275,9 @@ export const DEFAULT_CONFIG = {
   // Relics: unlocked on the menu with Sparks, then found in treasure chests (take it or leave it)
   relics: [
     { id: 'monalisa', name: 'Mona Lisa', icon: 'monalisa', cost: 600, blurb: 'Every enemy stops to admire the masterpiece the first time it is hit (stunned for 1.5s).' },
-    { id: 'rosetta', name: 'Rosetta Stone', icon: 'rosetta', cost: 800, blurb: 'You understand everything: +50% XP.' },
-    { id: 'grail', name: 'Holy Grail', icon: 'grail', cost: 1000, blurb: 'Heal 1 heart every 30 seconds.' },
-    { id: 'fleece', name: 'Golden Fleece', icon: 'fleece', cost: 1000, blurb: 'Coins are worth double, but -1 max heart.' },
-    { id: 'pandora', name: "Pandora's Box", icon: 'pandora', cost: 1500, blurb: 'Chaos! +50% enemies, but +50% XP and coins.' },
+    { id: 'alienegg', name: 'Alien Egg', icon: 'alienegg', cost: 1200, blurb: 'The prized egg of the Queen Alien. Taking damage releases a swarm of aliens that attacks nearby enemies.' },
+    { id: 'excalibur', name: 'Excalibur', icon: 'excalibur', cost: 1800, blurb: 'You are worthy to wield the legendary sword! Hold it out in the direction you move.' },
+    { id: 'declaration', name: 'Declaration of Independence', icon: 'declaration', cost: 2000, blurb: 'Home of the brave, land of the free! The max level of your weapons goes up by 5.' },
     { id: 'ark', name: 'Ark of the Covenant', icon: 'ark', cost: 2500, blurb: 'All your weapons and weapon slots are replaced by the Ark: piercing beams of holy light that do huge damage.' },
   ],
   relicChance: 0.5,  // chance a treasure chest holds a relic (when you have unlocked ones left to find)

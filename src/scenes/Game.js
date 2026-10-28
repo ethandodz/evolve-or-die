@@ -143,7 +143,7 @@ export default class Game extends Phaser.Scene {
 
     // Player
     this.player = {
-      x: 0, y: 0, r: 10, hearts: 5, maxHearts: 5, inv: 0, facing: 1, aim: 0, moving: false,
+      x: 0, y: 0, r: 10, hearts: 5, maxHearts: 5, ghost: 0, inv: 0, facing: 1, aim: 0, moving: false,
     };
     this.player.shadow = this.add.image(0, 0, 'shadow').setScale(1.6, 1.4).setDepth(-2e7);
     this.player.spr = this.add.sprite(0, 0, this.charDef.sprite, 0).setScale(this.charDef.scale || 1.5).setOrigin(0.5, 0.85);
@@ -824,6 +824,7 @@ export default class Game extends Phaser.Scene {
     else if (r < coinChance) this.dropPickup('coin', e.x + 6, e.y, coin);
     else if (r < coinChance + BAL.meatChance) { if (!this.mods.noMeat) this.dropPickup('meat', e.x, e.y); }
     else if (r < coinChance + BAL.meatChance + BAL.magnetChance) this.dropPickup('magnet', e.x, e.y);
+    else if (r < coinChance + BAL.meatChance + BAL.magnetChance + (BAL.ghostChance ?? 0.003)) this.dropPickup('ghost', e.x, e.y);
   }
 
   // A white silhouette that squashes flat and fades
@@ -1361,7 +1362,9 @@ export default class Game extends Phaser.Scene {
   hurtPlayer(n) {
     const p = this.player;
     if (p.inv > 0 || this.over) return;
-    p.hearts -= n * (this.charDef.damageTaken || 1);
+    // Ghost Hearts take the hit first
+    if (p.ghost > 0) p.ghost--;
+    else p.hearts -= n * (this.charDef.damageTaken || 1);
     p.inv = BAL.invincibility;
     if (this.boss) this.bossHits++;
     audio.play('hurt');
@@ -1540,7 +1543,7 @@ export default class Game extends Phaser.Scene {
   }
 
   dropPickup(kind, x, y, value = 1, tex) {
-    const key = tex || { coin: 'coin', meat: 'meat', magnet: 'magnet', chest: 'chest', spark: 'spark', treasure: 'treasure' }[kind];
+    const key = tex || { coin: 'coin', meat: 'meat', magnet: 'magnet', ghost: 'ghostheart', chest: 'chest', spark: 'spark', treasure: 'treasure' }[kind];
     const spr = this.add.image(x, y, key).setScale(kind === 'treasure' ? 1.8 : 1.5).setDepth(-1.6e7);
     if (kind === 'treasure') this.tweens.add({ targets: spr, angle: { from: -6, to: 6 }, yoyo: true, repeat: -1, duration: 260 });
     const pk = { kind, x, y, value, spr, fly: false, v: 0 };
@@ -1593,6 +1596,12 @@ export default class Game extends Phaser.Scene {
       case 'meat':
         p.hearts = Math.min(p.maxHearts, p.hearts + 1);
         this.floatText(p.x, p.y - 30, '+1 HEART', '#ff8080');
+        audio.play('buy');
+        break;
+      case 'ghost':
+        // Temporary heart over the max; healing can't refill it
+        p.ghost++;
+        this.floatText(p.x, p.y - 30, '+1 GHOST HEART', '#b8f0ff');
         audio.play('buy');
         break;
       case 'magnet':

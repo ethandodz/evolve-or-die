@@ -145,13 +145,15 @@ export default class UI extends Phaser.Scene {
     this.xpShine.width = this.xpFill.width;
     this.lvText.setText(`LV ${g.level}`);
 
-    while (this.hearts.length < p.maxHearts) {
+    const slots = p.maxHearts + (p.ghost || 0);
+    while (this.hearts.length < slots) {
       const i = this.hearts.length;
       this.hearts.push(this.add.image(18 + (i % 8) * 22, 34 + Math.floor(i / 8) * 20, 'heart').setScale(1.8));
     }
     this.hearts.forEach((h, i) => {
-      h.setVisible(i < p.maxHearts);
-      h.setTexture(i + 1 <= p.hearts ? 'heart' : i < p.hearts ? 'heart_half' : 'heart_empty');
+      h.setVisible(i < slots);
+      // Ghost Hearts sit after the normal ones
+      h.setTexture(i >= p.maxHearts ? 'ghostheart' : i + 1 <= p.hearts ? 'heart' : i < p.hearts ? 'heart_half' : 'heart_empty');
     });
 
     const left = g.ageLen - g.ageTime;

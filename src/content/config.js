@@ -60,6 +60,22 @@ function addNewContent(cfg, d, seen) {
     const mag = cfg.passives.magnet;
     if (mag && mag.amount === 0.28) { mag.amount = d.passives.magnet.amount; mag.blurb = d.passives.magnet.blurb; }
   }
+  // Aidan's playtest (v23): weapons and passives go to level 30 in smaller steps, and the max no longer grows each age
+  if (seen < 23) {
+    for (const w of Object.values(cfg.weapons)) if (w.max === 7) stretchWeapon(w);
+    for (const [key, val] of Object.entries(d.passives)) {
+      const have = cfg.passives[key];
+      if (have) { have.max = val.max; have.amount = val.amount; have.blurb = val.blurb; }
+    }
+    if (cfg.balance.ageLength === 300) cfg.balance.ageLength = d.balance.ageLength;
+    delete cfg.balance.maxLevelPerAge;
+    // Grug: +0.5% damage per level instead of a flat +30%
+    const grug = cfg.characters.find(c => c.key === 'caveman'), ng = d.characters.find(c => c.key === 'caveman');
+    if (grug && grug.dmgMul === 1.3) { delete grug.dmgMul; grug.dmgPerLevel = ng.dmgPerLevel; grug.perk = ng.perk; }
+    // Grug's club is now the Mammoth Club; "Bone Club" is the new thrown bone
+    const bc = cfg.weapons.boneclub;
+    if (bc && bc.name === 'Bone Club') { bc.name = d.weapons.boneclub.name; bc.blurb = d.weapons.boneclub.blurb; }
+  }
   for (const k of ['enemies', 'weapons', 'passives']) {
     for (const [key, val] of Object.entries(d[k])) {
       if (!cfg[k][key]) cfg[k][key] = val;
@@ -127,6 +143,18 @@ function addNewContent(cfg, d, seen) {
     }
   }
   cfg.contentVersion = d.contentVersion;
+}
+
+// A weapon from when the max level was 7: same power range spread over 30 levels, each step smaller
+export function stretchWeapon(w) {
+  const at = (l) => Math.round(1 + (l - 1) * 29 / 6);
+  for (const [k, st] of Object.entries(w.stats || {})) {
+    if (!st || typeof st !== 'object') continue;
+    if (st.per) st.per = Math.round(st.per * (k === 'cd' || k === 'tick' ? 0.4 : 0.5) * 1000) / 1000;
+    if (Array.isArray(st.at)) st.at = st.at.map(at);
+  }
+  w.max = 30;
+  w.levels = [];
 }
 
 export function loadConfig() {

@@ -4,22 +4,25 @@
 export const DEFAULT_CONFIG = {
   version: 1,
   // Bump when new built-in content is added, so saved editor edits get it too (see config.js)
-  contentVersion: 22,
+  contentVersion: 23,
 
   balance: {
-    ageLength: 300,        // seconds until the time police arrive
+    ageLength: 210,        // seconds until the time police arrive (the boss fight doesn't stop the clock)
     maxEnemies: 200,
     spawnBase: 1.6,        // enemies per second at the start of an age
     spawnGrowth: 0.06,     // extra enemies per second, per second
     crowdStart: 30,        // max enemies alive at the start of an age
     crowdGrowth: 1.0,      // extra allowed per second
+    ageSpawnStep: 4,       // each later age starts with this many more enemies per second
+    ageCrowdStep: 40,      // and this many more allowed at once
     hpGrowth: 41.7,        // enemy HP goes up by its starting amount every this many seconds
     enemyHpMul: 1.4,       // all enemies (bosses too) have this much health
     ageHpBonus: 0.1,       // and +10% more after each age (stacks)
     playerSpeed: 140,
     pickupRange: 80,
     invincibility: 1.1,    // seconds of safety after a hit
-    critChance: 0.08,
+    critChance: 0.08,      // chance of a critical hit (red damage number)
+    critDamage: 2,         // critical hits do this many times the damage
     coinChance: 0.09,
     meatChance: 0.012,
     magnetChance: 0.003,
@@ -31,7 +34,6 @@ export const DEFAULT_CONFIG = {
     eliteChance: 0.04,     // chance a normal enemy spawns as a glowing elite (after 45s)
     specialChance: 0.08,   // chance of an age's special enemies (after 45s)
     hitStop: 1,            // tiny freeze on big hits (0 = off)
-    maxLevelPerAge: 1,     // weapons and passives can level this much higher in each later age
     sparkTimeEvery: 60,    // +1 Spark per this many seconds survived
     sparkCoinsEvery: 25,   // +1 Spark per this many coins left over
     sparkBoss: 20,         // Sparks from an age boss (times the early-summon bonus)
@@ -50,13 +52,15 @@ export const DEFAULT_CONFIG = {
     shopPriceMul: 5,       // wizard prices are this many times the listed cost
   },
 
-  // Each character has a perk and a drawback. Optional stats: dmgMul, critMul, xpMul,
+  // Each character has a perk and a drawback. Optional stats: dmgMul, dmgPerLevel (damage per player level), critMul, xpMul,
   // areaMul, damageTaken (0.5 = half a heart per hit), weaponSlots, bonusCount.
   // pet: an enemy sprite that fights at your side.
-  // unlock: 'start', a boss key, or 'kills:N' (total enemies defeated over all runs).
+  // unlock: 'start', a boss key, 'kills:N' (total enemies defeated over all runs) or 'quest:<id>'.
+  // cost: Sparks to buy it on the UNLOCK menu once the unlock goal is met.
+  // Only Grug is in the game for now; the others are hidden (HIDDEN_CHARS in data.js) until they're reworked.
   characters: [
     { key: 'caveman', name: 'GRUG', title: 'The Caveman', sprite: 'caveman', weapon: 'boneclub', hearts: 2, speed: 1, unlock: 'start',
-      dmgMul: 1.3, weaponSlots: 2, perk: '+30% damage', drawback: 'Only 2 weapon slots' },
+      dmgPerLevel: 0.005, weaponSlots: 2, perk: '+0.5% damage every level up', drawback: 'Only 2 weapon slots' },
     { key: 'shaman', name: 'ORA', title: 'The Shaman', sprite: 'shaman', weapon: 'spiritfire', hearts: 1, speed: 1, unlock: 'hydra',
       xpMul: 1.3, areaMul: 1.25, perk: '+30% XP, +25% area', drawback: 'Only 1 heart' },
     { key: 'centurion', name: 'MARCUS', title: 'The Centurion', sprite: 'centurion', weapon: 'pilum', hearts: 2, speed: 0.95, unlock: 'kills:3000',
@@ -84,161 +88,150 @@ export const DEFAULT_CONFIG = {
       pet: 'ufo', perk: 'A mini UFO fights with you', drawback: '10% slower' },
   ],
 
-  // stats: each value is base + per * (level - 1) + one for every level in "at" that is reached
+  // stats: each value is base + per * (level - 1) + one for every level in "at" that is reached.
+  // Every weapon goes to level 30 in small steps; the card text for each level is worked out from the stats.
+  // unlock + cost: the weapon is bought on the UNLOCK menu (goal met, then Sparks) before it can show up.
   // era: the age where a shared weapon first turns up. Once equipped it shows up in every age after that.
   weapons: {
     club: {
-      name: 'Club', icon: 'club', era: 'stone', behavior: 'swing', kind: 'Melee', max: 7,
+      name: 'Club', icon: 'club', era: 'stone', behavior: 'swing', kind: 'Melee', max: 30,
       blurb: 'Big swing in front of you. Knocks enemies back.',
-      stats: { cd: { base: 1.0, per: -0.06 }, dmg: { base: 11.2, per: 4.8 }, radius: { base: 78, per: 6 }, count: { base: 1, at: [3, 6] }, knockback: { base: 260 } },
-      levels: ['', '+4.8 damage', '+1 swing', 'Faster, +4.8 damage', 'Bigger swing, +4.8 damage', '+1 swing', 'Faster, +4.8 damage'],
+      stats: { cd: { base: 1.0, per: -0.024 }, dmg: { base: 11.2, per: 2.4 }, radius: { base: 78, per: 3 }, count: { base: 1, at: [11, 25] }, knockback: { base: 260 } },
     },
     axes: {
-      name: 'Orbiting Axes', icon: 'axe', era: 'medieval', behavior: 'orbit', kind: 'Orbit', max: 7,
+      name: 'Orbiting Axes', icon: 'axe', era: 'medieval', behavior: 'orbit', kind: 'Orbit', max: 30,
       blurb: 'Stone axes circle around you.',
-      stats: { dmg: { base: 6.4, per: 3.2 }, radius: { base: 64, per: 5 }, count: { base: 2, at: [3, 5, 7] }, spin: { base: 3.4, per: 0.25 }, hitDelay: { base: 0.45 } },
-      levels: ['', '+3.2 damage, faster', '+1 axe', '+3.2 damage, wider', '+1 axe', '+3.2 damage, faster', '+1 axe'],
+      stats: { dmg: { base: 6.4, per: 1.6 }, radius: { base: 64, per: 2.5 }, count: { base: 2, at: [11, 20, 30] }, spin: { base: 3.4, per: 0.125 }, hitDelay: { base: 0.45 } },
     },
     spear: {
-      name: 'Spear', icon: 'spear', era: 'roman', behavior: 'thrust', kind: 'Melee', max: 7,
+      name: 'Spear', icon: 'spear', era: 'roman', behavior: 'thrust', kind: 'Melee', max: 30,
       blurb: 'Long thrust at the nearest enemy. Pierces.',
-      stats: { cd: { base: 1.25, per: -0.07 }, dmg: { base: 17.6, per: 6.4 }, length: { base: 125, per: 10 }, count: { base: 1, at: [4, 7] } },
-      levels: ['', '+6.4 damage, longer', 'Faster, +6.4 damage', '+1 spear', '+6.4 damage, longer', 'Faster, +6.4 damage', '+1 spear'],
+      stats: { cd: { base: 1.25, per: -0.028 }, dmg: { base: 17.6, per: 3.2 }, length: { base: 125, per: 5 }, count: { base: 1, at: [16, 30] } },
     },
     fire: {
-      name: 'Fire Ring', icon: 'flame', era: 'stone', behavior: 'aura', kind: 'Aura', max: 7,
+      name: 'Fire Ring', icon: 'flame', era: 'stone', behavior: 'aura', kind: 'Aura', max: 30,
       blurb: 'Burns and slows enemies near you.',
-      stats: { dmg: { base: 4, per: 2 }, radius: { base: 54, per: 7 }, tick: { base: 0.5, per: -0.02 }, slow: { base: 0.3, per: 0.03 } },
-      levels: ['', '+2 damage, wider', '+2 damage, burns faster', '+2 damage, wider', '+2 damage, slows more', '+2 damage, wider', '+2 damage, burns faster'],
+      stats: { dmg: { base: 4, per: 1 }, radius: { base: 54, per: 3.5 }, tick: { base: 0.5, per: -0.008 }, slow: { base: 0.3, per: 0.015 } },
     },
     rocks: {
-      name: 'Rock Fall', icon: 'rock', era: 'stone', behavior: 'rockfall', kind: 'Area', max: 7,
+      name: 'Rock Fall', icon: 'rock', era: 'stone', behavior: 'rockfall', kind: 'Area', max: 30,
       blurb: 'Boulders crash down on enemies.',
-      stats: { cd: { base: 2.1, per: -0.1 }, dmg: { base: 20.8, per: 8 }, radius: { base: 36, per: 3 }, count: { base: 2, at: [2, 4, 6] } },
-      levels: ['', '+8 damage, +1 rock', 'Faster, +8 damage', '+8 damage, +1 rock', 'Bigger, +8 damage', '+8 damage, +1 rock', 'Faster, +8 damage'],
+      stats: { cd: { base: 2.1, per: -0.04 }, dmg: { base: 20.8, per: 4 }, radius: { base: 36, per: 1.5 }, count: { base: 2, at: [6, 16, 25] } },
     },
     bolt: {
-      name: 'Sky Bolt', icon: 'bolt', era: 'renaissance', behavior: 'lightning', kind: 'Area', max: 7,
+      name: 'Sky Bolt', icon: 'bolt', era: 'renaissance', behavior: 'lightning', kind: 'Area', max: 30,
       blurb: 'Lightning strikes enemies around you.',
-      stats: { cd: { base: 1.7, per: -0.1 }, dmg: { base: 25.6, per: 8 }, radius: { base: 28, per: 2 }, count: { base: 1, at: [3, 5, 7] }, chain: { base: 0, at: [5, 5] }, range: { base: 270 } },
-      levels: ['', '+8 damage, faster', '+1 bolt', '+8 damage, faster', '+1 bolt, bolts chain', '+8 damage, faster', '+1 bolt'],
+      stats: { cd: { base: 1.7, per: -0.04 }, dmg: { base: 25.6, per: 4 }, radius: { base: 28, per: 1 }, count: { base: 1, at: [11, 20, 30] }, chain: { base: 0, at: [20, 20] }, range: { base: 270 } },
     },
     // Signature weapons: each character starts with their own, never offered to anyone else.
     // tier = power rank (later unlocks are stronger); base = the normal weapon it counts as for combos.
     boneclub: {
-      name: 'Bone Club', icon: 'boneclub', behavior: 'swing', kind: 'Melee', max: 7, signature: 'caveman', tier: 1, base: 'club',
+      name: 'Mammoth Club', icon: 'boneclub', behavior: 'swing', kind: 'Melee', max: 30, signature: 'caveman', tier: 1, base: 'club',
       blurb: "Grug's mammoth-bone club. Hits harder and knocks enemies further.",
-      stats: { cd: { base: 0.95, per: -0.06 }, dmg: { base: 13.6, per: 5.6 }, radius: { base: 82, per: 6 }, count: { base: 1, at: [3, 6] }, knockback: { base: 330 } },
-      levels: ['', '+5.6 damage', '+1 swing', 'Faster, +5.6 damage', 'Bigger swing, +5.6 damage', '+1 swing', 'Faster, +5.6 damage'],
+      stats: { cd: { base: 0.95, per: -0.024 }, dmg: { base: 13.6, per: 2.8 }, radius: { base: 82, per: 3 }, count: { base: 1, at: [11, 25] }, knockback: { base: 330 } },
     },
     spiritfire: {
-      name: 'Spirit Fire', icon: 'spiritflame', behavior: 'aura', kind: 'Aura', max: 7, signature: 'shaman', tier: 2, base: 'fire', ringColor: [0x3ac8e0, 0xa0f4ff],
+      name: 'Spirit Fire', icon: 'spiritflame', behavior: 'aura', kind: 'Aura', max: 30, signature: 'shaman', tier: 2, base: 'fire', ringColor: [0x3ac8e0, 0xa0f4ff],
       blurb: "Ora's blue spirit flames. Wider, hotter and slows more than fire.",
-      stats: { dmg: { base: 6, per: 2.8 }, radius: { base: 64, per: 7 }, tick: { base: 0.45, per: -0.02 }, slow: { base: 0.4, per: 0.03 } },
-      levels: ['', '+2.8 damage, wider', '+2.8 damage, burns faster', '+2.8 damage, wider', '+2.8 damage, slows more', '+2.8 damage, wider', '+2.8 damage, burns faster'],
+      stats: { dmg: { base: 6, per: 1.4 }, radius: { base: 64, per: 3.5 }, tick: { base: 0.45, per: -0.008 }, slow: { base: 0.4, per: 0.015 } },
     },
     pilum: {
-      name: 'Golden Pilum', icon: 'pilum', behavior: 'thrust', kind: 'Melee', max: 7, signature: 'centurion', tier: 3, base: 'spear',
+      name: 'Golden Pilum', icon: 'pilum', behavior: 'thrust', kind: 'Melee', max: 30, signature: 'centurion', tier: 3, base: 'spear',
       blurb: "Marcus's golden javelin. Long reach, pierces everything.",
-      stats: { cd: { base: 1.1, per: -0.07 }, dmg: { base: 28.8, per: 10.4 }, length: { base: 150, per: 12 }, count: { base: 1, at: [3, 6] } },
-      levels: ['', '+10.4 damage, longer', '+1 pilum', 'Faster, +10.4 damage', '+10.4 damage, longer', '+1 pilum', 'Faster, +10.4 damage'],
+      stats: { cd: { base: 1.1, per: -0.028 }, dmg: { base: 28.8, per: 5.2 }, length: { base: 150, per: 6 }, count: { base: 1, at: [11, 25] } },
     },
     holyblades: {
-      name: 'Holy Blades', icon: 'holyblade', behavior: 'orbit', kind: 'Orbit', max: 7, signature: 'knight', tier: 4, base: 'axes',
+      name: 'Holy Blades', icon: 'holyblade', behavior: 'orbit', kind: 'Orbit', max: 30, signature: 'knight', tier: 4, base: 'axes',
       blurb: "Edric's three blessed swords spin around him.",
-      stats: { dmg: { base: 12, per: 5.6 }, radius: { base: 72, per: 5 }, count: { base: 3, at: [3, 5, 7] }, spin: { base: 3.8, per: 0.25 }, hitDelay: { base: 0.4 } },
-      levels: ['', '+5.6 damage, faster', '+1 blade', '+5.6 damage, wider', '+1 blade', '+5.6 damage, faster', '+1 blade'],
+      stats: { dmg: { base: 12, per: 2.8 }, radius: { base: 72, per: 2.5 }, count: { base: 3, at: [11, 20, 30] }, spin: { base: 3.8, per: 0.125 }, hitDelay: { base: 0.4 } },
     },
     tesla: {
-      name: 'Tesla Coil', icon: 'tesla', behavior: 'lightning', kind: 'Area', max: 7, signature: 'inventor', tier: 6, base: 'bolt', boltColor: 0x7ae0ff,
+      name: 'Tesla Coil', icon: 'tesla', behavior: 'lightning', kind: 'Area', max: 30, signature: 'inventor', tier: 6, base: 'bolt', boltColor: 0x7ae0ff,
       blurb: "Nico's invention. Blue lightning that always chains to more enemies.",
-      stats: { cd: { base: 1.4, per: -0.09 }, dmg: { base: 48, per: 14.4 }, radius: { base: 32, per: 2 }, count: { base: 2, at: [3, 5, 7] }, chain: { base: 2, at: [5] }, range: { base: 300 } },
-      levels: ['', '+14.4 damage, faster', '+1 bolt', '+14.4 damage, faster', '+1 bolt, +1 chain', '+14.4 damage, faster', '+1 bolt'],
+      stats: { cd: { base: 1.4, per: -0.036 }, dmg: { base: 48, per: 7.2 }, radius: { base: 32, per: 1 }, count: { base: 2, at: [11, 20, 30] }, chain: { base: 2, at: [20] }, range: { base: 300 } },
     },
     // Only from the Ark of the Covenant relic
     steamhammer: {
-      name: 'Steam Hammer', icon: 'steamhammer', behavior: 'swing', kind: 'Melee', max: 7, signature: 'engineer', tier: 8, base: 'club',
+      name: 'Steam Hammer', icon: 'steamhammer', behavior: 'swing', kind: 'Melee', max: 30, signature: 'engineer', tier: 8, base: 'club',
       blurb: "Ada's piston hammer. Huge swings that blast enemies away.",
-      stats: { cd: { base: 0.9, per: -0.05 }, dmg: { base: 52, per: 16 }, radius: { base: 96, per: 7 }, count: { base: 1, at: [3, 6] }, knockback: { base: 420 } },
-      levels: ['', '+16 damage', '+1 swing', 'Faster, +16 damage', 'Bigger swing, +16 damage', '+1 swing', 'Faster, +16 damage'],
+      stats: { cd: { base: 0.9, per: -0.02 }, dmg: { base: 52, per: 8 }, radius: { base: 96, per: 3.5 }, count: { base: 1, at: [11, 25] }, knockback: { base: 420 } },
     },
     droneswarm: {
-      name: 'Drone Swarm', icon: 'drone_s', behavior: 'orbit', kind: 'Orbit', max: 7, signature: 'pilot', tier: 10, base: 'axes',
+      name: 'Drone Swarm', icon: 'drone_s', behavior: 'orbit', kind: 'Orbit', max: 30, signature: 'pilot', tier: 10, base: 'axes',
       blurb: "Max's stunt drones zip around you, four at a time.",
-      stats: { dmg: { base: 30, per: 10 }, radius: { base: 84, per: 6 }, count: { base: 4, at: [3, 5, 7] }, spin: { base: 4.2, per: 0.25 }, hitDelay: { base: 0.35 } },
-      levels: ['', '+10 damage, faster', '+1 drone', '+10 damage, wider', '+1 drone', '+10 damage, faster', '+1 drone'],
+      stats: { dmg: { base: 30, per: 5 }, radius: { base: 84, per: 3 }, count: { base: 4, at: [11, 20, 30] }, spin: { base: 4.2, per: 0.125 }, hitDelay: { base: 0.35 } },
     },
     plasmalance: {
-      name: 'Plasma Lance', icon: 'plasma', fx: 'plasmabeam', behavior: 'thrust', kind: 'Melee', max: 7, signature: 'nova', tier: 12, base: 'spear',
+      name: 'Plasma Lance', icon: 'plasma', fx: 'plasmabeam', behavior: 'thrust', kind: 'Melee', max: 30, signature: 'nova', tier: 12, base: 'spear',
       blurb: "Nova's lance of pure starlight. Long beams that pierce everything.",
-      stats: { cd: { base: 0.85, per: -0.05 }, dmg: { base: 72, per: 22 }, length: { base: 260, per: 16 }, count: { base: 2, at: [3, 5, 7] } },
-      levels: ['', '+22 damage, longer', '+1 beam', '+22 damage, faster', '+1 beam', '+22 damage, longer', '+1 beam'],
+      stats: { cd: { base: 0.85, per: -0.02 }, dmg: { base: 72, per: 11 }, length: { base: 260, per: 8 }, count: { base: 2, at: [11, 20, 30] } },
     },
     battlelute: {
-      name: 'Battle Lute', icon: 'lute', auraIcon: 'note', behavior: 'aura', kind: 'Aura', max: 7, signature: 'bard', tier: 5, base: 'fire', ringColor: [0xb030e0, 0xf070ff],
+      name: 'Battle Lute', icon: 'lute', auraIcon: 'note', behavior: 'aura', kind: 'Aura', max: 30, signature: 'bard', tier: 5, base: 'fire', ringColor: [0xb030e0, 0xf070ff],
       blurb: "Bram's war songs. Musical notes circle him, hurting and slowing everything close.",
-      stats: { dmg: { base: 10, per: 3.5 }, radius: { base: 70, per: 6 }, tick: { base: 0.4, per: -0.02 }, slow: { base: 0.35, per: 0.02 } },
-      levels: ['', '+3.5 damage, wider', '+3.5 damage, plays faster', '+3.5 damage, wider', '+3.5 damage, slows more', '+3.5 damage, wider', '+3.5 damage, plays faster'],
+      stats: { dmg: { base: 10, per: 1.75 }, radius: { base: 70, per: 3 }, tick: { base: 0.4, per: -0.008 }, slow: { base: 0.35, per: 0.01 } },
     },
     potionbombs: {
-      name: 'Potion Bombs', icon: 'flask', behavior: 'rockfall', kind: 'Area', max: 7, signature: 'alchemist', tier: 7, base: 'rocks', burn: 0.4,
+      name: 'Potion Bombs', icon: 'flask', behavior: 'rockfall', kind: 'Area', max: 30, signature: 'alchemist', tier: 7, base: 'rocks', burn: 0.4,
       blurb: "Bella's bubbling flasks smash on enemies and set them alight.",
-      stats: { cd: { base: 1.7, per: -0.1 }, dmg: { base: 40, per: 14 }, radius: { base: 48, per: 4 }, count: { base: 2, at: [3, 5, 7] } },
-      levels: ['', '+14 damage, bigger', '+1 flask', 'Faster, +14 damage', '+1 flask', 'Bigger, +14 damage', '+1 flask'],
+      stats: { cd: { base: 1.7, per: -0.04 }, dmg: { base: 40, per: 7 }, radius: { base: 48, per: 2 }, count: { base: 2, at: [11, 20, 30] } },
     },
     swordcane: {
-      name: 'Sword Cane', icon: 'swordcane', behavior: 'thrust', kind: 'Melee', max: 7, signature: 'inspector', tier: 9, base: 'spear',
+      name: 'Sword Cane', icon: 'swordcane', behavior: 'thrust', kind: 'Melee', max: 30, signature: 'inspector', tier: 9, base: 'spear',
       blurb: "Ivy's walking cane hides a blade. Lightning-quick lunges.",
-      stats: { cd: { base: 0.55, per: -0.03 }, dmg: { base: 60, per: 18 }, length: { base: 180, per: 12 }, count: { base: 1, at: [3, 5, 7] } },
-      levels: ['', '+18 damage, longer', '+1 lunge', '+18 damage, faster', '+1 lunge', '+18 damage, longer', '+1 lunge'],
+      stats: { cd: { base: 0.55, per: -0.012 }, dmg: { base: 60, per: 9 }, length: { base: 180, per: 6 }, count: { base: 1, at: [11, 20, 30] } },
     },
     ampblast: {
-      name: 'Amp Blast', icon: 'guitar', behavior: 'lightning', kind: 'Area', max: 7, signature: 'rocker', tier: 11, base: 'bolt', boltColor: 0xff4ad0,
+      name: 'Amp Blast', icon: 'guitar', behavior: 'lightning', kind: 'Area', max: 30, signature: 'rocker', tier: 11, base: 'bolt', boltColor: 0xff4ad0,
       blurb: "Roxy's power chords blast enemies with pink lightning that jumps between them.",
-      stats: { cd: { base: 1.2, per: -0.08 }, dmg: { base: 70, per: 20 }, radius: { base: 40, per: 3 }, count: { base: 3, at: [3, 5, 7] }, chain: { base: 2, at: [5] }, range: { base: 300 } },
-      levels: ['', '+20 damage, faster', '+1 blast', '+20 damage, faster', '+1 blast, +1 chain', '+20 damage, faster', '+1 blast'],
+      stats: { cd: { base: 1.2, per: -0.032 }, dmg: { base: 70, per: 10 }, radius: { base: 40, per: 1.5 }, count: { base: 3, at: [11, 20, 30] }, chain: { base: 2, at: [20] }, range: { base: 300 } },
     },
     raygun: {
-      name: 'Ray Gun', icon: 'raygun', fx: 'raybolt', behavior: 'shoot', kind: 'Projectile', max: 7, signature: 'zorp', tier: 13, base: 'nailgun',
+      name: 'Ray Gun', icon: 'raygun', fx: 'raybolt', behavior: 'shoot', kind: 'Projectile', max: 30, signature: 'zorp', tier: 13, base: 'nailgun',
       blurb: "Zorp's ray gun. Fast bolts that pierce a whole line of enemies.",
-      stats: { cd: { base: 0.7, per: -0.04 }, dmg: { base: 64, per: 18 }, count: { base: 2, at: [3, 5, 7] }, pierce: { base: 3, at: [3, 6] }, speed: { base: 700 }, size: { base: 12 }, range: { base: 460 } },
-      levels: ['', '+18 damage, faster', '+1 bolt, pierces more', '+18 damage, faster', '+1 bolt', '+18 damage, pierces more', '+1 bolt'],
+      stats: { cd: { base: 0.7, per: -0.016 }, dmg: { base: 64, per: 9 }, count: { base: 2, at: [11, 20, 30] }, pierce: { base: 3, at: [11, 25] }, speed: { base: 700 }, size: { base: 12 }, range: { base: 460 } },
     },
     // New weapons anyone can find
     dynamite: {
-      name: 'Dynamite', icon: 'dynamite', era: 'industrial', behavior: 'rockfall', kind: 'Area', max: 7,
+      name: 'Dynamite', icon: 'dynamite', era: 'industrial', behavior: 'rockfall', kind: 'Area', max: 30,
       blurb: 'Sticks of dynamite land on enemies and blow up a wide area.',
-      stats: { cd: { base: 2.6, per: -0.12 }, dmg: { base: 32, per: 12 }, radius: { base: 54, per: 4 }, count: { base: 1, at: [3, 5, 7] } },
-      levels: ['', '+12 damage, bigger', '+1 stick', 'Faster, +12 damage', '+1 stick', 'Bigger, +12 damage', '+1 stick'],
+      stats: { cd: { base: 2.6, per: -0.048 }, dmg: { base: 32, per: 6 }, radius: { base: 54, per: 2 }, count: { base: 1, at: [11, 20, 30] } },
     },
     nailgun: {
-      name: 'Nail Gun', icon: 'nailgun', era: 'modern', fx: 'nail', behavior: 'shoot', kind: 'Projectile', max: 7,
+      name: 'Nail Gun', icon: 'nailgun', era: 'modern', fx: 'nail', behavior: 'shoot', kind: 'Projectile', max: 30,
       blurb: 'Rapid-fire nails at the nearest enemy.',
-      stats: { cd: { base: 0.6, per: -0.03 }, dmg: { base: 9, per: 3.6 }, count: { base: 1, at: [3, 5, 7] }, pierce: { base: 0, at: [4, 6] }, speed: { base: 560 }, size: { base: 8 }, range: { base: 400 } },
-      levels: ['', '+3.6 damage, faster', '+1 nail', '+3.6 damage, nails pierce', '+1 nail', '+3.6 damage, pierce more', '+1 nail'],
+      stats: { cd: { base: 0.6, per: -0.012 }, dmg: { base: 9, per: 1.8 }, count: { base: 1, at: [11, 20, 30] }, pierce: { base: 0, at: [16, 25] }, speed: { base: 560 }, size: { base: 8 }, range: { base: 400 } },
     },
     laserdisc: {
-      name: 'Laser Disc', icon: 'disc', era: 'future', behavior: 'shoot', kind: 'Projectile', max: 7, spin: true,
+      name: 'Laser Disc', icon: 'disc', era: 'future', behavior: 'shoot', kind: 'Projectile', max: 30, spin: true,
       blurb: 'Glowing discs that slice through a line of enemies.',
-      stats: { cd: { base: 1.5, per: -0.08 }, dmg: { base: 20, per: 7 }, count: { base: 1, at: [3, 6] }, pierce: { base: 4, at: [2, 5] }, speed: { base: 300 }, size: { base: 16 }, range: { base: 420 } },
-      levels: ['', '+7 damage, pierces more', '+1 disc', '+7 damage, faster', '+7 damage, pierces more', '+1 disc', '+7 damage, faster'],
+      stats: { cd: { base: 1.5, per: -0.032 }, dmg: { base: 20, per: 3.5 }, count: { base: 1, at: [11, 25] }, pierce: { base: 4, at: [6, 20] }, speed: { base: 300 }, size: { base: 16 }, range: { base: 420 } },
+    },
+    bonetoss: {
+      name: 'Bone Club', icon: 'bone', era: 'stone', behavior: 'shoot', kind: 'Projectile', max: 30, spin: true, countName: 'bone',
+      unlock: 'quest:deaths20', unlockText: 'Die 20 times', cost: 300,
+      blurb: 'Throw a bone that bounces from enemy to enemy.',
+      stats: { cd: { base: 1.4, per: -0.015 }, dmg: { base: 14, per: 1.8 }, count: { base: 1, at: [9, 18, 27] }, bounce: { base: 2, at: [4, 7, 11, 14, 17, 21, 24, 28, 30] }, speed: { base: 420 }, size: { base: 10 }, range: { base: 380 } },
     },
     ark: {
-      name: 'Ark of the Covenant', icon: 'ark', fx: 'lightray', behavior: 'thrust', kind: 'Melee', max: 7, signature: 'relic',
+      name: 'Ark of the Covenant', icon: 'ark', fx: 'lightray', behavior: 'thrust', kind: 'Melee', max: 30, signature: 'relic',
       blurb: 'Beams of holy light that pierce everything in their path.',
-      stats: { cd: { base: 0.95, per: -0.05 }, dmg: { base: 56, per: 17.6 }, length: { base: 240, per: 15 }, count: { base: 3, at: [3, 5, 7] } },
-      levels: ['', '+17.6 damage, longer', '+1 beam', '+17.6 damage, faster', '+1 beam', '+17.6 damage, longer', '+1 beam'],
+      stats: { cd: { base: 0.95, per: -0.02 }, dmg: { base: 56, per: 8.8 }, length: { base: 240, per: 7.5 }, count: { base: 3, at: [11, 20, 30] } },
     },
   },
 
-  // effect: hearts | speed | count | damage | area | pickup. amount is per level.
+  // effect: hearts | speed | count | damage | area | pickup | crit | critDamage | difficulty. amount is per level.
+  // Hearts and attacks are whole numbers: you get +1 at level 1, then again each time the levels add up to another 1.
   passives: {
-    heart:   { name: 'Mammoth Heart', icon: 'heart', max: 4, effect: 'hearts', amount: 1, blurb: '+1 max heart and heal 1.' },
-    sandals: { name: 'Swift Sandals', icon: 'sandal', max: 5, effect: 'speed', amount: 0.08, blurb: '+8% move speed.' },
-    totem:   { name: 'Tribal Totem', icon: 'totem', max: 3, effect: 'count', amount: 1, blurb: '+1 attack for every weapon.' },
-    flint:   { name: 'Sharp Flint', icon: 'flint', max: 5, effect: 'damage', amount: 0.096, blurb: '+9.6% damage.' },
-    tusk:    { name: 'Giant Tusk', icon: 'tusk', max: 5, effect: 'area', amount: 0.08, blurb: '+8% area and range.' },
-    magnet:  { name: 'Lodestone', icon: 'lodestone', max: 5, effect: 'pickup', amount: 0.14, blurb: '+14% XP pickup range.' },
+    heart:   { name: 'Mammoth Heart', icon: 'heart', max: 30, effect: 'hearts', amount: 0.2, blurb: '+1 max heart now and every 5 levels. Heals 1.' },
+    sandals: { name: 'Swift Sandals', icon: 'sandal', max: 30, effect: 'speed', amount: 0.025, blurb: '+2.5% move speed.' },
+    totem:   { name: 'Tribal Totem', icon: 'totem', max: 30, effect: 'count', amount: 0.1, blurb: '+1 attack for every weapon now and every 10 levels.' },
+    flint:   { name: 'Sharp Flint', icon: 'flint', max: 30, effect: 'damage', amount: 0.04, blurb: '+4% damage.' },
+    tusk:    { name: 'Giant Tusk', icon: 'tusk', max: 30, effect: 'area', amount: 0.03, blurb: '+3% area and range.' },
+    magnet:  { name: 'Lodestone', icon: 'lodestone', max: 30, effect: 'pickup', amount: 0.06, blurb: '+6% XP pickup range.' },
+    crit:    { name: 'Critical Chance', icon: 'crit', max: 30, effect: 'crit', amount: 0.01, blurb: '+1% chance of a critical hit (double damage, red number).' },
+    critdmg: { name: 'Critical Damage', icon: 'fang', max: 30, effect: 'critDamage', amount: 0.05, blurb: 'Critical hits do +5% more damage.' },
+    danger:  { name: 'Difficulty', icon: 'wardrum', max: 30, effect: 'difficulty', amount: 0.05, blurb: '+5% more enemies and +5% enemy health. More enemies, more XP.' },
   },
 
   // Fast enemies are fragile, slow ones are tanky. None of them shoot.
@@ -454,10 +447,10 @@ export const BEHAVIORS = {
   aura: 'Damaging ring around the player (uses dmg, radius, tick, slow)',
   rockfall: 'Things fall on enemies (uses cd, dmg, radius, count)',
   lightning: 'Strikes random enemies (uses cd, dmg, radius, count, chain, range)',
-  shoot: 'Fires projectiles at the nearest enemy (uses cd, dmg, count, pierce, speed, size, range)',
+  shoot: 'Fires projectiles at the nearest enemy (uses cd, dmg, count, pierce, bounce, speed, size, range)',
 };
 
-export const PASSIVE_EFFECTS = ['hearts', 'speed', 'count', 'damage', 'area', 'pickup'];
+export const PASSIVE_EFFECTS = ['hearts', 'speed', 'count', 'damage', 'area', 'pickup', 'crit', 'critDamage', 'difficulty'];
 export const BOSS_ATTACKS = ['charge', 'charge3', 'stomp', 'rocks', 'roar', 'lunge', 'ring', 'pools', 'summon', 'breath', 'meteors', 'fly', 'sweep', 'steam', 'laser', 'cogs', 'smoke', 'coal', 'missiles', 'strafe', 'orbital', 'grid', 'blink'];
 export const BOSS_STYLES = ['', 'hunter', 'rooted', 'flyer', 'mech', 'train', 'chopper', 'warp'];
 export const MUSIC = ['stone', 'stoneBoss', 'roman', 'romanBoss', 'medieval', 'medievalBoss', 'renaissance', 'renaissanceBoss', 'industrial', 'industrialBoss', 'modern', 'modernBoss', 'future', 'futureBoss', 'police', 'title'];

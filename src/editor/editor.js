@@ -402,7 +402,7 @@ function renderPassives(main) {
     h('div', { class: 'grid' },
       txt(p, 'name', 'Name'),
       spritePick(p, 'icon', 'Icon'),
-      sel(p, 'effect', 'What it boosts', PASSIVE_EFFECTS.map(e => [e, { hearts: 'Max hearts', speed: 'Move speed (%)', count: 'Attacks per weapon', damage: 'Damage (%)', area: 'Area and range (%)', pickup: 'XP pickup range (%)' }[e]])),
+      sel(p, 'effect', 'What it boosts', PASSIVE_EFFECTS.map(e => [e, { hearts: 'Max hearts', speed: 'Move speed (%)', count: 'Attacks per weapon', damage: 'Damage (%)', area: 'Area and range (%)', pickup: 'XP pickup range (%)', crit: 'Crit chance', critDamage: 'Crit damage (%)', difficulty: 'Difficulty (%)', haste: 'Attack speed (%)' }[e]])),
       num(p, 'amount', 'Amount per level', '0.1 = +10% for percent boosts, 1 = +1 otherwise'),
       num(p, 'max', 'Max level'),
       txt(p, 'blurb', 'Description', null, { area: true }),

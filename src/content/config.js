@@ -76,6 +76,11 @@ function addNewContent(cfg, d, seen) {
     const bc = cfg.weapons.boneclub;
     if (bc && bc.name === 'Bone Club') { bc.name = d.weapons.boneclub.name; bc.blurb = d.weapons.boneclub.blurb; }
   }
+  // Bigger Mammoth Club (v27). English Tea is a new passive, so addNewContent brings it in.
+  if (seen < 27 && cfg.weapons.boneclub && cfg.weapons.boneclub.stats) {
+    cfg.weapons.boneclub.stats.radius = { ...d.weapons.boneclub.stats.radius };
+    cfg.weapons.boneclub.iconScale = d.weapons.boneclub.iconScale;
+  }
   // Passives twice as strong (v26)
   if (seen < 26) for (const [key, val] of Object.entries(d.passives)) {
     const have = cfg.passives[key];

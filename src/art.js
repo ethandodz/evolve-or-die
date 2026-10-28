@@ -833,6 +833,8 @@ const ITEMS = {
   crit: () => paint(14, 14, (s) => { s.ell(7, 7, 6, 6, RED); s.ell(7, 7, 4, 4, WHITE); s.ell(7, 7, 2, 2, RED); s.put(6, 6, '#ffffff'); }),
   // Lethality (critical damage): a sabertooth fang with a red tip
   fang: () => paint(12, 16, (s) => { for (let y = 0; y < 13; y++) s.line(3 + y * 0.25, y, 9 - y * 0.35, y, BONE[y < 5 ? 0 : y < 9 ? 1 : 2]); s.rect(5, 12, 2, 3, RED); s.put(4, 2, '#ffffff'); }),
+  // English Tea: a china teacup with steam
+  tea: () => paint(16, 15, (s) => { s.line(5, 0, 6, 3, '#e8f0f8'); s.line(9, 0, 8, 3, '#e8f0f8'); s.rect(2, 5, 10, 6, ['#ffffff', '#e8f0f8', '#c8d4ea', '#8a9ab8'], 0.1); s.ell(7, 5, 5, 1.4, ['#a8642a', '#8a4a1a', '#6a3410', '#4a2408']); s.ell(13, 8, 2, 2, ['#ffffff', '#e8f0f8', '#c8d4ea', '#8a9ab8']); s.ell(13, 8, 0.9, 0.9, [null, null, null, null]); s.rect(5, 7, 4, 1, '#3a6ac8'); s.ell(7, 12.5, 6, 1.5, ['#ffffff', '#e8f0f8', '#c8d4ea', '#8a9ab8']); }),
   // Difficulty: a war drum
   wardrum: () => paint(16, 14, (s) => { s.rect(2, 4, 12, 8, RED, 0.1); s.ell(8, 4, 6, 2.4, CREAM); for (let x = 3; x < 14; x += 3) s.line(x, 5, x + 1.5, 11, GOLD[2]); s.line(10, 0, 13, 3, WOOD[1]); s.ell(9.5, 0.5, 1, 1, CREAM); }),
   lodestone: () => paint(13, 13, (s) => { s.ell(6.5, 6.5, 5.5, 5, GREYS, 0.15); s.put(5, 4, '#7ad0f4'); s.put(8, 7, '#7ad0f4'); s.put(4, 8, '#7ad0f4'); }),

@@ -4,7 +4,7 @@
 export const DEFAULT_CONFIG = {
   version: 1,
   // Bump when new built-in content is added, so saved editor edits get it too (see config.js)
-  contentVersion: 19,
+  contentVersion: 20,
 
   balance: {
     ageLength: 300,        // seconds until the time police arrive
@@ -13,7 +13,9 @@ export const DEFAULT_CONFIG = {
     spawnGrowth: 0.06,     // extra enemies per second, per second
     crowdStart: 30,        // max enemies alive at the start of an age
     crowdGrowth: 1.0,      // extra allowed per second
-    hpGrowth: 50,          // enemy HP goes up by its starting amount every this many seconds
+    hpGrowth: 41.7,        // enemy HP goes up by its starting amount every this many seconds
+    enemyHpMul: 1.4,       // all enemies (bosses too) have this much health
+    ageHpBonus: 0.1,       // and +10% more after each age (stacks)
     playerSpeed: 140,
     pickupRange: 80,
     invincibility: 1.1,    // seconds of safety after a hit

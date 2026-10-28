@@ -312,6 +312,11 @@ export default class Game extends Phaser.Scene {
     return this.age.hpMul * (1 + this.ageTime / BAL.hpGrowth) * this.loopMul();
   }
 
+  // Every enemy (bosses too) is tougher overall, and a bit more so after each age
+  hpBoost() {
+    return (BAL.enemyHpMul ?? 1.4) * (1 + (BAL.ageHpBonus ?? 0.1)) ** this.stage();
+  }
+
   loopMul() {
     return 1 + this.loop * (BAL.loopHp || 2.5);
   }
@@ -392,7 +397,7 @@ export default class Game extends Phaser.Scene {
         this.policeAcc -= 1;
         if (this.enemies.length < MAX_ENEMIES + 40) {
           const e = this.spawnEnemy('timecop');
-          e.hp = e.maxHp = ENEMIES.timecop.hp * this.age.hpMul * (1.5 + over / 20);
+          e.hp = e.maxHp = ENEMIES.timecop.hp * this.age.hpMul * (1.5 + over / 20) * this.hpBoost();
           e.speed = ENEMIES.timecop.speed + Math.min(60, over * 0.8);
         }
       }
@@ -437,6 +442,7 @@ export default class Game extends Phaser.Scene {
       burnT: 0, burnDps: 0, burnAcc: 0, flying: false, lift: 0,
     });
     if (e.def.boss) e.hp *= this.loopMul();
+    e.hp *= this.hpBoost();
     if (e.shieldIcon) e.shieldIcon.setVisible(false);
     if (e.shieldHits) { e.baseTint = 0xb8d0ff; e.spr.setTint(e.baseTint); }
     e.maxHp = e.hp;
@@ -2344,7 +2350,7 @@ export default class Game extends Phaser.Scene {
       const a = rand(0, TAU);
       const e = this.spawnEnemy('thief', Math.cos(a) * 230, Math.sin(a) * 230);
       e.mode = 'flee'; e.thief = true;
-      e.hp = e.maxHp = (ENEMIES.thief ? ENEMIES.thief.hp : 60) * this.age.hpMul * 2 * this.loopMul();
+      e.hp = e.maxHp = (ENEMIES.thief ? ENEMIES.thief.hp : 60) * this.age.hpMul * 2 * this.loopMul() * this.hpBoost();
       e.baseTint = 0xffe8a0; e.spr.setTint(e.baseTint);
       this.event.target = e;
       this.event.t = this.event.total = 15;

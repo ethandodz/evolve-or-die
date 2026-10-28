@@ -493,6 +493,7 @@ function renderBalance(main) {
     ['spawnBase', 'Spawns per second at start'], ['spawnGrowth', 'Extra spawns per second, each second'],
     ['crowdStart', 'Crowd size at start'], ['crowdGrowth', 'Crowd growth per second'],
     ['hpGrowth', 'Enemy health growth', 'Health doubles about every this many seconds'],
+    ['enemyHpMul', 'Enemy health boost', '1.4 = every enemy has 40% more health'], ['ageHpBonus', 'Extra enemy health per age', '0.1 = +10% more after each age (stacks)'],
     ['miniBossHp', 'Mini-boss health multiplier'], ['stampedeSize', 'Stampede size'],
     ['critChance', 'Critical hit chance', '0.08 = 8%'], ['coinChance', 'Coin drop chance'], ['meatChance', 'Healing meat drop chance'], ['magnetChance', 'Magnet drop chance'],
     ['xpEarly', 'Early level discount', '0.45 = first level costs 45%, normal by level 6'], ['giftWeaponAt', 'Free 2nd weapon at', 'Part of the first age, 0.2 = 1 minute in. 0 = off'],

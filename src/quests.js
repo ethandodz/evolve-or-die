@@ -36,6 +36,12 @@ export function allQuests() {
     { id: 'kills10k', name: 'Slayer', blurb: 'Defeat 10,000 enemies', target: 10000, reward: 60, value: () => st().kills },
     { id: 'comboall', name: 'Combo Master', blurb: `Discover all ${COMBOS.length} weapon combos`, target: Math.max(1, COMBOS.length), reward: 50, value: () => Object.keys(st().combos).length },
     { id: 'relic1', name: 'Collector', blurb: 'Take a relic from a treasure chest', target: 1, reward: 20, value: () => st().relics || 0 },
+    // Harder goals that unlock the stronger characters
+    { id: 'level30', name: 'Seasoned', blurb: 'Reach level 30 in one run', target: 30, reward: 25, value: () => st().bestLevel || 0 },
+    { id: 'combo5', name: 'Mad Scientist', blurb: 'Discover 5 weapon combos', target: 5, reward: 35, value: () => Object.keys(st().combos).length },
+    { id: 'thief10', name: 'Master Detective', blurb: 'Catch 10 treasure thieves', target: 10, reward: 40, value: () => st().thieves || 0 },
+    { id: 'flawless3', name: 'Showstopper', blurb: 'Beat 3 bosses without getting hit', target: 3, reward: 50, value: () => st().flawless || 0 },
+    { id: 'elites500', name: 'Elite Slayer', blurb: 'Defeat 500 glowing elites', target: 500, reward: 50, value: () => st().elites || 0 },
     { id: 'loop', name: 'Time Loop', blurb: 'Loop back in time with the Magic Mirror', target: 1, reward: 50, value: () => st().loops || 0 },
   ];
   // One per age boss

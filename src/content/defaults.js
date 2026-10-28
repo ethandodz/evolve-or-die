@@ -4,7 +4,7 @@
 export const DEFAULT_CONFIG = {
   version: 1,
   // Bump when new built-in content is added, so saved editor edits get it too (see config.js)
-  contentVersion: 21,
+  contentVersion: 22,
 
   balance: {
     ageLength: 300,        // seconds until the time police arrive
@@ -59,7 +59,7 @@ export const DEFAULT_CONFIG = {
       dmgMul: 1.3, weaponSlots: 2, perk: '+30% damage', drawback: 'Only 2 weapon slots' },
     { key: 'shaman', name: 'ORA', title: 'The Shaman', sprite: 'shaman', weapon: 'spiritfire', hearts: 1, speed: 1, unlock: 'hydra',
       xpMul: 1.3, areaMul: 1.25, perk: '+30% XP, +25% area', drawback: 'Only 1 heart' },
-    { key: 'centurion', name: 'MARCUS', title: 'The Centurion', sprite: 'centurion', weapon: 'pilum', hearts: 2, speed: 0.95, unlock: 'kills:1500',
+    { key: 'centurion', name: 'MARCUS', title: 'The Centurion', sprite: 'centurion', weapon: 'pilum', hearts: 2, speed: 0.95, unlock: 'kills:3000',
       bonusCount: 1, dmgMul: 0.85, perk: '+1 attack for every weapon', drawback: '-15% damage' },
     { key: 'knight', name: 'EDRIC', title: 'The Knight', sprite: 'knight', weapon: 'holyblades', hearts: 2, speed: 0.85, unlock: 'dragon',
       damageTaken: 0.5, perk: 'Hits only take half a heart', drawback: '15% slower' },
@@ -72,15 +72,15 @@ export const DEFAULT_CONFIG = {
     { key: 'nova', name: 'NOVA', title: 'The Star Ranger', sprite: 'nova', weapon: 'plasmalance', hearts: 1, speed: 1, unlock: 'overlord',
       cdMul: 0.87, dmgMul: 1.15, perk: '15% faster attacks, +15% damage', drawback: 'Only 1 heart' },
     // Unlocked by achievements (unlock: 'quest:<quest id>' from quests.js; unlockText is the short hint on the card)
-    { key: 'bard', name: 'BRAM', title: 'The Bard', sprite: 'bard', weapon: 'battlelute', hearts: 1, speed: 1, unlock: 'quest:level20', unlockText: 'Reach level 20',
+    { key: 'bard', name: 'BRAM', title: 'The Bard', sprite: 'bard', weapon: 'battlelute', hearts: 1, speed: 1, unlock: 'quest:level30', unlockText: 'Reach level 30',
       cdMul: 0.9, xpMul: 1.15, perk: '10% faster attacks, +15% XP', drawback: 'Only 1 heart' },
-    { key: 'alchemist', name: 'BELLA', title: 'The Alchemist', sprite: 'alchemist', weapon: 'potionbombs', hearts: 2, speed: 1, unlock: 'quest:combo3', unlockText: 'Find 3 combos',
+    { key: 'alchemist', name: 'BELLA', title: 'The Alchemist', sprite: 'alchemist', weapon: 'potionbombs', hearts: 2, speed: 1, unlock: 'quest:combo5', unlockText: 'Find 5 combos',
       areaMul: 1.3, xpMul: 1.2, weaponSlots: 2, perk: '+30% area, +20% XP', drawback: 'Only 2 weapon slots' },
-    { key: 'inspector', name: 'IVY', title: 'The Inspector', sprite: 'inspector', weapon: 'swordcane', hearts: 2, speed: 1.1, unlock: 'quest:thief3', unlockText: 'Catch 3 thieves',
+    { key: 'inspector', name: 'IVY', title: 'The Inspector', sprite: 'inspector', weapon: 'swordcane', hearts: 2, speed: 1.1, unlock: 'quest:thief10', unlockText: 'Catch 10 thieves',
       critMul: 2, areaMul: 0.8, perk: 'Double crits, 10% faster', drawback: '-20% area and range' },
-    { key: 'rocker', name: 'ROXY', title: 'The Rockstar', sprite: 'rocker', weapon: 'ampblast', hearts: 2, speed: 1, unlock: 'quest:flawless', unlockText: 'Beat a boss unhit',
+    { key: 'rocker', name: 'ROXY', title: 'The Rockstar', sprite: 'rocker', weapon: 'ampblast', hearts: 2, speed: 1, unlock: 'quest:flawless3', unlockText: 'Beat 3 bosses unhit',
       dmgMul: 1.3, areaMul: 0.8, perk: '+30% damage', drawback: '-20% area and range' },
-    { key: 'zorp', name: 'ZORP', title: 'The Alien', sprite: 'zorp', weapon: 'raygun', hearts: 3, speed: 0.9, unlock: 'quest:elites100', unlockText: 'Beat 100 elites',
+    { key: 'zorp', name: 'ZORP', title: 'The Alien', sprite: 'zorp', weapon: 'raygun', hearts: 3, speed: 0.9, unlock: 'quest:elites500', unlockText: 'Beat 500 elites',
       pet: 'ufo', perk: 'A mini UFO fights with you', drawback: '10% slower' },
   ],
 

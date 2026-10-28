@@ -4,7 +4,7 @@
 export const DEFAULT_CONFIG = {
   version: 1,
   // Bump when new built-in content is added, so saved editor edits get it too (see config.js)
-  contentVersion: 15,
+  contentVersion: 16,
 
   balance: {
     ageLength: 300,        // seconds until the time police arrive
@@ -74,39 +74,40 @@ export const DEFAULT_CONFIG = {
   ],
 
   // stats: each value is base + per * (level - 1) + one for every level in "at" that is reached
+  // era: the age where a shared weapon first turns up. Once equipped it shows up in every age after that.
   weapons: {
     club: {
-      name: 'Club', icon: 'club', behavior: 'swing', kind: 'Melee', max: 7,
+      name: 'Club', icon: 'club', era: 'stone', behavior: 'swing', kind: 'Melee', max: 7,
       blurb: 'Big swing in front of you. Knocks enemies back.',
       stats: { cd: { base: 1.0, per: -0.06 }, dmg: { base: 11.2, per: 4.8 }, radius: { base: 78, per: 6 }, count: { base: 1, at: [3, 6] }, knockback: { base: 260 } },
       levels: ['', '+4.8 damage', '+1 swing', 'Faster, +4.8 damage', 'Bigger swing, +4.8 damage', '+1 swing', 'Faster, +4.8 damage'],
     },
     axes: {
-      name: 'Orbiting Axes', icon: 'axe', behavior: 'orbit', kind: 'Orbit', max: 7,
+      name: 'Orbiting Axes', icon: 'axe', era: 'medieval', behavior: 'orbit', kind: 'Orbit', max: 7,
       blurb: 'Stone axes circle around you.',
       stats: { dmg: { base: 6.4, per: 3.2 }, radius: { base: 64, per: 5 }, count: { base: 2, at: [3, 5, 7] }, spin: { base: 3.4, per: 0.25 }, hitDelay: { base: 0.45 } },
       levels: ['', '+3.2 damage, faster', '+1 axe', '+3.2 damage, wider', '+1 axe', '+3.2 damage, faster', '+1 axe'],
     },
     spear: {
-      name: 'Spear', icon: 'spear', behavior: 'thrust', kind: 'Melee', max: 7,
+      name: 'Spear', icon: 'spear', era: 'roman', behavior: 'thrust', kind: 'Melee', max: 7,
       blurb: 'Long thrust at the nearest enemy. Pierces.',
       stats: { cd: { base: 1.25, per: -0.07 }, dmg: { base: 17.6, per: 6.4 }, length: { base: 125, per: 10 }, count: { base: 1, at: [4, 7] } },
       levels: ['', '+6.4 damage, longer', 'Faster, +6.4 damage', '+1 spear', '+6.4 damage, longer', 'Faster, +6.4 damage', '+1 spear'],
     },
     fire: {
-      name: 'Fire Ring', icon: 'flame', behavior: 'aura', kind: 'Aura', max: 7,
+      name: 'Fire Ring', icon: 'flame', era: 'stone', behavior: 'aura', kind: 'Aura', max: 7,
       blurb: 'Burns and slows enemies near you.',
       stats: { dmg: { base: 4, per: 2 }, radius: { base: 54, per: 7 }, tick: { base: 0.5, per: -0.02 }, slow: { base: 0.3, per: 0.03 } },
       levels: ['', '+2 damage, wider', '+2 damage, burns faster', '+2 damage, wider', '+2 damage, slows more', '+2 damage, wider', '+2 damage, burns faster'],
     },
     rocks: {
-      name: 'Rock Fall', icon: 'rock', behavior: 'rockfall', kind: 'Area', max: 7,
+      name: 'Rock Fall', icon: 'rock', era: 'stone', behavior: 'rockfall', kind: 'Area', max: 7,
       blurb: 'Boulders crash down on enemies.',
       stats: { cd: { base: 2.1, per: -0.1 }, dmg: { base: 20.8, per: 8 }, radius: { base: 36, per: 3 }, count: { base: 2, at: [2, 4, 6] } },
       levels: ['', '+8 damage, +1 rock', 'Faster, +8 damage', '+8 damage, +1 rock', 'Bigger, +8 damage', '+8 damage, +1 rock', 'Faster, +8 damage'],
     },
     bolt: {
-      name: 'Sky Bolt', icon: 'bolt', behavior: 'lightning', kind: 'Area', max: 7,
+      name: 'Sky Bolt', icon: 'bolt', era: 'renaissance', behavior: 'lightning', kind: 'Area', max: 7,
       blurb: 'Lightning strikes enemies around you.',
       stats: { cd: { base: 1.7, per: -0.1 }, dmg: { base: 25.6, per: 8 }, radius: { base: 28, per: 2 }, count: { base: 1, at: [3, 5, 7] }, chain: { base: 0, at: [5, 5] }, range: { base: 270 } },
       levels: ['', '+8 damage, faster', '+1 bolt', '+8 damage, faster', '+1 bolt, bolts chain', '+8 damage, faster', '+1 bolt'],
@@ -170,19 +171,19 @@ export const DEFAULT_CONFIG = {
     },
     // New weapons anyone can find
     dynamite: {
-      name: 'Dynamite', icon: 'dynamite', behavior: 'rockfall', kind: 'Area', max: 7,
+      name: 'Dynamite', icon: 'dynamite', era: 'industrial', behavior: 'rockfall', kind: 'Area', max: 7,
       blurb: 'Sticks of dynamite land on enemies and blow up a wide area.',
       stats: { cd: { base: 2.6, per: -0.12 }, dmg: { base: 32, per: 12 }, radius: { base: 54, per: 4 }, count: { base: 1, at: [3, 5, 7] } },
       levels: ['', '+12 damage, bigger', '+1 stick', 'Faster, +12 damage', '+1 stick', 'Bigger, +12 damage', '+1 stick'],
     },
     nailgun: {
-      name: 'Nail Gun', icon: 'nailgun', fx: 'nail', behavior: 'shoot', kind: 'Projectile', max: 7,
+      name: 'Nail Gun', icon: 'nailgun', era: 'modern', fx: 'nail', behavior: 'shoot', kind: 'Projectile', max: 7,
       blurb: 'Rapid-fire nails at the nearest enemy.',
       stats: { cd: { base: 0.6, per: -0.03 }, dmg: { base: 9, per: 3.6 }, count: { base: 1, at: [3, 5, 7] }, pierce: { base: 0, at: [4, 6] }, speed: { base: 560 }, size: { base: 8 }, range: { base: 400 } },
       levels: ['', '+3.6 damage, faster', '+1 nail', '+3.6 damage, nails pierce', '+1 nail', '+3.6 damage, pierce more', '+1 nail'],
     },
     laserdisc: {
-      name: 'Laser Disc', icon: 'disc', behavior: 'shoot', kind: 'Projectile', max: 7, spin: true,
+      name: 'Laser Disc', icon: 'disc', era: 'future', behavior: 'shoot', kind: 'Projectile', max: 7, spin: true,
       blurb: 'Glowing discs that slice through a line of enemies.',
       stats: { cd: { base: 1.5, per: -0.08 }, dmg: { base: 20, per: 7 }, count: { base: 1, at: [3, 6] }, pierce: { base: 4, at: [2, 5] }, speed: { base: 300 }, size: { base: 16 }, range: { base: 420 } },
       levels: ['', '+7 damage, pierces more', '+1 disc', '+7 damage, faster', '+7 damage, pierces more', '+1 disc', '+7 damage, faster'],

@@ -46,7 +46,8 @@ export const wholeEffect = (effect) => effect === 'hearts';
 
 // A passive's card text with the rarity boost applied ("+12% damage." -> "+14% damage.")
 export const boostedBlurb = (blurb, mult) => mult === 1 ? blurb : blurb
-  .replace(/\d+(\.\d+)?/g, n => String(Math.round(parseFloat(n) * mult * 10) / 10))
+  // Only the "+N" amounts grow (not "100%" or "4x" in the description)
+  .replace(/\+(\d+(\.\d+)?)/g, (m, n) => `+${Math.round(parseFloat(n) * mult * 10) / 10}`)
   .replace(/\b([2-9]) max heart\b/, '$1 max hearts')
   .replace(/\b([2-9]) attack\b/, '$1 attacks');
 

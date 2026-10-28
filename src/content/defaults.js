@@ -4,7 +4,7 @@
 export const DEFAULT_CONFIG = {
   version: 1,
   // Bump when new built-in content is added, so saved editor edits get it too (see config.js)
-  contentVersion: 32,
+  contentVersion: 33,
 
   balance: {
     ageLength: 210,        // seconds until the time police arrive (the boss fight doesn't stop the clock)
@@ -19,7 +19,7 @@ export const DEFAULT_CONFIG = {
     hpGrowth: 41.7,        // enemy HP goes up by its starting amount every this many seconds
     enemyHpMul: 1.4,       // all enemies (bosses too) have this much health
     ageHpBonus: 0.1,       // and +10% more after each age (stacks)
-    playerSpeed: 140,
+    playerSpeed: 119,
     pickupRange: 80,
     invincibility: 1.5,    // seconds of safety after a hit
     critChance: 0.08,      // chance of a critical hit (red damage number)
@@ -113,7 +113,7 @@ export const DEFAULT_CONFIG = {
     fire: {
       name: 'Fire Ring', icon: 'flame', era: 'stone', behavior: 'aura', kind: 'Aura', max: 30,
       blurb: 'Burns and slows enemies near you.',
-      stats: { dmg: { base: 4, per: 1 }, radius: { base: 54, per: 3.5 }, tick: { base: 0.5, per: -0.008 }, slow: { base: 0.3, per: 0.015 } },
+      stats: { dmg: { base: 6, per: 1.5 }, radius: { base: 81, per: 3.5 }, tick: { base: 0.5, per: -0.008 }, slow: { base: 0.3, per: 0.015 } },
     },
     rocks: {
       name: 'Meteor', countName: 'meteor', icon: 'meteor', era: 'stone', behavior: 'rockfall', kind: 'Area', max: 30, fiery: true,
@@ -236,12 +236,12 @@ export const DEFAULT_CONFIG = {
   passives: {
     heart:   { name: 'Mammoth Heart', icon: 'heart', max: 30, effect: 'hearts', amount: 0.2, blurb: '+1 max heart now and every 5 levels. Heals 1.' },
     sandals: { name: 'Swift Sandals', icon: 'sandal', max: 30, effect: 'speed', amount: 0.075, blurb: '+7.5% move speed.' },
-    totem:   { name: 'Tribal Totem', icon: 'totem', max: 30, effect: 'count', amount: 0.5, blurb: '+0.5 attacks for every weapon. Each time the total reaches a whole number, every weapon gets one more attack.' },
+    totem:   { name: 'Tribal Totem', icon: 'totem', max: 30, effect: 'count', amount: 1, firstPick: 1, blurb: '+1 attack for every weapon. Rarer cards add part of another; each time the total reaches a whole number, every weapon gets one more attack.' },
     flint:   { name: 'Sharp Flint', icon: 'flint', max: 30, effect: 'damage', amount: 0.12, blurb: '+12% damage.' },
     tusk:    { name: 'Giant Tusk', icon: 'tusk', max: 30, effect: 'area', amount: 0.09, blurb: '+9% area and range.' },
     magnet:  { name: 'Lodestone', icon: 'lodestone', max: 30, effect: 'pickup', amount: 0.18, blurb: '+18% XP pickup range.' },
-    crit:    { name: 'Focus', icon: 'crit', max: 30, effect: 'crit', amount: 0.03, blurb: '+3% chance of a critical hit (double damage, red number).' },
-    critdmg: { name: 'Lethality', icon: 'fang', max: 30, effect: 'critDamage', amount: 0.15, blurb: 'Critical hits do +15% more damage.' },
+    crit:    { name: 'Focus', icon: 'crit', max: 30, effect: 'crit', amount: 0.045, blurb: '+4.5% critical hit chance (2x damage).\nOver 100%: chance of a DOUBLE CRIT (4x).' },
+    critdmg: { name: 'Lethality', icon: 'fang', max: 30, effect: 'critDamage', amount: 0.225, blurb: 'Critical hits do +22.5% more damage.' },
     // English Tea: the first cup gives +15% attack speed (firstPick 1.5 levels), then +10% a level
     tea:     { name: 'English Tea', icon: 'tea', max: 30, effect: 'haste', amount: 0.1, firstPick: 1.5, unlock: 'quest:renmini', blurb: '+10% attack speed.' },
     danger:  { name: 'Difficulty', icon: 'wardrum', max: 30, effect: 'difficulty', amount: 0.05, blurb: '+5% more enemies and +5% enemy health. More enemies, more XP.' },

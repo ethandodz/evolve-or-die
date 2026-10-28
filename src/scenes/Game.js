@@ -725,8 +725,11 @@ export default class Game extends Phaser.Scene {
 
   hitEnemy(e, base, sx, sy, kb = 0) {
     if (!e.alive || e.flying) return;
+    // Crit chance over 100% is the chance of a double crit (twice a normal crit's damage)
     const crit = Math.random() < this.stats.crit;
-    let dmg = Math.max(1, Math.round(base * this.stats.dmg * (crit ? this.stats.critDmg : 1) * (e.vuln ? 2 : 1)));
+    const double = crit && this.stats.crit > 1 && Math.random() < this.stats.crit - 1;
+    const critMul = double ? this.stats.critDmg * 2 : crit ? this.stats.critDmg : 1;
+    let dmg = Math.max(1, Math.round(base * this.stats.dmg * critMul * (e.vuln ? 2 : 1)));
     if (e.shieldHits > 0 && !save.seenShield) {
       save.seenShield = true; persist();
       this.ui.banner('SHIELDS!', 'Blue enemies block most damage\nuntil their shield breaks', 2600, '#b8d0ff');
@@ -759,7 +762,7 @@ export default class Game extends Phaser.Scene {
       const k = e.boss ? 0 : e.def.heavy ? kb * 0.25 : kb;
       e.kx += (dx / d) * k; e.ky += (dy / d) * k;
     }
-    if (save.settings.damageNumbers) this.spawnNumber(e.x, e.y - e.r * 1.6, dmg, crit);
+    if (save.settings.damageNumbers) this.spawnNumber(e.x, e.y - e.r * 1.6, dmg, crit, double ? '#ff8a1a' : null, double);
     audio.play('hit');
     if (e.hp <= 0) this.killEnemy(e);
   }
@@ -2685,7 +2688,7 @@ export default class Game extends Phaser.Scene {
     }
   }
 
-  spawnNumber(x, y, val, crit, color) {
+  spawnNumber(x, y, val, crit, color, big = false) {
     let n = this.numbers.find(q => !q.alive);
     if (!n) {
       if (this.numbers.length > 40) return;
@@ -2693,7 +2696,7 @@ export default class Game extends Phaser.Scene {
       this.numbers.push(n);
     }
     Object.assign(n, { alive: true, x: x + rand(-6, 6), y, life: 0.55, vy: -70 });
-    n.txt.setVisible(true).setText(String(val)).setColor(color || (crit ? '#ff3a3a' : '#ffffff')).setFontSize(crit ? 12 : 8).setAlpha(1).setPosition(n.x, n.y);
+    n.txt.setVisible(true).setText(String(val)).setColor(color || (crit ? '#ff3a3a' : '#ffffff')).setFontSize(big ? 16 : crit ? 12 : 8).setAlpha(1).setPosition(n.x, n.y);
   }
 
   floatText(x, y, str, color) {

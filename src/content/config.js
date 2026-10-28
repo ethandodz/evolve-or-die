@@ -118,6 +118,14 @@ function addNewContent(cfg, d, seen) {
     const bard = cfg.characters.find(c => c.key === 'bard'), nb = d.characters.find(c => c.key === 'bard');
     if (bard && bard.xpMul === 1.25) { bard.xpMul = nb.xpMul; bard.perk = nb.perk; }
   }
+  // Harder character unlocks (v22): only where the old default was never edited
+  if (seen < 22) {
+    const OLD_UNLOCK = { centurion: 'kills:1500', bard: 'quest:level20', alchemist: 'quest:combo3', inspector: 'quest:thief3', rocker: 'quest:flawless', zorp: 'quest:elites100' };
+    for (const c of cfg.characters) {
+      const nd = d.characters.find(x => x.key === c.key);
+      if (nd && OLD_UNLOCK[c.key] && c.unlock === OLD_UNLOCK[c.key]) { c.unlock = nd.unlock; c.unlockText = nd.unlockText; }
+    }
+  }
   cfg.contentVersion = d.contentVersion;
 }
 

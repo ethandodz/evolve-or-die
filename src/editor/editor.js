@@ -205,7 +205,7 @@ function renderCharacters(main) {
       sel(cur, 'weapon', 'Starting weapon', Object.entries(cfg.weapons).map(([k, w]) => [k, w.name])),
       num(cur, 'hearts', 'Hearts', 'Starting max hearts'),
       num(cur, 'speed', 'Speed multiplier', '1 = normal, 1.2 = 20% faster'),
-      sel(cur, 'unlock', 'How to unlock', [['start', 'Unlocked from the start'], ...bosses, ['kills:500', 'Defeat 500 enemies'], ['kills:1500', 'Defeat 1500 enemies'], ['kills:5000', 'Defeat 5000 enemies']]),
+      sel(cur, 'unlock', 'How to unlock', [['start', 'Unlocked from the start'], ...bosses, ['kills:500', 'Defeat 500 enemies'], ['kills:1500', 'Defeat 1500 enemies'], ['kills:3000', 'Defeat 3000 enemies'], ['kills:5000', 'Defeat 5000 enemies']]),
     ),
     h('h3', {}, 'PERK AND DRAWBACK'),
     h('div', { class: 'grid' },

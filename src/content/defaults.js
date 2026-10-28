@@ -4,7 +4,7 @@
 export const DEFAULT_CONFIG = {
   version: 1,
   // Bump when new built-in content is added, so saved editor edits get it too (see config.js)
-  contentVersion: 13,
+  contentVersion: 14,
 
   balance: {
     ageLength: 300,        // seconds until the time police arrive
@@ -44,6 +44,8 @@ export const DEFAULT_CONFIG = {
     eventLength: 20,       // seconds a random event lasts
     treasureChance: 0.001,  // chance any enemy drops a relic chest (0.1%)
     bossTreasureChance: 0.25,  // chance an age boss drops a relic chest
+    xpDrop: 0.6,           // XP from each enemy (0.6 = 40% less than the original)
+    shopPriceMul: 5,       // wizard prices are this many times the listed cost
   },
 
   // Each character has a perk and a drawback. Optional stats: dmgMul, critMul, xpMul,
@@ -51,17 +53,17 @@ export const DEFAULT_CONFIG = {
   // pet: an enemy sprite that fights at your side.
   // unlock: 'start', a boss key, or 'kills:N' (total enemies defeated over all runs).
   characters: [
-    { key: 'caveman', name: 'GRUG', title: 'The Caveman', sprite: 'caveman', weapon: 'boneclub', hearts: 5, speed: 1, unlock: 'start',
+    { key: 'caveman', name: 'GRUG', title: 'The Caveman', sprite: 'caveman', weapon: 'boneclub', hearts: 2, speed: 1, unlock: 'start',
       dmgMul: 1.3, weaponSlots: 2, perk: '+30% damage', drawback: 'Only 2 weapon slots' },
-    { key: 'tamer', name: 'TAKA', title: 'The Dino Tamer', sprite: 'tamer', weapon: 'amber', hearts: 4, speed: 1, unlock: 'trex',
-      pet: 'raptor', perk: 'A baby raptor fights with you', drawback: 'Only 4 hearts' },
-    { key: 'shaman', name: 'ORA', title: 'The Shaman', sprite: 'shaman', weapon: 'spiritfire', hearts: 3, speed: 1, unlock: 'hydra',
-      xpMul: 1.3, areaMul: 1.25, perk: '+30% XP, +25% area', drawback: 'Only 3 hearts' },
-    { key: 'centurion', name: 'MARCUS', title: 'The Centurion', sprite: 'centurion', weapon: 'pilum', hearts: 5, speed: 0.95, unlock: 'kills:1500',
+    { key: 'tamer', name: 'TAKA', title: 'The Dino Tamer', sprite: 'tamer', weapon: 'amber', hearts: 1, speed: 1, unlock: 'trex',
+      pet: 'raptor', perk: 'A baby raptor fights with you', drawback: 'Only 1 heart' },
+    { key: 'shaman', name: 'ORA', title: 'The Shaman', sprite: 'shaman', weapon: 'spiritfire', hearts: 1, speed: 1, unlock: 'hydra',
+      xpMul: 1.3, areaMul: 1.25, perk: '+30% XP, +25% area', drawback: 'Only 1 heart' },
+    { key: 'centurion', name: 'MARCUS', title: 'The Centurion', sprite: 'centurion', weapon: 'pilum', hearts: 2, speed: 0.95, unlock: 'kills:1500',
       bonusCount: 1, dmgMul: 0.85, perk: '+1 attack for every weapon', drawback: '-15% damage' },
-    { key: 'knight', name: 'EDRIC', title: 'The Knight', sprite: 'knight', weapon: 'holyblades', hearts: 5, speed: 0.85, unlock: 'dragon',
+    { key: 'knight', name: 'EDRIC', title: 'The Knight', sprite: 'knight', weapon: 'holyblades', hearts: 2, speed: 0.85, unlock: 'dragon',
       damageTaken: 0.5, perk: 'Hits only take half a heart', drawback: '15% slower' },
-    { key: 'inventor', name: 'NICO', title: 'The Inventor', sprite: 'inventor', weapon: 'tesla', hearts: 4, speed: 1, unlock: 'mech',
+    { key: 'inventor', name: 'NICO', title: 'The Inventor', sprite: 'inventor', weapon: 'tesla', hearts: 1, speed: 1, unlock: 'mech',
       cdMul: 0.8, areaMul: 0.8, perk: 'Weapons attack 25% faster', drawback: '-20% area and range' },
   ],
 
@@ -157,7 +159,7 @@ export const DEFAULT_CONFIG = {
     totem:   { name: 'Tribal Totem', icon: 'totem', max: 3, effect: 'count', amount: 1, blurb: '+1 attack for every weapon.' },
     flint:   { name: 'Sharp Flint', icon: 'flint', max: 5, effect: 'damage', amount: 0.096, blurb: '+9.6% damage.' },
     tusk:    { name: 'Giant Tusk', icon: 'tusk', max: 5, effect: 'area', amount: 0.08, blurb: '+8% area and range.' },
-    magnet:  { name: 'Lodestone', icon: 'lodestone', max: 5, effect: 'pickup', amount: 0.28, blurb: '+28% XP pickup range.' },
+    magnet:  { name: 'Lodestone', icon: 'lodestone', max: 5, effect: 'pickup', amount: 0.14, blurb: '+14% XP pickup range.' },
   },
 
   // Fast enemies are fragile, slow ones are tanky. None of them shoot.
@@ -263,7 +265,7 @@ export const DEFAULT_CONFIG = {
 
   // Permanent upgrades bought with Sparks on the main menu. cost = base + grow * level owned
   meta: [
-    { id: 'hearts', name: 'Thick Skin', icon: 'heart', max: 3, base: 80, grow: 80, amount: 1, blurb: '+1 starting heart.' },
+    { id: 'hearts', name: 'Thick Skin', icon: 'heart', max: 1, base: 80, grow: 80, amount: 1, blurb: '+1 starting heart.' },
     { id: 'damage', name: 'Strong Arm', icon: 'flint', max: 5, base: 40, grow: 40, amount: 0.06, blurb: '+6% damage.' },
     { id: 'speed', name: 'Quick Feet', icon: 'sandal', max: 5, base: 40, grow: 30, amount: 0.04, blurb: '+4% move speed.' },
     { id: 'xp', name: 'Wisdom', icon: 'gem_m', max: 5, base: 50, grow: 40, amount: 0.08, blurb: '+8% XP.' },

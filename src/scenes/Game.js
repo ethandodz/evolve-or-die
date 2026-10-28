@@ -776,7 +776,7 @@ export default class Game extends Phaser.Scene {
       if (this.event && this.event.target === e) this.event = null;
     }
     if (e.mode !== 'stampede' || Math.random() < 0.5) {
-      const xp = e.def.xp * this.age.xpMul * this.mods.xp * (e.elite ? 5 : 1) * (this.event && this.event.id === 'eclipse' ? 2 : 1);
+      const xp = e.def.xp * (BAL.xpDrop ?? 0.6) * this.age.xpMul * this.mods.xp * (e.elite ? 5 : 1) * (this.event && this.event.id === 'eclipse' ? 2 : 1);
       this.dropGem(e.x, e.y, xp);
     }
     // Any enemy has a tiny chance of a relic chest
@@ -1947,7 +1947,7 @@ export default class Game extends Phaser.Scene {
     const canUp = this.weapons.some(w => w.level < this.weaponMax(w.key));
     const items = SHOP_ITEMS.filter(it => (it.id !== 'weapon' || this.weapons.length < this.weaponSlots) && (it.id !== 'upgrade' || canUp)
       && (it.id !== 'rabbit' || this.player.maxHearts > 1));
-    const priced = (it) => ({ ...it, cost: Math.round(it.cost * (1 + this.ageIndex * 0.25)) });
+    const priced = (it) => ({ ...it, cost: Math.round(it.cost * (BAL.shopPriceMul ?? 5) * (1 + this.ageIndex * 0.25)) });
     const out = shuffle(items.slice()).slice(0, 3).map(priced);
     const rares = (RARE_ITEMS || []).filter(it => (it.id !== 'crystal' || canUp) && (it.id !== 'firegem' || !this.fireGem));
     // After the last boss the wizard always has the Magic Mirror
@@ -1962,7 +1962,7 @@ export default class Game extends Phaser.Scene {
 
   rerollShop() {
     const cost = this.shopRerollCost();
-    if (this.coins < cost) return null;
+    if (this.coins < cost || (this.shopItems || []).some(it => it.sold)) return null;
     this.coins -= cost;
     this.shopRerolls = (this.shopRerolls || 0) + 1;
     return this.makeShop();

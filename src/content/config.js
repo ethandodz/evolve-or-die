@@ -51,6 +51,8 @@ function addNewContent(cfg, d, seen) {
     const OLD_BAL = { maxEnemies: 150, spawnGrowth: 0.03, crowdGrowth: 0.6, hpGrowth: 85, sparkBoss: 4 };
     for (const [k, v] of Object.entries(OLD_BAL)) if (cfg.balance[k] === v) cfg.balance[k] = d.balance[k];
   }
+  // Signature weapon power ranks were renumbered when achievement characters arrived (v17)
+  if (seen < 17) for (const [k, w] of Object.entries(d.weapons)) if (w.tier && cfg.weapons[k]) cfg.weapons[k].tier = w.tier;
   // Even harder (v14): every character starts with 3 fewer hearts (at least 1), weaker Lodestone
   if (seen < 14) {
     for (const c of cfg.characters) if (typeof c.hearts === 'number') c.hearts = Math.max(1, c.hearts - 3);

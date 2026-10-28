@@ -827,7 +827,7 @@ export default class Game extends Phaser.Scene {
     }
     if (WEAPONS[key].behavior === 'aura') {
       w.ring = this.add.graphics().setDepth(-1.8e7);
-      for (let i = 0; i < 10; i++) w.sprites.push(this.add.sprite(0, 0, WEAPONS[key].icon, 0).setScale(1.4).setOrigin(0.5, 0.9));
+      for (let i = 0; i < 10; i++) w.sprites.push(this.add.sprite(0, 0, WEAPONS[key].auraIcon || WEAPONS[key].icon, 0).setScale(1.4).setOrigin(0.5, 0.9));
     }
     return w;
   }
@@ -1075,10 +1075,12 @@ export default class Game extends Phaser.Scene {
       const ty = e ? e.y + rand(-8, 8) : p.y + rand(-260, 260);
       this.time.delayedCall(i * 90, () => this.dropRock(tx, ty, radius, st.icon, () => {
         const magma = this.combos.has('magma');
+        const burn = WEAPONS[w.key].burn || 0;
         this.hitSrc = w.key;
         this.query(tx, ty, radius, (en) => {
           this.hitEnemy(en, st.dmg, tx, ty, 200);
           if (magma) this.ignite(en, st.dmg * 0.3 * this.stats.dmg, 3);
+          if (burn) this.ignite(en, st.dmg * burn * this.stats.dmg, 3);
         });
         this.hitSrc = null;
         if (magma) this.burst(tx, ty, 0xff7a2a, 8, 120);
@@ -2428,6 +2430,11 @@ export default class Game extends Phaser.Scene {
       this.questsDone.add(q.id);
       this.newQuests.push(q);
       if (!quiet) { this.ui.toast(`QUEST DONE: ${q.name.toUpperCase()}`, `+${q.reward} Sparks to claim on the menu`); audio.play('quest'); }
+      // Characters unlocked by this achievement
+      for (const ch of CHARACTERS) {
+        if (ch.unlock !== `quest:${q.id}` || quiet) continue;
+        this.time.delayedCall(2200, () => { this.ui.toast(`NEW CHARACTER: ${ch.name}`, `${ch.title} is now unlocked`); audio.play('quest'); });
+      }
     }
   }
 

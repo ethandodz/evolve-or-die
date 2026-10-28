@@ -4,7 +4,7 @@
 export const DEFAULT_CONFIG = {
   version: 1,
   // Bump when new built-in content is added, so saved editor edits get it too (see config.js)
-  contentVersion: 16,
+  contentVersion: 17,
 
   balance: {
     ageLength: 300,        // seconds until the time police arrive
@@ -71,6 +71,17 @@ export const DEFAULT_CONFIG = {
       dmgMul: 0.85, perk: '20% faster', drawback: '-15% damage' },
     { key: 'nova', name: 'NOVA', title: 'The Star Ranger', sprite: 'nova', weapon: 'plasmalance', hearts: 1, speed: 1, unlock: 'overlord',
       cdMul: 0.87, dmgMul: 1.15, perk: '15% faster attacks, +15% damage', drawback: 'Only 1 heart' },
+    // Unlocked by achievements (unlock: 'quest:<quest id>' from quests.js; unlockText is the short hint on the card)
+    { key: 'bard', name: 'BRAM', title: 'The Bard', sprite: 'bard', weapon: 'battlelute', hearts: 1, speed: 1, unlock: 'quest:level20', unlockText: 'Reach level 20',
+      cdMul: 0.9, xpMul: 1.25, perk: '10% faster attacks, +25% XP', drawback: 'Only 1 heart' },
+    { key: 'alchemist', name: 'BELLA', title: 'The Alchemist', sprite: 'alchemist', weapon: 'potionbombs', hearts: 2, speed: 1, unlock: 'quest:combo3', unlockText: 'Find 3 combos',
+      areaMul: 1.3, xpMul: 1.2, weaponSlots: 2, perk: '+30% area, +20% XP', drawback: 'Only 2 weapon slots' },
+    { key: 'inspector', name: 'IVY', title: 'The Inspector', sprite: 'inspector', weapon: 'swordcane', hearts: 2, speed: 1.1, unlock: 'quest:thief3', unlockText: 'Catch 3 thieves',
+      critMul: 2, areaMul: 0.8, perk: 'Double crits, 10% faster', drawback: '-20% area and range' },
+    { key: 'rocker', name: 'ROXY', title: 'The Rockstar', sprite: 'rocker', weapon: 'ampblast', hearts: 2, speed: 1, unlock: 'quest:flawless', unlockText: 'Beat a boss unhit',
+      dmgMul: 1.3, areaMul: 0.8, perk: '+30% damage', drawback: '-20% area and range' },
+    { key: 'zorp', name: 'ZORP', title: 'The Alien', sprite: 'zorp', weapon: 'raygun', hearts: 3, speed: 0.9, unlock: 'quest:elites100', unlockText: 'Beat 100 elites',
+      pet: 'ufo', perk: 'A mini UFO fights with you', drawback: '10% slower' },
   ],
 
   // stats: each value is base + per * (level - 1) + one for every level in "at" that is reached
@@ -145,29 +156,59 @@ export const DEFAULT_CONFIG = {
       levels: ['', '+5.6 damage, faster', '+1 blade', '+5.6 damage, wider', '+1 blade', '+5.6 damage, faster', '+1 blade'],
     },
     tesla: {
-      name: 'Tesla Coil', icon: 'tesla', behavior: 'lightning', kind: 'Area', max: 7, signature: 'inventor', tier: 6, base: 'bolt', boltColor: 0x7ae0ff,
+      name: 'Tesla Coil', icon: 'tesla', behavior: 'lightning', kind: 'Area', max: 7, signature: 'inventor', tier: 7, base: 'bolt', boltColor: 0x7ae0ff,
       blurb: "Nico's invention. Blue lightning that always chains to more enemies.",
       stats: { cd: { base: 1.4, per: -0.09 }, dmg: { base: 48, per: 14.4 }, radius: { base: 32, per: 2 }, count: { base: 2, at: [3, 5, 7] }, chain: { base: 2, at: [5] }, range: { base: 300 } },
       levels: ['', '+14.4 damage, faster', '+1 bolt', '+14.4 damage, faster', '+1 bolt, +1 chain', '+14.4 damage, faster', '+1 bolt'],
     },
     // Only from the Ark of the Covenant relic
     steamhammer: {
-      name: 'Steam Hammer', icon: 'steamhammer', behavior: 'swing', kind: 'Melee', max: 7, signature: 'engineer', tier: 7, base: 'club',
+      name: 'Steam Hammer', icon: 'steamhammer', behavior: 'swing', kind: 'Melee', max: 7, signature: 'engineer', tier: 9, base: 'club',
       blurb: "Ada's piston hammer. Huge swings that blast enemies away.",
       stats: { cd: { base: 0.9, per: -0.05 }, dmg: { base: 52, per: 16 }, radius: { base: 96, per: 7 }, count: { base: 1, at: [3, 6] }, knockback: { base: 420 } },
       levels: ['', '+16 damage', '+1 swing', 'Faster, +16 damage', 'Bigger swing, +16 damage', '+1 swing', 'Faster, +16 damage'],
     },
     droneswarm: {
-      name: 'Drone Swarm', icon: 'drone_s', behavior: 'orbit', kind: 'Orbit', max: 7, signature: 'pilot', tier: 8, base: 'axes',
+      name: 'Drone Swarm', icon: 'drone_s', behavior: 'orbit', kind: 'Orbit', max: 7, signature: 'pilot', tier: 11, base: 'axes',
       blurb: "Max's stunt drones zip around you, four at a time.",
       stats: { dmg: { base: 30, per: 10 }, radius: { base: 84, per: 6 }, count: { base: 4, at: [3, 5, 7] }, spin: { base: 4.2, per: 0.25 }, hitDelay: { base: 0.35 } },
       levels: ['', '+10 damage, faster', '+1 drone', '+10 damage, wider', '+1 drone', '+10 damage, faster', '+1 drone'],
     },
     plasmalance: {
-      name: 'Plasma Lance', icon: 'plasma', fx: 'plasmabeam', behavior: 'thrust', kind: 'Melee', max: 7, signature: 'nova', tier: 9, base: 'spear',
+      name: 'Plasma Lance', icon: 'plasma', fx: 'plasmabeam', behavior: 'thrust', kind: 'Melee', max: 7, signature: 'nova', tier: 13, base: 'spear',
       blurb: "Nova's lance of pure starlight. Long beams that pierce everything.",
       stats: { cd: { base: 0.85, per: -0.05 }, dmg: { base: 72, per: 22 }, length: { base: 260, per: 16 }, count: { base: 2, at: [3, 5, 7] } },
       levels: ['', '+22 damage, longer', '+1 beam', '+22 damage, faster', '+1 beam', '+22 damage, longer', '+1 beam'],
+    },
+    battlelute: {
+      name: 'Battle Lute', icon: 'lute', auraIcon: 'note', behavior: 'aura', kind: 'Aura', max: 7, signature: 'bard', tier: 6, base: 'fire', ringColor: [0xb030e0, 0xf070ff],
+      blurb: "Bram's war songs. Musical notes circle him, hurting and slowing everything close.",
+      stats: { dmg: { base: 14, per: 5 }, radius: { base: 74, per: 7 }, tick: { base: 0.4, per: -0.02 }, slow: { base: 0.45, per: 0.03 } },
+      levels: ['', '+5 damage, wider', '+5 damage, plays faster', '+5 damage, wider', '+5 damage, slows more', '+5 damage, wider', '+5 damage, plays faster'],
+    },
+    potionbombs: {
+      name: 'Potion Bombs', icon: 'flask', behavior: 'rockfall', kind: 'Area', max: 7, signature: 'alchemist', tier: 8, base: 'rocks', burn: 0.4,
+      blurb: "Bella's bubbling flasks smash on enemies and set them alight.",
+      stats: { cd: { base: 1.7, per: -0.1 }, dmg: { base: 40, per: 14 }, radius: { base: 48, per: 4 }, count: { base: 2, at: [3, 5, 7] } },
+      levels: ['', '+14 damage, bigger', '+1 flask', 'Faster, +14 damage', '+1 flask', 'Bigger, +14 damage', '+1 flask'],
+    },
+    swordcane: {
+      name: 'Sword Cane', icon: 'swordcane', behavior: 'thrust', kind: 'Melee', max: 7, signature: 'inspector', tier: 10, base: 'spear',
+      blurb: "Ivy's walking cane hides a blade. Lightning-quick lunges.",
+      stats: { cd: { base: 0.55, per: -0.03 }, dmg: { base: 60, per: 18 }, length: { base: 180, per: 12 }, count: { base: 1, at: [3, 5, 7] } },
+      levels: ['', '+18 damage, longer', '+1 lunge', '+18 damage, faster', '+1 lunge', '+18 damage, longer', '+1 lunge'],
+    },
+    ampblast: {
+      name: 'Amp Blast', icon: 'guitar', behavior: 'lightning', kind: 'Area', max: 7, signature: 'rocker', tier: 12, base: 'bolt', boltColor: 0xff4ad0,
+      blurb: "Roxy's power chords blast enemies with pink lightning that jumps between them.",
+      stats: { cd: { base: 1.2, per: -0.08 }, dmg: { base: 70, per: 20 }, radius: { base: 40, per: 3 }, count: { base: 3, at: [3, 5, 7] }, chain: { base: 2, at: [5] }, range: { base: 300 } },
+      levels: ['', '+20 damage, faster', '+1 blast', '+20 damage, faster', '+1 blast, +1 chain', '+20 damage, faster', '+1 blast'],
+    },
+    raygun: {
+      name: 'Ray Gun', icon: 'raygun', fx: 'raybolt', behavior: 'shoot', kind: 'Projectile', max: 7, signature: 'zorp', tier: 14, base: 'nailgun',
+      blurb: "Zorp's ray gun. Fast bolts that pierce a whole line of enemies.",
+      stats: { cd: { base: 0.7, per: -0.04 }, dmg: { base: 64, per: 18 }, count: { base: 2, at: [3, 5, 7] }, pierce: { base: 3, at: [3, 6] }, speed: { base: 700 }, size: { base: 12 }, range: { base: 460 } },
+      levels: ['', '+18 damage, faster', '+1 bolt, pierces more', '+18 damage, faster', '+1 bolt', '+18 damage, pierces more', '+1 bolt'],
     },
     // New weapons anyone can find
     dynamite: {

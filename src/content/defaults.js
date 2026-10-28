@@ -4,7 +4,7 @@
 export const DEFAULT_CONFIG = {
   version: 1,
   // Bump when new built-in content is added, so saved editor edits get it too (see config.js)
-  contentVersion: 20,
+  contentVersion: 21,
 
   balance: {
     ageLength: 300,        // seconds until the time police arrive
@@ -73,7 +73,7 @@ export const DEFAULT_CONFIG = {
       cdMul: 0.87, dmgMul: 1.15, perk: '15% faster attacks, +15% damage', drawback: 'Only 1 heart' },
     // Unlocked by achievements (unlock: 'quest:<quest id>' from quests.js; unlockText is the short hint on the card)
     { key: 'bard', name: 'BRAM', title: 'The Bard', sprite: 'bard', weapon: 'battlelute', hearts: 1, speed: 1, unlock: 'quest:level20', unlockText: 'Reach level 20',
-      cdMul: 0.9, xpMul: 1.25, perk: '10% faster attacks, +25% XP', drawback: 'Only 1 heart' },
+      cdMul: 0.9, xpMul: 1.15, perk: '10% faster attacks, +15% XP', drawback: 'Only 1 heart' },
     { key: 'alchemist', name: 'BELLA', title: 'The Alchemist', sprite: 'alchemist', weapon: 'potionbombs', hearts: 2, speed: 1, unlock: 'quest:combo3', unlockText: 'Find 3 combos',
       areaMul: 1.3, xpMul: 1.2, weaponSlots: 2, perk: '+30% area, +20% XP', drawback: 'Only 2 weapon slots' },
     { key: 'inspector', name: 'IVY', title: 'The Inspector', sprite: 'inspector', weapon: 'swordcane', hearts: 2, speed: 1.1, unlock: 'quest:thief3', unlockText: 'Catch 3 thieves',
@@ -177,8 +177,8 @@ export const DEFAULT_CONFIG = {
     battlelute: {
       name: 'Battle Lute', icon: 'lute', auraIcon: 'note', behavior: 'aura', kind: 'Aura', max: 7, signature: 'bard', tier: 5, base: 'fire', ringColor: [0xb030e0, 0xf070ff],
       blurb: "Bram's war songs. Musical notes circle him, hurting and slowing everything close.",
-      stats: { dmg: { base: 14, per: 5 }, radius: { base: 74, per: 7 }, tick: { base: 0.4, per: -0.02 }, slow: { base: 0.45, per: 0.03 } },
-      levels: ['', '+5 damage, wider', '+5 damage, plays faster', '+5 damage, wider', '+5 damage, slows more', '+5 damage, wider', '+5 damage, plays faster'],
+      stats: { dmg: { base: 10, per: 3.5 }, radius: { base: 70, per: 6 }, tick: { base: 0.4, per: -0.02 }, slow: { base: 0.35, per: 0.02 } },
+      levels: ['', '+3.5 damage, wider', '+3.5 damage, plays faster', '+3.5 damage, wider', '+3.5 damage, slows more', '+3.5 damage, wider', '+3.5 damage, plays faster'],
     },
     potionbombs: {
       name: 'Potion Bombs', icon: 'flask', behavior: 'rockfall', kind: 'Area', max: 7, signature: 'alchemist', tier: 7, base: 'rocks', burn: 0.4,

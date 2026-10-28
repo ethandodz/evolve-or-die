@@ -1,7 +1,7 @@
 import Phaser from 'phaser';
 import { audio } from '../audio.js';
 import { save } from '../save.js';
-import { WEAPONS, PASSIVES, AGES, RARITIES, CHARACTERS, COMBOS, ENEMIES, RELICS, boostedBlurb, levelText, wholeEffect } from '../data.js';
+import { WEAPONS, PASSIVES, AGES, RARITIES, CHARACTERS, COMBOS, ENEMIES, RELICS, BAL, boostedBlurb, levelText, wholeEffect } from '../data.js';
 import { closestGoal } from '../quests.js';
 import { W, H, text, button, panel, roundBox, settingsPanel, COLORS, fmtTime, FONT } from '../ui.js';
 import { controls } from '../controls.js';
@@ -437,12 +437,15 @@ export default class UI extends Phaser.Scene {
       const d = PASSIVES[ch.key];
       name = d.name; icon = d.icon;
       // Hearts and attacks: a Legendary card counts as two levels
-      desc = wholeEffect(d.effect) ? `${d.blurb}${mult > 1 ? `\nCounts as ${mult} levels` : ''}` : boostedBlurb(d.blurb, mult);
+      // A passive's first pick counts several levels (BAL.passiveFirstPick)
+      const boost = mult * (ch.isNew && !wholeEffect(d.effect) ? (BAL.passiveFirstPick ?? 3) : 1);
+      desc = wholeEffect(d.effect) ? `${d.blurb}${mult > 1 ? `\nCounts as ${mult} levels` : ''}` : boostedBlurb(d.blurb, boost);
       // Fractional attacks: show where the total gets to
       if (d.effect === 'count') {
-        const now = d.amount * (this.g.passivePts[ch.key] || 0), next = now + d.amount * mult;
-        desc = `+${+(d.amount * mult).toFixed(2)} attacks (${+now.toFixed(2)} -> ${+next.toFixed(2)}).\nEach whole number = +1 attack for every weapon.`;
+        const now = d.amount * (this.g.passivePts[ch.key] || 0), next = now + d.amount * boost;
+        desc = `+${+(d.amount * boost).toFixed(2)} attacks (${+now.toFixed(2)} -> ${+next.toFixed(2)}).\nEach whole number = +1 attack for every weapon.`;
       }
+      if (ch.isNew && boost > mult) desc += '\nFirst pick: triple boost!';
       tag = ch.isNew ? 'NEW PASSIVE' : `LV ${ch.level}`; tagColor = ch.isNew ? '#c08aff' : '#7ad0f4';
     } else if (ch.type === 'heal') {
       name = 'Roast Meat'; icon = 'meat'; desc = 'Heal all hearts.'; tag = ''; tagColor = '#fff';

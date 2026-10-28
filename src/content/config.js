@@ -76,6 +76,22 @@ function addNewContent(cfg, d, seen) {
     const bc = cfg.weapons.boneclub;
     if (bc && bc.name === 'Bone Club') { bc.name = d.weapons.boneclub.name; bc.blurb = d.weapons.boneclub.blurb; }
   }
+  // Lauren's weapon overhaul (v24): new names, unlock costs and 50% stronger passives
+  if (seen < 24) {
+    const RENAMED = { rocks: 'Rock Fall', bolt: 'Sky Bolt' };
+    for (const [k, old] of Object.entries(RENAMED)) {
+      const w = cfg.weapons[k], nw = d.weapons[k];
+      if (w && w.name === old) { w.name = nw.name; w.blurb = nw.blurb; w.icon = nw.icon; }
+    }
+    for (const k of ['rocks', 'bolt', 'laserdisc']) {
+      const w = cfg.weapons[k], nw = d.weapons[k];
+      if (w) for (const f of ['unlock', 'unlockText', 'cost', 'fiery']) if (nw[f] !== undefined) w[f] = nw[f];
+    }
+    for (const [key, val] of Object.entries(d.passives)) {
+      const have = cfg.passives[key];
+      if (have) { have.name = val.name; have.amount = val.amount; have.blurb = val.blurb; }
+    }
+  }
   for (const k of ['enemies', 'weapons', 'passives']) {
     for (const [key, val] of Object.entries(d[k])) {
       if (!cfg[k][key]) cfg[k][key] = val;

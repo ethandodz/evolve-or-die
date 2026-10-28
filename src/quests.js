@@ -1,6 +1,6 @@
 // Quests and achievements: lifetime goals that pay Sparks when claimed on the menu.
 import { save, persist } from './save.js';
-import { WEAPONS, PASSIVES, AGES, ENEMIES, COMBOS, CHARACTERS, RELICS, weaponEra } from './data.js';
+import { WEAPONS, PASSIVES, AGES, ENEMIES, COMBOS, CHARACTERS, RELICS, weaponEra, HIDDEN_WEAPONS } from './data.js';
 
 // Lifetime counters live in save.stats
 export function stats() {
@@ -45,8 +45,13 @@ export function allQuests() {
     { id: 'flawless3', name: 'Showstopper', blurb: 'Beat 3 bosses without getting hit', target: 3, reward: 50, value: () => st().flawless || 0 },
     { id: 'elites500', name: 'Elite Slayer', blurb: 'Defeat 500 glowing elites', target: 500, reward: 50, value: () => st().elites || 0 },
     { id: 'deaths20', name: 'Never Give Up', blurb: 'Die 20 times', target: 20, reward: 20, value: () => st().deaths || 0 },
+    // Weapon unlocks
+    { id: 'fastboss', name: 'Lightning Fast', blurb: 'Defeat a boss within 10 seconds of summoning it', target: 1, reward: 30, value: () => st().fastBoss || 0 },
+    { id: 'soloboss', name: 'One and Only', blurb: 'Defeat a boss with only one weapon equipped', target: 1, reward: 30, value: () => st().soloBoss || 0 },
     { id: 'loop', name: 'Time Loop', blurb: 'Loop back in time with the Magic Mirror', target: 1, reward: 50, value: () => st().loops || 0 },
   ];
+  // Weapon combos are switched off, so their quests are too
+  if (!COMBOS.length) list = list.filter(q => !q.id.startsWith('combo'));
   // One per age boss
   AGES.forEach((a, i) => {
     const boss = ENEMIES[a.boss];
@@ -54,7 +59,7 @@ export function allQuests() {
   });
   // One per weapon
   for (const [k, w] of Object.entries(WEAPONS)) {
-    if (w.signature) continue;
+    if (w.signature || HIDDEN_WEAPONS.includes(k)) continue;
     list.push({ id: `wk_${k}`, name: `${w.name} Master`, blurb: `Defeat 500 enemies with the ${w.name}`, target: 500, reward: 15, value: () => st().wk[k] || 0 });
   }
   return list;
@@ -108,6 +113,7 @@ export function unlockList(tab) {
   const out = [];
   if (tab === 'weapon') {
     for (const [k, w] of Object.entries(WEAPONS)) {
+      if (HIDDEN_WEAPONS.includes(k)) continue;
       const row = { type: 'weapon', key: k, name: w.name, icon: w.icon, blurb: w.blurb, cost: w.cost || 0, item: w };
       if (w.signature) {
         // A character's own weapon: unlocked along with the character (hidden characters' are left out)

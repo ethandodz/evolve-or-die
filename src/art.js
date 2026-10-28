@@ -825,9 +825,13 @@ const ITEMS = {
   tusk: () => paint(14, 14, (s) => { for (let i = 0; i < 10; i++) s.ell(2 + i, 2 + i * 0.9 + Math.sin(i / 3) * 1.5, 1.8 - i * 0.05 + 0.6, 1.6, BONE); }),
   // Thrown Bone Club: a bone with knobs on both ends
   bone: () => paint(16, 16, (s) => { s.line(4, 12, 12, 4, BONE[1], 2); s.ell(3, 11, 1.8, 1.8, BONE); s.ell(5, 13, 1.8, 1.8, BONE); s.ell(11, 3, 1.8, 1.8, BONE); s.ell(13, 5, 1.8, 1.8, BONE); s.put(11, 5, BONE[3]); s.put(10, 2, '#ffffff'); }),
-  // Critical Chance: a red bullseye
+  // Meteor: a cratered rock wrapped in flames, tail up and to the right
+  meteor: () => paint(18, 18, (s) => { s.line(9, 8, 16, 1, FIRE[2], 3); s.line(8, 9, 14, 3, FIRE[1], 2); s.line(10, 6, 17, 2, FIRE[0]); s.ell(7, 11, 6.2, 6.2, FIRE, 0.1); s.ell(6.5, 11.5, 4.6, 4.6, ['#a07a64', '#7a5a48', '#5a3e30', '#3a261c'], 0.15); s.ell(5, 12, 1.2, 1.2, ['#3a261c', '#3a261c', '#2a1810', '#2a1810']); s.put(8, 10, '#2a1810'); s.put(7, 14, '#2a1810'); s.put(4, 9, FIRE[0]); }),
+  // Fallen Star Fists: a golden gauntlet with a star on the back
+  gauntlet: () => paint(16, 16, (s) => { s.rect(3, 4, 9, 8, GOLD, 0.05); for (let i = 0; i < 4; i++) s.rect(3 + i * 2, 2, 2, 3, GOLD); s.rect(11, 6, 3, 4, GOLD); s.rect(4, 12, 7, 3, NAVY); s.put(7, 6, '#ffffff'); s.put(6, 7, '#ffffff'); s.put(8, 7, '#ffffff'); s.put(7, 8, '#ffffff'); s.put(7, 7, '#7ad0f4'); }),
+  // Focus (critical chance): a red bullseye
   crit: () => paint(14, 14, (s) => { s.ell(7, 7, 6, 6, RED); s.ell(7, 7, 4, 4, WHITE); s.ell(7, 7, 2, 2, RED); s.put(6, 6, '#ffffff'); }),
-  // Critical Damage: a sabertooth fang with a red tip
+  // Lethality (critical damage): a sabertooth fang with a red tip
   fang: () => paint(12, 16, (s) => { for (let y = 0; y < 13; y++) s.line(3 + y * 0.25, y, 9 - y * 0.35, y, BONE[y < 5 ? 0 : y < 9 ? 1 : 2]); s.rect(5, 12, 2, 3, RED); s.put(4, 2, '#ffffff'); }),
   // Difficulty: a war drum
   wardrum: () => paint(16, 14, (s) => { s.rect(2, 4, 12, 8, RED, 0.1); s.ell(8, 4, 6, 2.4, CREAM); for (let x = 3; x < 14; x += 3) s.line(x, 5, x + 1.5, 11, GOLD[2]); s.line(10, 0, 13, 3, WOOD[1]); s.ell(9.5, 0.5, 1, 1, CREAM); }),
@@ -985,7 +989,7 @@ export const SPRITE_GROUPS = {
   'Industrial enemies': ['sweep', 'navvy', 'luddite', 'steamhound', 'coalcart', 'coal', 'rat', 'furnace', 'locomotive'],
   'Modern enemies': ['punk', 'agent', 'soldier', 'biker', 'drone', 'minidrone', 'taxi', 'tank', 'chopper'],
   'Future enemies': ['android', 'cyborg', 'greyalien', 'hoverbot', 'ufo', 'nanite', 'walker', 'overlord'],
-  Weapons: ['club', 'axe', 'spear', 'flame', 'rock', 'bolt', 'boneclub', 'amber', 'spiritflame', 'pilum', 'holyblade', 'tesla', 'steamhammer', 'drone_s', 'plasma', 'plasmabeam', 'dynamite', 'nailgun', 'nail', 'disc', 'lute', 'note', 'flask', 'swordcane', 'guitar', 'raygun', 'raybolt', 'bone'],
+  Weapons: ['club', 'axe', 'spear', 'flame', 'rock', 'bolt', 'boneclub', 'amber', 'spiritflame', 'pilum', 'holyblade', 'tesla', 'steamhammer', 'drone_s', 'plasma', 'plasmabeam', 'dynamite', 'nailgun', 'nail', 'disc', 'lute', 'note', 'flask', 'swordcane', 'guitar', 'raygun', 'raybolt', 'bone', 'meteor', 'gauntlet'],
   Items: ['treasure', 'chest_open', 'scroll', 'trophy', 'combo', 'cogicon', 'heart_half', 'shieldicon', 'potion_purple', 'rabbitfoot', 'firegem', 'mirror', 'gem_s', 'gem_m', 'gem_l', 'coin', 'spark', 'meat', 'magnet', 'chest', 'potion', 'star', 'reroll', 'skull', 'lock', 'crystal', 'feather', 'idol', 'ark', 'monalisa', 'alienegg', 'alien', 'excalibur', 'declaration', 'lightray'],
   Icons: ['heart', 'heart_empty', 'sandal', 'totem', 'flint', 'tusk', 'lodestone', 'crit', 'fang', 'wardrum'],
   Scenery: ['boulder', 'fern', 'bones', 'tree', 'tree_autumn', 'tree_alien', 'pine', 'bush', 'menhir', 'campfire', 'handprint', 'deer', 'hunters', 'column', 'broken', 'urn', 'cypress', 'brazier', 'banner', 'haybale', 'shrub', 'torch', 'gravestone', 'easel', 'gearpile', 'statue', 'lantern', 'chimney', 'crate', 'barrel', 'rails', 'hydrant', 'cone', 'trashcan', 'stopsign', 'bench', 'pylon', 'crystalrock', 'pod', 'antenna', 'holosign', 'coalicon', 'missile'],

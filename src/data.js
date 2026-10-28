@@ -7,7 +7,10 @@ export const AGE_LENGTH = BAL.ageLength;
 export const AGES = CFG.ages;
 export const ENEMIES = CFG.enemies;
 export const WEAPONS = CFG.weapons;
-export const PASSIVES = CFG.passives;
+// Weapons and passives taken out of the game for now (data kept; take a key out to bring it back)
+export const HIDDEN_WEAPONS = ['club', 'axes', 'spear', 'dynamite', 'nailgun', 'bonetoss'];
+export const HIDDEN_PASSIVES = ['heart'];
+export const PASSIVES = Object.fromEntries(Object.entries(CFG.passives).filter(([k]) => !HIDDEN_PASSIVES.includes(k)));
 export const SHOP_ITEMS = CFG.shop;
 // Characters taken out of the game for now (Aidan's playtest: build up again from Grug).
 // Their data stays in defaults.js; take a key out of this list to bring that character back.
@@ -17,9 +20,10 @@ export const RARE_ITEMS = CFG.rareShop;
 export const META = CFG.meta;
 export const TWISTS = CFG.twists;
 export const RELICS = CFG.relics || [];
-export const COMBOS = CFG.combos || [];
+// Weapon combos are switched off (Lauren, 2026-10-28); CFG.combos still holds them
+export const COMBOS = [];
 // Weapons anyone can find; signature weapons belong to one character
-export const POOL_WEAPONS = Object.keys(WEAPONS).filter(k => !WEAPONS[k].signature);
+export const POOL_WEAPONS = Object.keys(WEAPONS).filter(k => !WEAPONS[k].signature && !HIDDEN_WEAPONS.includes(k));
 // A signature weapon counts as its normal weapon for combos
 export const baseWeapon = (k) => (WEAPONS[k] && WEAPONS[k].base) || k;
 export const EVENTS = CFG.events || [];
@@ -35,8 +39,8 @@ export const RARITIES = [
   { name: 'LEGENDARY', color: 0xffa020, text: '#ffc040', mult: 2 },
 ];
 
-// Whole-number passives (hearts, attacks) can't take +20%, so they are only Common or Legendary
-export const wholeEffect = (effect) => effect === 'hearts' || effect === 'count';
+// Whole-number passives (hearts) can't take +20%, so they are only Common or Legendary
+export const wholeEffect = (effect) => effect === 'hearts';
 
 // A passive's card text with the rarity boost applied ("+12% damage." -> "+14% damage.")
 export const boostedBlurb = (blurb, mult) => mult === 1 ? blurb : blurb
@@ -53,7 +57,7 @@ export function levelText(key, level, mult = 1) {
   const d = (k) => (b[k] || 0) - (a[k] || 0);
   const out = [];
   if (d('dmg') > 0) out.push(`+${+(d('dmg') * mult).toFixed(1)} damage`);
-  if (d('count') >= 1) out.push(`+${Math.round(d('count'))} ${w.countName || 'attack'}`);
+  if (d('count') > 0) out.push(`+${+(d('count') * (d('count') < 1 ? mult : 1)).toFixed(2)} ${w.countName || 'attack'}`);
   if (d('bounce') >= 1) out.push(`+${Math.round(d('bounce'))} bounce`);
   if (d('pierce') >= 1) out.push('pierces more');
   if (d('chain') >= 1) out.push(`+${Math.round(d('chain'))} chain`);

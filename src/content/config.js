@@ -104,6 +104,11 @@ function addNewContent(cfg, d, seen) {
   if (cfg.balance.spawnBase === 1.1) cfg.balance.spawnBase = d.balance.spawnBase;
   if ([0.15, 0.03].includes(cfg.balance.treasureChance)) cfg.balance.treasureChance = d.balance.treasureChance;
   if (cfg.balance.bossTreasureChance == null) cfg.balance.bossTreasureChance = d.balance.bossTreasureChance;
+  // Lush restyle (v19): every age gets the new scenery, ground colour and no cave paintings
+  if (seen < 19) for (const a of cfg.ages) {
+    const nd = d.ages.find(x => x.key === a.key);
+    if (nd) { a.decor = nd.decor; a.bg = nd.bg; a.paintings = nd.paintings; }
+  }
   cfg.contentVersion = d.contentVersion;
 }
 

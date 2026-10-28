@@ -1,7 +1,7 @@
 import Phaser from 'phaser';
 import { audio } from '../audio.js';
 import { save } from '../save.js';
-import { WEAPONS, PASSIVES, AGES, RARITIES, CHARACTERS, COMBOS, ENEMIES, RELICS, boostedBlurb } from '../data.js';
+import { WEAPONS, PASSIVES, AGES, RARITIES, CHARACTERS, COMBOS, ENEMIES, RELICS, boostedBlurb, levelText, wholeEffect } from '../data.js';
 import { closestGoal } from '../quests.js';
 import { W, H, text, button, panel, roundBox, settingsPanel, COLORS, fmtTime, FONT } from '../ui.js';
 import { controls } from '../controls.js';
@@ -155,11 +155,11 @@ export default class UI extends Phaser.Scene {
     const left = g.ageLen - g.ageTime;
     if (g.bossDead && !g.endless) { this.timer.setText('--:--').setColor('#ffe070'); }
     else if (g.endless) { this.timer.setText(fmtTime(g.totalTime)).setColor('#7ad0f4'); }
-    else if (g.boss) { this.timer.setText('BOSS!').setColor('#d83c3c'); }
     else if (left <= 0) {
       this.timer.setText('POLICE!').setColor(Math.floor(g.totalTime * 4) % 2 ? '#7ad0f4' : '#d83c3c');
     } else {
-      this.timer.setText(fmtTime(left)).setColor(left < 30 ? '#ff7070' : '#ffffff');
+      // The clock keeps going in the boss fight
+      this.timer.setText(fmtTime(left)).setColor(g.boss ? (Math.floor(g.totalTime * 2) % 2 && left < 30 ? '#ffffff' : '#ff5050') : left < 30 ? '#ff7070' : '#ffffff');
     }
 
     this.coinText.setText(String(g.coins));
@@ -413,7 +413,8 @@ export default class UI extends Phaser.Scene {
       const d = WEAPONS[ch.key];
       name = d.name; icon = d.icon;
       if (ch.isNew) desc = `${d.kind}. ${d.blurb}`;
-      else desc = (d.levels[ch.level - 1] || 'More damage, faster').replace(/\+(\d+(\.\d+)?) damage/, (m, n) => `+${+(parseFloat(n) * mult).toFixed(1)} damage`);
+      else if (d.levels && d.levels[ch.level - 1]) desc = d.levels[ch.level - 1].replace(/\+(\d+(\.\d+)?) damage/, (m, n) => `+${+(parseFloat(n) * mult).toFixed(1)} damage`);
+      else desc = levelText(ch.key, ch.level, mult);
       if (mult > 1) desc += ch.isNew ? `\nStarts ${pct}% stronger` : `\n${pct}% bigger boost`;
       const cs = d.stats?.count;
       if (ch.rarity === 3 && cs && (cs.at || []).includes(ch.level) && !ch.isNew) desc += ', +1 extra attack';
@@ -423,7 +424,9 @@ export default class UI extends Phaser.Scene {
       tagColor = ch.isNew ? '#f2c84b' : '#7ad0f4';
     } else if (ch.type === 'passive') {
       const d = PASSIVES[ch.key];
-      name = d.name; icon = d.icon; desc = boostedBlurb(d.blurb, mult);
+      name = d.name; icon = d.icon;
+      // Hearts and attacks: a Legendary card counts as two levels
+      desc = wholeEffect(d.effect) ? `${d.blurb}${mult > 1 ? `\nCounts as ${mult} levels` : ''}` : boostedBlurb(d.blurb, mult);
       tag = ch.isNew ? 'NEW PASSIVE' : `LV ${ch.level}`; tagColor = ch.isNew ? '#c08aff' : '#7ad0f4';
     } else if (ch.type === 'heal') {
       name = 'Roast Meat'; icon = 'meat'; desc = 'Heal all hearts.'; tag = ''; tagColor = '#fff';

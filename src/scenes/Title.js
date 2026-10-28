@@ -3,7 +3,7 @@ import { audio } from '../audio.js';
 import { save, persist, resetProgress } from '../save.js';
 import { CHARACTERS, AGES, WEAPONS, ENEMIES, META, TWISTS, RELICS } from '../data.js';
 import { W, H, text, button, panel, settingsPanel, COLORS, fmtTime, FONT } from '../ui.js';
-import { allQuests, progress, isDone, isClaimed, claimable, claim } from '../quests.js';
+import { allQuests, progress, isDone, isClaimed, claimable, claim, charUnlocked, goalMet, bought, unlockables, goalText, buyUnlock } from '../quests.js';
 import { onlineEnabled, topScores, playerName, cloudCode, cloudBackup, cloudRestore } from '../online.js';
 
 const fit = (img, size) => { const f = img.frame; return img.setScale(Math.min(size / f.width, size / f.height)); };
@@ -18,7 +18,7 @@ export function todaysDaily() {
   const pool = (TWISTS || []).slice();
   const twists = [];
   while (twists.length < 2 && pool.length) twists.push(pool.splice(Math.floor(rnd() * pool.length), 1)[0].id);
-  const keys = Object.keys(WEAPONS).filter(k => !WEAPONS[k].signature);
+  const keys = Object.keys(WEAPONS).filter(k => !WEAPONS[k].signature && !WEAPONS[k].cost);
   const weapon = twists.includes('random') ? keys[Math.floor(rnd() * keys.length)] : null;
   return { date, twists, weapon };
 }
@@ -62,8 +62,9 @@ export default class Title extends Phaser.Scene {
       button(this, W / 2 + 68, 536, 124, 48, 'EVOLVE', () => this.showUpgrades(), { size: 10, icon: 'spark', iconScale: 1.8 }),
       button(this, W / 2 - 68, 594, 124, 48, 'QUESTS', () => this.showQuests(), { size: 10, icon: 'scroll', iconScale: 1.6 }),
       button(this, W / 2 + 68, 594, 124, 48, 'SCORES', () => this.showScores(), { size: 10, icon: 'trophy', iconScale: 1.6 }),
-      button(this, W / 2 - 68, 650, 124, 40, 'RELICS', () => this.showRelics(), { size: 8, icon: 'monalisa', iconScale: 1.2, color: COLORS.purple, hi: COLORS.purpleHi }),
-      button(this, W / 2 + 68, 650, 124, 40, 'SETTINGS', () => this.openSettings(), { size: 8 }),
+      button(this, W / 2 - 68, 650, 124, 40, 'UNLOCK', () => this.showUnlocks(), { size: 8, icon: 'lock', iconScale: 1.4, color: COLORS.red, hi: COLORS.redHi }),
+      button(this, W / 2 + 68, 650, 124, 40, 'RELICS', () => this.showRelics(), { size: 8, icon: 'monalisa', iconScale: 1.2, color: COLORS.purple, hi: COLORS.purpleHi }),
+      button(this, 142, 26, 84, 30, 'SETTINGS', () => this.openSettings(), { size: 6, color: COLORS.grey, hi: COLORS.button }),
       button(this, 52, 26, 84, 30, 'EDITOR', () => { window.location.href = 'editor.html'; }, { size: 6, color: COLORS.grey, hi: COLORS.button }),
     ];
     // Red badge when quest rewards are waiting
@@ -277,13 +278,11 @@ export default class Title extends Phaser.Scene {
     c.add(this.add.rectangle(W / 2, H / 2, W, H, 0x000000, 0.7).setInteractive());
     c.add(panel(this, W / 2, H / 2, 410, 600));
     c.add(text(this, W / 2, H / 2 - 262, CHARACTERS.length > 6 ? 'CHOOSE YOUR CHARACTER' : 'CHOOSE YOUR\nCHARACTER', CHARACTERS.length > 6 ? 13 : 16, '#ffe070'));
-    const beatenBosses = new Set(AGES.filter(a => save.bossesBeaten[a.key]).map(a => a.boss));
-    // unlock: 'start', a boss key, 'kills:N' (enemies defeated over all runs) or 'quest:<id>' (an achievement)
     const killsNeeded = (ch) => (String(ch.unlock || '').startsWith('kills:') ? parseInt(ch.unlock.slice(6), 10) || 0 : 0);
     const questOf = (ch) => (String(ch.unlock || '').startsWith('quest:') ? allQuests().find(q => q.id === ch.unlock.slice(6)) : null);
-    const isOpen = (ch) => !ch.unlock || ch.unlock === 'start' || beatenBosses.has(ch.unlock)
-      || (killsNeeded(ch) && save.totalKills >= killsNeeded(ch)) || (questOf(ch) && isDone(questOf(ch))) || this.unlockAll;
+    const isOpen = (ch) => charUnlocked(ch) || this.unlockAll;
     const lockText = (ch) => {
+      if (ch.cost && goalMet(ch) && !bought('char', ch.key)) return 'Buy it on UNLOCK';
       const k = killsNeeded(ch);
       if (k) return `${Math.min(save.totalKills, k)}/${k} kills`;
       const q = questOf(ch);
@@ -298,7 +297,7 @@ export default class Title extends Phaser.Scene {
     const list = CHARACTERS.slice(0, PAGE);
     // More than 6 characters: smaller cards in three rows
     const compact = list.length > 6;
-    const maxTier = Math.max(1, ...Object.values(WEAPONS).map(x => x.tier || 0));
+    const maxTier = Math.max(1, ...CHARACTERS.map(x => (WEAPONS[x.weapon] && WEAPONS[x.weapon].tier) || 0));
     // Up to 3 per row (4 cards don't fit in one row, so they go 2 x 2)
     const cols = list.length === 4 ? 2 : Math.min(3, Math.max(1, list.length));
     const cw = 112, ch0 = compact ? 92 : 120, gap = 122, rowGap = compact ? 98 : 130, top = compact ? H / 2 - 196 : H / 2 - 160;
@@ -330,7 +329,8 @@ export default class Title extends Phaser.Scene {
         wIcon.setX(wName.x - wName.width / 2 - 16);
       } else wIcon.setVisible(false);
       const tip = w ? KIND_TIPS[w.kind] : '';
-      wInfo.setText(w ? `${tip ? `${w.kind}: ${tip}. ` : ''}${own ? `Only ${selected.name} has it. Power ${w.tier}/${maxTier}` : 'Starting weapon'}` : '');
+      const forAll = own && selected.unlock && selected.unlock !== 'start' ? 'Unlocks it for everyone. ' : '';
+      wInfo.setText(w ? `${tip ? `${w.kind}: ${tip}. ` : ''}${own ? `${forAll}Power ${w.tier}/${maxTier}` : 'Starting weapon'}` : '');
       perk.setText(selected.perk ? `+ ${selected.perk}` : '');
       drawback.setText(selected.drawback ? `- ${selected.drawback}` : '');
     };
@@ -377,6 +377,52 @@ export default class Title extends Phaser.Scene {
     persist();
     audio.stopMusic();
     this.scene.start('Game', { character, daily });
+  }
+
+  // New weapons and characters: finish their goal, then buy them with Sparks
+  showUnlocks() {
+    const { c, close } = this.overlay(420, 740);
+    c.add(text(this, W / 2, 62, 'UNLOCK', 22, '#ffe070'));
+    c.add(text(this, W / 2, 90, 'Reach the goal, then spend Sparks\nto add it to the game.', 7, '#c0a080'));
+    c.add(this.add.image(W / 2 - 40, 126, 'spark').setScale(2));
+    const have = text(this, W / 2 - 22, 126, '', 12, '#ffe060', 0);
+    c.add(have);
+    const rows = this.add.container(0, 0);
+    c.add(rows);
+    const draw = () => {
+      rows.removeAll(true);
+      have.setText(String(save.sparks));
+      this.sparkText.setText(String(save.sparks));
+      const list = unlockables();
+      if (!list.length) rows.add(text(this, W / 2, 300, 'Nothing new to unlock yet.\nMore is on the way!', 9, '#d0b890'));
+      list.forEach((u, i) => {
+        const y = 182 + i * 92;
+        const owned = bought(u.type, u.key), ready = goalMet(u.item);
+        const g = this.add.graphics();
+        g.fillStyle(0x0c1030, 1).fillRect(W / 2 - 196, y - 42, 392, 86);
+        g.fillStyle(owned ? 0x2f7a3a : 0x263ea8, 1).fillRect(W / 2 - 194, y - 40, 388, 82);
+        rows.add(g);
+        if (this.textures.exists(u.icon)) {
+          const ic = fit(this.add.image(W / 2 - 166, y, u.icon, 0), 42);
+          if (!owned && !ready) ic.setTintFill(0x0c0604);
+          rows.add(ic);
+        }
+        rows.add(text(this, W / 2 - 136, y - 28, `${u.name.toUpperCase()}${u.type === 'weapon' ? '  (WEAPON)' : ''}`, 8, owned ? '#9ae07a' : '#ffffff', 0));
+        rows.add(this.add.text(W / 2 - 136, y - 16, u.blurb || '', { fontFamily: FONT, fontSize: '7px', color: '#d0b890', wordWrap: { width: 200 }, lineSpacing: 3 }).setOrigin(0, 0));
+        if (!owned) rows.add(text(this, W / 2 - 136, y + 28, ready ? 'Goal done!' : goalText(u.item), 7, ready ? '#9ae07a' : '#ff9a8a', 0));
+        const b = button(this, W / 2 + 145, y, 86, 40, owned ? 'UNLOCKED' : String(u.cost), () => {
+          if (owned) return;
+          if (!buyUnlock(u)) { audio.play('deny'); return; }
+          audio.play('buy');
+          draw();
+        }, { size: owned ? 7 : 10, icon: owned ? null : 'spark', iconScale: 1.4, color: owned || !ready ? COLORS.grey : COLORS.green, hi: owned || !ready ? COLORS.grey : COLORS.greenHi });
+        if (!owned && (!ready || save.sparks < u.cost)) b.setAlpha(0.55);
+        if (owned) b.setDisabled(true);
+        rows.add(b);
+      });
+    };
+    draw();
+    c.add(button(this, W / 2, 742, 160, 36, 'BACK', close, { size: 12 }));
   }
 
   // Relics: unlock with Sparks, then find them in treasure chests during runs

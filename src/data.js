@@ -9,7 +9,10 @@ export const ENEMIES = CFG.enemies;
 export const WEAPONS = CFG.weapons;
 export const PASSIVES = CFG.passives;
 export const SHOP_ITEMS = CFG.shop;
-export const CHARACTERS = CFG.characters;
+// Characters taken out of the game for now (Aidan's playtest: build up again from Grug).
+// Their data stays in defaults.js; take a key out of this list to bring that character back.
+export const HIDDEN_CHARS = ['shaman', 'centurion', 'knight', 'inventor', 'engineer', 'pilot', 'nova', 'bard', 'alchemist', 'inspector', 'rocker', 'zorp'];
+export const CHARACTERS = CFG.characters.filter(c => !HIDDEN_CHARS.includes(c.key));
 export const RARE_ITEMS = CFG.rareShop;
 export const META = CFG.meta;
 export const TWISTS = CFG.twists;
@@ -37,11 +40,30 @@ export const wholeEffect = (effect) => effect === 'hearts' || effect === 'count'
 
 // A passive's card text with the rarity boost applied ("+12% damage." -> "+14% damage.")
 export const boostedBlurb = (blurb, mult) => mult === 1 ? blurb : blurb
-  .replace(/\d+(\.\d+)?/g, n => String(Math.round(parseFloat(n) * mult)))
+  .replace(/\d+(\.\d+)?/g, n => String(Math.round(parseFloat(n) * mult * 10) / 10))
   .replace(/\b([2-9]) max heart\b/, '$1 max hearts')
   .replace(/\b([2-9]) attack\b/, '$1 attacks');
 
 export const statsOf = (key, level) => weaponStats(WEAPONS[key], level);
+
+// What one weapon level adds, worked out from its stats ("+2.4 damage, +1 bounce")
+export function levelText(key, level, mult = 1) {
+  const w = WEAPONS[key];
+  const a = statsOf(key, level - 1), b = statsOf(key, level);
+  const d = (k) => (b[k] || 0) - (a[k] || 0);
+  const out = [];
+  if (d('dmg') > 0) out.push(`+${+(d('dmg') * mult).toFixed(1)} damage`);
+  if (d('count') >= 1) out.push(`+${Math.round(d('count'))} ${w.countName || 'attack'}`);
+  if (d('bounce') >= 1) out.push(`+${Math.round(d('bounce'))} bounce`);
+  if (d('pierce') >= 1) out.push('pierces more');
+  if (d('chain') >= 1) out.push(`+${Math.round(d('chain'))} chain`);
+  if (d('cd') < 0 || d('tick') < 0 || d('spin') > 0) out.push('faster');
+  if (d('length') > 0) out.push('longer');
+  else if (d('radius') > 0) out.push('bigger');
+  if (d('slow') > 0) out.push('slows more');
+  const t = out.slice(0, 3).join(', ');
+  return t ? t[0].toUpperCase() + t.slice(1) : 'Stronger';
+}
 
 // The first few levels are cheaper so a run gets going quickly
 export const xpForLevel = (lvl) => {

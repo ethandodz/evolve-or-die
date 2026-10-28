@@ -3,7 +3,7 @@ import { audio } from '../audio.js';
 import { save, persist } from '../save.js';
 import { AGES, ENEMIES, WEAPONS, PASSIVES, SHOP_ITEMS, RARE_ITEMS, META, CFG, RARITIES, wholeEffect, AGE_LENGTH, BAL, CHARACTERS, COMBOS, EVENTS, statsOf, xpForLevel, POOL_WEAPONS, baseWeapon, RELICS, weaponEra } from '../data.js';
 import { W, H, FONT, buzz } from '../ui.js';
-import { stats, bump, best, allQuests, isDone, doneIds } from '../quests.js';
+import { stats, bump, best, allQuests, isDone, doneIds, unlockedSignatures, weaponUnlocked } from '../quests.js';
 import { submitScore, cloudBackup, onlineEnabled } from '../online.js';
 import { controls } from '../controls.js';
 
@@ -56,9 +56,9 @@ export default class Game extends Phaser.Scene {
   // How far into the run we are (each Magic Mirror loop counts as more ages)
   stage() { return this.loop * AGES.length + this.ageIndex; }
 
-  // Weapons and passives can level higher in later ages
-  weaponMax(key) { return WEAPONS[key].max + Math.round((BAL.maxLevelPerAge || 0) * this.stage()) + (this.relics && this.relics.has('declaration') ? 5 : 0); }
-  passiveMax(key) { return PASSIVES[key].max + Math.round((BAL.maxLevelPerAge || 0) * this.stage()); }
+  // Max levels stay the same in every age (only the Declaration relic raises weapons')
+  weaponMax(key) { return WEAPONS[key].max + (this.relics && this.relics.has('declaration') ? 5 : 0); }
+  passiveMax(key) { return PASSIVES[key].max; }
 
   // Daily challenge twists change these
   makeMods() {
@@ -326,10 +326,13 @@ export default class Game extends Phaser.Scene {
     const t = this.ageTime;
     const alive = this.enemies.length;
 
-    let rate = (BAL.spawnBase + t * BAL.spawnGrowth) * this.mods.spawn;
+    // Later ages start busier, so a new age doesn't go quiet after the last one's big finish
+    const st = this.stage();
+    const more = 1 + this.stats.difficulty;
+    let rate = (BAL.spawnBase + st * (BAL.ageSpawnStep ?? 4) + t * BAL.spawnGrowth) * this.mods.spawn * more;
     if (this.boss) rate *= 0.45;
-    // The crowd grows over the age, up to the cap
-    const cap = Math.min(MAX_ENEMIES, BAL.crowdStart + t * BAL.crowdGrowth);
+    // The crowd grows over the age, up to the cap (Difficulty lets a few more in)
+    const cap = Math.min(MAX_ENEMIES * Math.min(1.5, more), (BAL.crowdStart + st * (BAL.ageCrowdStep ?? 40) + t * BAL.crowdGrowth) * more);
     this.spawnAcc += rate * dt;
     while (this.spawnAcc >= 1) {
       this.spawnAcc -= 1;
@@ -382,8 +385,8 @@ export default class Game extends Phaser.Scene {
       audio.play('roar');
     }
 
-    // The time police only come if the boss was not summoned in time
-    if (!this.policeMode && t >= this.ageLen && !this.bossSummoned) {
+    // The clock keeps running during the boss fight: when it runs out, the time police come
+    if (!this.policeMode && t >= this.ageLen) {
       this.policeMode = true;
       this.policeAcc = 0;
       this.ui.banner('TIME POLICE!', 'You took too long', 2500, '#7ad0f4');
@@ -442,6 +445,7 @@ export default class Game extends Phaser.Scene {
       burnT: 0, burnDps: 0, burnAcc: 0, flying: false, lift: 0,
     });
     if (e.def.boss) e.hp *= this.loopMul();
+    else e.hp *= 1 + this.stats.difficulty;
     e.hp *= this.hpBoost();
     if (e.shieldIcon) e.shieldIcon.setVisible(false);
     if (e.shieldHits) { e.baseTint = 0xb8d0ff; e.spr.setTint(e.baseTint); }
@@ -710,8 +714,8 @@ export default class Game extends Phaser.Scene {
 
   hitEnemy(e, base, sx, sy, kb = 0) {
     if (!e.alive || e.flying) return;
-    const crit = Math.random() < BAL.critChance * (this.charDef.critMul || 1);
-    let dmg = Math.max(1, Math.round(base * this.stats.dmg * (crit ? 2 : 1) * (e.vuln ? 2 : 1)));
+    const crit = Math.random() < this.stats.crit;
+    let dmg = Math.max(1, Math.round(base * this.stats.dmg * (crit ? this.stats.critDmg : 1) * (e.vuln ? 2 : 1)));
     if (e.shieldHits > 0 && !save.seenShield) {
       save.seenShield = true; persist();
       this.ui.banner('SHIELDS!', 'Blue enemies block most damage\nuntil their shield breaks', 2600, '#b8d0ff');
@@ -821,9 +825,11 @@ export default class Game extends Phaser.Scene {
 
   // ------------------------------------------------------------------
   // Weapons
-  // Shared weapons you can be offered: those from this age or earlier, plus any found in past runs
+  // Weapons you can be offered: shared ones from this age or earlier, plus any found in past runs,
+  // plus the signature weapon of every character you've unlocked
   poolWeapons() {
-    return POOL_WEAPONS.filter(k => weaponEra(k) <= this.ageIndex || this.loop > 0 || save.weaponsFound[k]);
+    return POOL_WEAPONS.filter(k => weaponUnlocked(k) && (weaponEra(k) <= this.ageIndex || this.loop > 0 || save.weaponsFound[k]))
+      .concat(unlockedSignatures());
   }
 
   addWeapon(key) {
@@ -997,7 +1003,8 @@ export default class Game extends Phaser.Scene {
         const spr = this.add.image(p.x, p.y - 14, st.icon).setScale(1.5).setDepth(1e7 + 2).setRotation(spin ? 0 : ang);
         this.shots.push({
           key: w.key, x: p.x, y: p.y - 14, vx: Math.cos(ang) * (st.speed || 500), vy: Math.sin(ang) * (st.speed || 500),
-          dmg: st.dmg, pierce: Math.round(st.pierce || 0), r: (st.size || 8) * Math.sqrt(this.stats.area), life: range / (st.speed || 500) + 0.2, spr, spin, hit: new Set(),
+          dmg: st.dmg, pierce: Math.round(st.pierce || 0), bounce: Math.round(st.bounce || 0), speed: st.speed || 500,
+          r: (st.size || 8) * Math.sqrt(this.stats.area), life: range / (st.speed || 500) + 0.2, spr, spin, hit: new Set(),
         });
       });
     }
@@ -1015,11 +1022,28 @@ export default class Game extends Phaser.Scene {
         if (s.dead || s.hit.has(e) || Math.hypot(e.x - s.x, e.y - s.y) > e.r + s.r) return;
         s.hit.add(e);
         this.hitEnemy(e, s.dmg, s.x - s.vx * 0.05, s.y - s.vy * 0.05, 90);
-        if (s.pierce-- <= 0) s.dead = true;
+        if (s.bounce > 0) this.bounceShot(s);
+        else if (s.pierce-- <= 0) s.dead = true;
       });
       this.hitSrc = null;
       if (s.dead || s.life <= 0) { s.spr.destroy(); this.shots.splice(i, 1); }
     }
+  }
+
+  // Bouncing shots (Bone Club) fly on to the nearest enemy they haven't hit yet
+  bounceShot(s) {
+    const reach = 260 * this.stats.area;
+    let next = null, bd = reach * reach;
+    for (const e of this.enemies) {
+      if (!e.alive || e.flying || s.hit.has(e)) continue;
+      const d = (e.x - s.x) ** 2 + (e.y - s.y) ** 2;
+      if (d < bd) { bd = d; next = e; }
+    }
+    if (!next) { s.dead = true; return; }
+    s.bounce--;
+    const a = Math.atan2(next.y - s.y, next.x - s.x);
+    s.vx = Math.cos(a) * s.speed; s.vy = Math.sin(a) * s.speed;
+    s.life = reach / s.speed + 0.2;
   }
 
   updateAxes(w, st, dt) {
@@ -1326,6 +1350,7 @@ export default class Game extends Phaser.Scene {
     let dailyNew = false;
     best('bestTime', this.totalTime); best('bestLevel', this.level); best('bestCoins', this.coinsEarned);
     if (this.daily) bump('dailies');
+    if (!won) bump('deaths');
     // Best runs on this device, for the scores screen
     save.history.push({ time: Math.floor(this.totalTime), kills: this.kills, age: this.age.name, character: this.charDef.name, date: new Date().toISOString().slice(0, 10), daily: this.daily ? this.daily.date : null });
     save.history.sort((a, b) => b.time - a.time);
@@ -1447,6 +1472,7 @@ export default class Game extends Phaser.Scene {
       best('bestLevel', this.level);
       this.xpNeed = xpForLevel(this.level);
       this.pendingLevels++;
+      if (this.charDef.dmgPerLevel) this.recomputeStats();
     }
   }
 
@@ -1566,14 +1592,22 @@ export default class Game extends Phaser.Scene {
 
   recomputeStats() {
     // Sum each passive's effect
-    const sum = { hearts: 0, speed: 0, count: 0, damage: 0, area: 0, pickup: 0 };
+    const sum = { hearts: 0, speed: 0, count: 0, damage: 0, area: 0, pickup: 0, crit: 0, critDamage: 0, difficulty: 0 };
     for (const [k, lvl] of Object.entries(this.passives)) {
       const d = PASSIVES[k];
-      if (d && sum[d.effect] !== undefined) sum[d.effect] += d.amount * (this.passivePts[k] ?? lvl);
+      if (!d || sum[d.effect] === undefined) continue;
+      const v = d.amount * (this.passivePts[k] ?? lvl);
+      // Hearts and attacks come in whole numbers: +1 right away, then each time the levels add up to another 1
+      sum[d.effect] += wholeEffect(d.effect) ? Math.ceil(v - 1e-6) : v;
     }
     const ch = this.charDef;
     const m = this.meta, mods = this.mods;
-    this.stats.dmg = (1 + sum.damage + m.damage) * this.powerMul * mods.dmg * (ch.dmgMul || 1);
+    // Grug's perk: a little more damage for every level up
+    const levelDmg = 1 + (ch.dmgPerLevel || 0) * (this.level - 1);
+    this.stats.dmg = (1 + sum.damage + m.damage) * this.powerMul * mods.dmg * (ch.dmgMul || 1) * levelDmg;
+    this.stats.crit = BAL.critChance * (ch.critMul || 1) + sum.crit;
+    this.stats.critDmg = (BAL.critDamage ?? 2) * (1 + sum.critDamage);
+    this.stats.difficulty = sum.difficulty;
     this.stats.area = (1 + sum.area) * (ch.areaMul || 1);
     this.stats.count = Math.round(sum.count) + this.bonusCount;
     this.stats.pickup = BAL.pickupRange * (1 + sum.pickup + m.pickup);
@@ -2087,13 +2121,13 @@ export default class Game extends Phaser.Scene {
     if (!pt.locked && Math.hypot(p.x - pt.x, p.y - pt.y) < 30) this.enterPortal();
   }
 
-  // Three normal items and one rare one
+  // Two normal items and one rare one
   makeShop() {
     const canUp = this.weapons.some(w => w.level < this.weaponMax(w.key));
     const items = SHOP_ITEMS.filter(it => (it.id !== 'weapon' || this.weapons.length < this.weaponSlots) && (it.id !== 'upgrade' || canUp)
       && (it.id !== 'rabbit' || this.player.maxHearts > 1));
     const priced = (it) => ({ ...it, cost: Math.round(it.cost * (BAL.shopPriceMul ?? 5) * (1 + this.ageIndex * 0.25)) });
-    const out = shuffle(items.slice()).slice(0, 3).map(priced);
+    const out = shuffle(items.slice()).slice(0, 2).map(priced);
     const rares = (RARE_ITEMS || []).filter(it => (it.id !== 'crystal' || canUp) && (it.id !== 'firegem' || !this.fireGem));
     // After the last boss the wizard always has the Magic Mirror
     if (this.finalShop && CFG.mirror) out.push({ ...priced(CFG.mirror), rare: true });
@@ -2116,12 +2150,12 @@ export default class Game extends Phaser.Scene {
   // Confusion Potion: every weapon becomes a different random one at the same level
   confuseWeapons() {
     const old = this.weapons;
-    const pool = shuffle(this.poolWeapons().filter(k => !old.some(w => w.key === k)).concat(old.map(w => w.key).filter(k => !WEAPONS[k].signature)));
+    const pool = shuffle(this.poolWeapons().filter(k => !old.some(w => w.key === k)).concat(old.map(w => w.key).filter(k => k !== this.charDef.weapon)));
     this.weapons = [];
     const used = new Set();
     for (const w of old) {
       // A character's own weapon stays theirs
-      if (WEAPONS[w.key].signature) { this.weapons.push(w); continue; }
+      if (w.key === this.charDef.weapon) { this.weapons.push(w); continue; }
       w.sprites.forEach(sp => sp.destroy());
       if (w.ring) w.ring.destroy();
       const k = pool.find(x => !used.has(x) && x !== w.key) || pool.find(x => !used.has(x));
@@ -2224,9 +2258,8 @@ export default class Game extends Phaser.Scene {
           p.spr.setScale(this.charDef.scale || 1.5).setAngle(0);
           this.player.inv = 1.5;
           this.frozen = false;
-          const cap = WEAPONS[this.weapons[0].key] ? this.weaponMax(this.weapons[0].key) : 0;
-          if (this.loop && next === 0) this.ui.banner(`LOOP ${this.loop + 1}`, `Back to the ${this.age.name.toLowerCase()}. Tougher enemies.\nWeapons can now reach level ${cap}`, 3200, '#c890ff');
-          else this.ui.banner(this.age.name, `Weapons can now reach level ${cap}`, 3000, '#ffe070');
+          if (this.loop && next === 0) this.ui.banner(`LOOP ${this.loop + 1}`, `Back to the ${this.age.name.toLowerCase()}. Tougher enemies.`, 3200, '#c890ff');
+          else this.ui.banner(this.age.name, 'More enemies from the start', 3000, '#ffe070');
         });
       },
     });
@@ -2443,7 +2476,11 @@ export default class Game extends Phaser.Scene {
       // Characters unlocked by this achievement
       for (const ch of CHARACTERS) {
         if (ch.unlock !== `quest:${q.id}` || quiet) continue;
-        this.time.delayedCall(2200, () => { this.ui.toast(`NEW CHARACTER: ${ch.name}`, `${ch.title} is now unlocked`); audio.play('quest'); });
+        this.time.delayedCall(2200, () => { this.ui.toast(`NEW CHARACTER: ${ch.name}`, ch.cost ? 'Unlock with Sparks on the UNLOCK menu' : `${ch.title} is now unlocked`); audio.play('quest'); });
+      }
+      for (const w of Object.values(WEAPONS)) {
+        if (w.unlock !== `quest:${q.id}` || quiet) continue;
+        this.time.delayedCall(2200, () => { this.ui.toast(`NEW WEAPON: ${w.name.toUpperCase()}`, 'Unlock with Sparks on the UNLOCK menu'); audio.play('quest'); });
       }
     }
   }
@@ -2509,7 +2546,7 @@ export default class Game extends Phaser.Scene {
       this.numbers.push(n);
     }
     Object.assign(n, { alive: true, x: x + rand(-6, 6), y, life: 0.55, vy: -70 });
-    n.txt.setVisible(true).setText(String(val)).setColor(color || (crit ? '#ffd040' : '#ffffff')).setFontSize(crit ? 12 : 8).setAlpha(1).setPosition(n.x, n.y);
+    n.txt.setVisible(true).setText(String(val)).setColor(color || (crit ? '#ff3a3a' : '#ffffff')).setFontSize(crit ? 12 : 8).setAlpha(1).setPosition(n.x, n.y);
   }
 
   floatText(x, y, str, color) {

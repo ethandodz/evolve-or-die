@@ -212,6 +212,8 @@ function renderCharacters(main) {
       txt(cur, 'perk', 'Perk (shown on select screen)'),
       txt(cur, 'drawback', 'Drawback (shown on select screen)'),
       num(cur, 'dmgMul', 'Damage multiplier', '1.3 = +30%'),
+      num(cur, 'dmgPerLevel', 'Damage per level up', '0.005 = +0.5% damage every player level'),
+      num(cur, 'cost', 'Sparks to unlock', 'Bought on the UNLOCK menu once the goal is met (blank = free)'),
       num(cur, 'weaponSlots', 'Weapon slots', 'Normally 3'),
       num(cur, 'damageTaken', 'Damage taken per hit', '1 = a heart, 0.5 = half a heart'),
       num(cur, 'cdMul', 'Attack delay multiplier', '0.8 = weapons attack 25% faster'),
@@ -348,7 +350,7 @@ function renderWeapons(main) {
   const drawLevels = () => {
     levelBox.replaceChildren(...Array.from({ length: w.max - 1 }, (_, i) => {
       const l = i + 2;
-      const inp = h('input', { type: 'text', value: w.levels[l - 1] || '' });
+      const inp = h('input', { type: 'text', value: w.levels[l - 1] || '', placeholder: 'Blank = worked out from the stats' });
       inp.addEventListener('input', () => { w.levels[l - 1] = inp.value; changed(); });
       return field(`Level ${l} card text`, inp);
     }));
@@ -492,10 +494,11 @@ function renderBalance(main) {
     ['maxEnemies', 'Most enemies at once', 'Phones may lag above ~200'],
     ['spawnBase', 'Spawns per second at start'], ['spawnGrowth', 'Extra spawns per second, each second'],
     ['crowdStart', 'Crowd size at start'], ['crowdGrowth', 'Crowd growth per second'],
+    ['ageSpawnStep', 'Extra spawns per age', 'Each later age starts with this many more enemies per second'], ['ageCrowdStep', 'Extra crowd per age', 'And this many more allowed at once'],
     ['hpGrowth', 'Enemy health growth', 'Health doubles about every this many seconds'],
     ['enemyHpMul', 'Enemy health boost', '1.4 = every enemy has 40% more health'], ['ageHpBonus', 'Extra enemy health per age', '0.1 = +10% more after each age (stacks)'],
     ['miniBossHp', 'Mini-boss health multiplier'], ['stampedeSize', 'Stampede size'],
-    ['critChance', 'Critical hit chance', '0.08 = 8%'], ['coinChance', 'Coin drop chance'], ['meatChance', 'Healing meat drop chance'], ['magnetChance', 'Magnet drop chance'],
+    ['critChance', 'Critical hit chance', '0.08 = 8%'], ['critDamage', 'Critical hit damage', '2 = double damage'], ['coinChance', 'Coin drop chance'], ['meatChance', 'Healing meat drop chance'], ['magnetChance', 'Magnet drop chance'],
     ['xpEarly', 'Early level discount', '0.45 = first level costs 45%, normal by level 6'], ['giftWeaponAt', 'Free 2nd weapon at', 'Part of the first age, 0.2 = 1 minute in. 0 = off'],
     ['earlyLoot', 'Early boss loot', 'Loot multiplier when the boss is summoned right away'],
     ['eliteChance', 'Glowing elite chance', 'After 45s'], ['specialChance', 'Special enemy chance', 'After 45s'],

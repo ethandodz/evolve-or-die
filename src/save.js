@@ -1,3 +1,5 @@
+import { AGES, WEAPONS, weaponEra } from './data.js';
+
 // Device saves. A copy can be backed up online when Supabase is set up (see online.js).
 const KEY = 'eod-save-v1';
 
@@ -58,6 +60,17 @@ if (!save.weaponsFound.__seeded) {
   save.weaponsFound.__seeded = true;
 }
 
+// A later age's weapon can only really be found by reaching that age. Daily challenges
+// used to hand out any weapon, which wrongly unlocked it, so those are taken back.
+export function dropUnearnedWeapons() {
+  const reached = (i) => i === 0 || !!save.bossesBeaten[AGES[i - 1].key];
+  for (const k of Object.keys(save.weaponsFound)) {
+    if (k.startsWith('__') || !WEAPONS[k]) continue;
+    if (!reached(weaponEra(k))) delete save.weaponsFound[k];
+  }
+}
+dropUnearnedWeapons();
+
 // Thick Skin now only goes to level 1: levels bought past that give their Sparks back
 if ((save.upgrades.hearts || 0) > 1) {
   for (let l = 1; l < save.upgrades.hearts; l++) save.sparks += 80 + 80 * l;
@@ -72,6 +85,7 @@ export function resetProgress() {
   save.bossesBeaten = {};
   save.runs = 0; save.bestTime = 0; save.totalKills = 0;
   save.sparks = 0; save.upgrades = {}; save.relics = {};
+  save.weaponsFound = { __seeded: true };
   save.daily = structuredClone(DEFAULTS.daily);
   save.stats = {}; save.quests = {}; save.history = [];
   save.tutorialDone = false;

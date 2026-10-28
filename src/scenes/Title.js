@@ -1,7 +1,7 @@
 import Phaser from 'phaser';
 import { audio } from '../audio.js';
 import { save, persist, resetProgress } from '../save.js';
-import { CHARACTERS, AGES, WEAPONS, ENEMIES, META, TWISTS, RELICS } from '../data.js';
+import { CHARACTERS, AGES, WEAPONS, ENEMIES, META, TWISTS, RELICS, POOL_WEAPONS, weaponEra } from '../data.js';
 import { W, H, text, button, panel, settingsPanel, COLORS, fmtTime, FONT } from '../ui.js';
 import { allQuests, progress, isDone, isClaimed, claimable, claim } from '../quests.js';
 import { onlineEnabled, topScores, playerName, cloudCode, cloudBackup, cloudRestore } from '../online.js';
@@ -18,7 +18,8 @@ export function todaysDaily() {
   const pool = (TWISTS || []).slice();
   const twists = [];
   while (twists.length < 2 && pool.length) twists.push(pool.splice(Math.floor(rnd() * pool.length), 1)[0].id);
-  const keys = Object.keys(WEAPONS).filter(k => !WEAPONS[k].signature);
+  // Only Stone Age weapons, so the daily never hands out a later age's weapon
+  const keys = POOL_WEAPONS.filter(k => weaponEra(k) === 0);
   const weapon = twists.includes('random') ? keys[Math.floor(rnd() * keys.length)] : null;
   return { date, twists, weapon };
 }

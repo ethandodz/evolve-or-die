@@ -1,7 +1,7 @@
 // Online scores and cloud saves through Supabase. Turned off until src/content/online.json
 // has the project's URL and public (anon) key. See supabase/README.md for the setup.
 import ONLINE from './content/online.json';
-import { save, persist } from './save.js';
+import { save, persist, dropUnearnedWeapons } from './save.js';
 
 const URL = (ONLINE && ONLINE.url || '').replace(/\/$/, '');
 const KEY = ONLINE && ONLINE.key || '';
@@ -60,6 +60,7 @@ export async function cloudRestore(code) {
   const data = await rpc('load_progress', { p_code: code.trim().toUpperCase() });
   if (!data) return false;
   Object.assign(save, data, { cloudCode: code.trim().toUpperCase(), settings: save.settings });
+  dropUnearnedWeapons();
   persist();
   return true;
 }

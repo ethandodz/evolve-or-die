@@ -111,6 +111,13 @@ function addNewContent(cfg, d, seen) {
   }
   // Tougher enemies (v20): health grows faster within an age, if never edited
   if (seen < 20 && cfg.balance.hpGrowth === 50) cfg.balance.hpGrowth = d.balance.hpGrowth;
+  // Bram nerf (v21): weaker Battle Lute and less bonus XP, if never edited
+  if (seen < 21) {
+    const lute = cfg.weapons.battlelute, nl = d.weapons.battlelute;
+    if (lute && lute.stats.dmg.base === 14 && lute.stats.dmg.per === 5) { lute.stats = JSON.parse(JSON.stringify(nl.stats)); lute.levels = [...nl.levels]; }
+    const bard = cfg.characters.find(c => c.key === 'bard'), nb = d.characters.find(c => c.key === 'bard');
+    if (bard && bard.xpMul === 1.25) { bard.xpMul = nb.xpMul; bard.perk = nb.perk; }
+  }
   cfg.contentVersion = d.contentVersion;
 }
 

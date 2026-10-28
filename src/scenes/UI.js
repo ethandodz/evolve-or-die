@@ -213,6 +213,9 @@ export default class UI extends Phaser.Scene {
     const wizOff = wiz && this.edgeArrow(wiz.x, wiz.y, 0xe8c070);
     this.wizIcon.setVisible(!!wizOff);
     if (wizOff) this.wizIcon.setPosition(wizOff.x, wizOff.y);
+    // Boss or mini-boss: a small, steady red arrow
+    const foe = g.boss && g.boss.alive ? g.boss : g.mini && g.mini.alive ? g.mini : null;
+    if (foe) this.edgeArrow(foe.x, foe.y, 0xe04040, 0.7, false);
 
     // Boss bar, or the mini-boss's when no boss is out
     const b = g.boss || (g.mini && g.mini.alive ? g.mini : null);
@@ -254,14 +257,14 @@ export default class UI extends Phaser.Scene {
   }
 
   // Arrow at the screen edge pointing to something off-screen. Returns a spot just inside it, or null when on screen.
-  edgeArrow(x, y, color) {
+  edgeArrow(x, y, color, size = 1, pulsing = true) {
     const g = this.g, cam = g.cameras.main, p = g.player;
     const sx = x - cam.scrollX, sy = y - cam.scrollY;
     if (sx >= 0 && sx <= W && sy >= 0 && sy <= H) return null;
     const a = Math.atan2(y - p.y, x - p.x);
     const ex = Math.max(24, Math.min(W - 24, W / 2 + Math.cos(a) * 400));
     const ey = Math.max(150, Math.min(H - 24, H / 2 + Math.sin(a) * 400));
-    const pulse = 1 + Math.sin(g.totalTime * 10) * 0.15;
+    const pulse = size * (pulsing ? 1 + Math.sin(g.totalTime * 10) * 0.15 : 1);
     const pt = (r, da) => [ex + Math.cos(a + da) * r * pulse, ey + Math.sin(a + da) * r * pulse];
     this.arrow.fillStyle(0x120c18, 1).fillTriangle(...pt(20, 0), ...pt(15, 2.4), ...pt(15, -2.4));
     this.arrow.fillStyle(color, 1).fillTriangle(...pt(15, 0), ...pt(11, 2.4), ...pt(11, -2.4));

@@ -274,17 +274,24 @@ export default class Title extends Phaser.Scene {
     c.add(panel(this, W / 2, H / 2, 410, 600));
     c.add(text(this, W / 2, H / 2 - 262, CHARACTERS.length > 6 ? 'CHOOSE YOUR CHARACTER' : 'CHOOSE YOUR\nCHARACTER', CHARACTERS.length > 6 ? 13 : 16, '#e8c070'));
     const beatenBosses = new Set(AGES.filter(a => save.bossesBeaten[a.key]).map(a => a.boss));
-    // unlock: 'start', a boss key, or 'kills:N' (enemies defeated over all runs)
+    // unlock: 'start', a boss key, 'kills:N' (enemies defeated over all runs) or 'quest:<id>' (an achievement)
     const killsNeeded = (ch) => (String(ch.unlock || '').startsWith('kills:') ? parseInt(ch.unlock.slice(6), 10) || 0 : 0);
+    const questOf = (ch) => (String(ch.unlock || '').startsWith('quest:') ? allQuests().find(q => q.id === ch.unlock.slice(6)) : null);
     const isOpen = (ch) => !ch.unlock || ch.unlock === 'start' || beatenBosses.has(ch.unlock)
-      || (killsNeeded(ch) && save.totalKills >= killsNeeded(ch)) || this.unlockAll;
+      || (killsNeeded(ch) && save.totalKills >= killsNeeded(ch)) || (questOf(ch) && isDone(questOf(ch))) || this.unlockAll;
     const lockText = (ch) => {
       const k = killsNeeded(ch);
       if (k) return `${Math.min(save.totalKills, k)}/${k} kills`;
+      const q = questOf(ch);
+      if (q) return `${ch.unlockText || q.name}${q.target > 1 && !q.time ? ` ${progress(q)}/${q.target}` : ''}`;
       const boss = ENEMIES[ch.unlock];
       return `Beat ${boss ? boss.name : 'a boss'}`;
     };
-    const list = CHARACTERS.slice(0, 9);
+    // Nine to a page; arrows flip through the rest
+    const PAGE = 9;
+    const pages = Math.ceil(CHARACTERS.length / PAGE);
+    let page = 0;
+    const list = CHARACTERS.slice(0, PAGE);
     // More than 6 characters: smaller cards in three rows
     const compact = list.length > 6;
     const maxTier = Math.max(1, ...Object.values(WEAPONS).map(x => x.tier || 0));
@@ -323,27 +330,40 @@ export default class Title extends Phaser.Scene {
       perk.setText(selected.perk ? `+ ${selected.perk}` : '');
       drawback.setText(selected.drawback ? `- ${selected.drawback}` : '');
     };
-    list.forEach((ch, i) => {
-      const col = i % cols, row = Math.floor(i / cols);
-      const inRow = Math.min(cols, list.length - row * cols);
-      const x = W / 2 - ((inRow - 1) * gap) / 2 + col * gap, y = top + row * rowGap;
-      const g = this.add.graphics();
-      c.add(g);
-      cards.push({ ch, g, x, y });
-      const open = isOpen(ch);
-      const sy = compact ? y - 12 : y - 14;
-      const spr = this.add.sprite(x, sy, this.textures.exists(ch.sprite) ? ch.sprite : 'caveman', 0).setScale(compact ? 1.6 : 2);
-      if (!open) spr.setTintFill(0x140a06);
-      else this.tweens.add({ targets: spr, y: sy - 4, yoyo: true, repeat: -1, duration: 500 + i * 40 });
-      c.add(spr);
-      if (!open) c.add(this.add.image(x, sy, 'lock').setScale(2));
-      c.add(text(this, x, y + (compact ? 25 : 34), open ? ch.name : '???', 9, open ? '#ffffff' : '#7a6a5a'));
-      c.add(text(this, x, y + (compact ? 38 : 49), open ? ch.title : lockText(ch), 6, '#c0a080'));
-      const hit = this.add.rectangle(x, y, cw, ch0, 0xffffff, 0.001).setInteractive({ useHandCursor: true });
-      hit.on('pointerup', () => { if (!open) { audio.play('deny'); return; } audio.play('select'); selected = ch; refresh(); });
-      c.add(hit);
-    });
-    refresh();
+    const grid = this.add.container(0, 0);
+    c.add(grid);
+    const drawPage = () => {
+      grid.removeAll(true);
+      cards.length = 0;
+      const list = CHARACTERS.slice(page * PAGE, page * PAGE + PAGE);
+      list.forEach((ch, i) => {
+        const col = i % cols, row = Math.floor(i / cols);
+        const inRow = Math.min(cols, list.length - row * cols);
+        const x = W / 2 - ((inRow - 1) * gap) / 2 + col * gap, y = top + row * rowGap;
+        const g = this.add.graphics();
+        grid.add(g);
+        cards.push({ ch, g, x, y });
+        const open = isOpen(ch);
+        const sy = compact ? y - 12 : y - 14;
+        const spr = this.add.sprite(x, sy, this.textures.exists(ch.sprite) ? ch.sprite : 'caveman', 0).setScale(compact ? 1.6 : 2);
+        if (!open) spr.setTintFill(0x140a06);
+        else this.tweens.add({ targets: spr, y: sy - 4, yoyo: true, repeat: -1, duration: 500 + i * 40 });
+        grid.add(spr);
+        if (!open) grid.add(this.add.image(x, sy, 'lock').setScale(2));
+        grid.add(text(this, x, y + (compact ? 25 : 34), open ? ch.name : '???', 9, open ? '#ffffff' : '#7a6a5a'));
+        grid.add(text(this, x, y + (compact ? 38 : 49), open ? ch.title : lockText(ch), 6, '#c0a080'));
+        const hit = this.add.rectangle(x, y, cw, ch0, 0xffffff, 0.001).setInteractive({ useHandCursor: true });
+        hit.on('pointerup', () => { if (!open) { audio.play('deny'); return; } audio.play('select'); selected = ch; refresh(); });
+        grid.add(hit);
+      });
+      refresh();
+    };
+    drawPage();
+    if (pages > 1) {
+      const flip = (d) => { audio.play('select'); page = (page + d + pages) % pages; drawPage(); };
+      c.add(button(this, W / 2 - 172, H / 2 - 262, 34, 30, '<', () => flip(-1), { size: 10 }));
+      c.add(button(this, W / 2 + 172, H / 2 - 262, 34, 30, '>', () => flip(1), { size: 10 }));
+    }
     c.add(button(this, W / 2, H / 2 + 210, 260, 52, 'START RUN', () => this.startRun(selected.key), { size: 18, color: COLORS.green, hi: COLORS.greenHi }));
     c.add(button(this, W / 2, H / 2 + 268, 160, 36, 'BACK', () => { c.destroy(); this.mainButtons.forEach(b => b.setVisible(true)); }, { size: 12 }));
   }

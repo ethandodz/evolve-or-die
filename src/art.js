@@ -193,6 +193,10 @@ function human(o, f) {
     if (o.sword) { s.line(19, 20 + oy, 22, 13 + oy, STEEL[1]); s.line(18, 20 + oy, 21, 13 + oy, STEEL[0]); }
     if (o.staff) { s.line(20, 30 + oy, 20, 4 + oy, WOOD[1]); s.ell(20.5, 3 + oy, 2.2, 2.2, o.staff); }
     if (o.blaster) { s.rect(17, 19 + oy, 7, 2, DARKSTEEL); s.rect(17, 21 + oy, 2, 2, DARKSTEEL); s.put(23, 19 + oy, o.blaster); }
+    if (o.lute) { s.line(15, 22 + oy, 22, 13 + oy, WOOD[2]); s.ell(15, 23 + oy, 3.5, 3, WOOD); s.put(15, 23 + oy, EYE); s.put(22, 12 + oy, WOOD[0]); }
+    if (o.flask) { s.rect(19, 15 + oy, 2, 3, CREAM); s.ell(20, 20 + oy, 3, 3, o.flask); s.put(19, 19 + oy, '#ffffff'); }
+    if (o.cane) { s.line(20, 31 + oy, 20, 13 + oy, BLACKL[1]); s.ell(20, 12 + oy, 1.4, 1.4, GOLD); }
+    if (o.guitar) { s.line(14, 20 + oy, 23, 10 + oy, BLACKL[0]); s.ell(13, 22 + oy, 4.5, 3.5, o.guitar); s.put(13, 22 + oy, EYE); s.rect(22, 9 + oy, 2, 2, STEEL); }
     if (o.trident) { s.line(20, 30 + oy, 20, 0 + oy, WOOD[1]); s.line(18, 0 + oy, 22, 0 + oy, STEEL[1]); [18, 20, 22].forEach(x => s.line(x, 0 + oy, x, -3 + oy, STEEL[0])); }
   });
 }
@@ -229,6 +233,11 @@ const CHAR_LOOKS = {
   cyborg: { skin: SKIN, hair: BLACKH, visor: VISORR, body: DARKSTEEL, bodyTex: 0.2, arms: STEEL, blaster: '#ff3a5a', legs: DARKSTEEL, boots: DARKSTEEL },
   greyalien: { skin: ALIENS, alienEyes: true, body: ALIENS, arms: ALIENS, legs: ALIENS, boots: ALIENS },
   nova: { skin: SKIN2, hair: ['#f8f8ff', '#d8dcf0', '#a8acc8', '#70748c'], visor: VISOR, body: SPACE, arms: SPACE, belt: '#5af0ff', staff: NEON, legs: SPACE, boots: NEONP },
+  bard: { skin: SKIN, hair: ['#c8643a', '#a04a28', '#78341a', '#4e200e'], body: GREEN, cape: RED, belt: '#f0c060', lute: true, legs: ['#a07a4a', '#80603a', '#5a4228', '#3a2a18'], boots: LEATHER },
+  alchemist: { skin: SKIN2, hair: BLACKH, goggles: BRASS, body: PURPLE, arms: PURPLE, belt: '#f0c060', flask: ['#b0ff8a', '#6ad04a', '#3e9a2e', '#22601a'], legs: PURPLE, boots: LEATHER },
+  inspector: { skin: SKIN, hair: HAIR, flatcap: TWEED, cape: TWEED, body: TWEED, arms: TWEED, belt: '#3a2a20', cane: true, legs: SUIT, boots: BLACKL },
+  rocker: { skin: SKIN, hair: PINK, shades: true, body: BLACKL, spots: true, belt: '#d0d0d8', guitar: RED, legs: DENIM, boots: BLACKL },
+  zorp: { skin: ['#b8f08a', '#8ad060', '#5a9a3a', '#2e5a1e'], alienEyes: true, antenna: true, body: SPACE, arms: ['#b8f08a', '#8ad060', '#5a9a3a', '#2e5a1e'], belt: '#5af0ff', blaster: '#5af0ff', legs: SPACE, boots: NEONP },
   timecop: { skin: SKIN, cap: NAVY, body: BLUE, badge: true, belt: '#1a1a2a', legs: NAVY, boots: ['#2a2a2a', '#1a1a1a', '#101010', '#080808'] },
 };
 
@@ -717,6 +726,12 @@ const ITEMS = {
   plasmabeam: () => paint(34, 8, (s) => { s.line(0, 3, 30, 3, NEON[1], 2); s.line(0, 3, 30, 3, '#ffffff'); s.ell(30, 3.5, 3.2, 3.2, NEON); }),
   coalicon: () => paint(14, 12, (s) => { s.ell(7, 6, 6, 5, SOOT, 0.3); s.put(5, 5, '#ff8a20'); s.put(9, 7, '#ffb040'); }),
   missile: () => paint(10, 20, (s) => { s.rect(3, 4, 4, 12, STEEL); s.ell(5, 16, 2, 3, RED); s.rect(1, 3, 8, 2, RED); s.put(4, 1, FIRE[1]); s.put(5, 0, FIRE[0]); s.put(5, 2, FIRE[2]); }),
+  lute: () => paint(16, 18, (s) => { s.line(8, 9, 14, 1, WOOD[2], 2); s.ell(6, 12, 5, 4.5, WOOD, 0.05); s.ell(6, 12, 1.5, 1.5, [EYE, EYE, EYE, EYE]); s.rect(13, 0, 3, 2, WOOD[3]); }),
+  flask: () => paint(12, 16, (s) => { s.rect(5, 1, 3, 5, CREAM); s.ell(6, 10, 5, 5, ['#b0ff8a', '#6ad04a', '#3e9a2e', '#22601a']); s.put(4, 8, '#ffffff'); s.put(7, 12, '#e0ffb0'); s.rect(4, 0, 5, 2, WOOD); }),
+  swordcane: () => paint(32, 8, (s) => { s.line(1, 3, 12, 3, BLACKL[1], 2); s.ell(1.5, 3.5, 1.6, 1.6, GOLD); s.rect(12, 2, 2, 4, GOLD); s.line(14, 3, 29, 3, STEEL[0]); s.line(14, 4, 28, 4, STEEL[2]); s.put(30, 3, STEEL[1]); }),
+  guitar: () => paint(16, 18, (s) => { s.line(7, 10, 14, 1, BLACKL[0], 2); s.ell(5, 12, 4.5, 4, RED); s.ell(5, 12, 1.4, 1.4, [EYE, EYE, EYE, EYE]); s.rect(13, 0, 3, 2, STEEL); s.line(9, 12, 12, 15, '#ffe060'); }),
+  raygun: () => paint(18, 12, (s) => { s.ell(7, 4, 6, 3, SPACE); s.rect(12, 3, 5, 2, NEON); s.ell(16.5, 4, 1.5, 1.5, NEON); s.rect(4, 6, 3, 5, NEONP); s.put(6, 3, '#ffffff'); }),
+  raybolt: () => paint(18, 8, (s) => { s.ell(10, 3.5, 7, 2.6, NEON); s.line(2, 3, 16, 3, '#ffffff'); }),
   // Industrial decor
   chimney: () => paint(22, 58, (s) => { s.rect(5, 6, 12, 50, BRICK, 0.15); for (let y = 9; y < 56; y += 4) s.line(5, y, 16, y, BRICK[3]); s.rect(3, 4, 16, 4, SOOT); s.ell(11, 2, 6, 2, WHITE); s.ell(7, 0, 4, 1.4, WHITE); }),
   crate: () => paint(20, 18, (s) => { s.rect(1, 2, 18, 15, WOOD, 0.1); s.rect(1, 2, 18, 2, WOOD[3]); s.line(2, 4, 18, 16, WOOD[3]); s.line(18, 4, 2, 16, WOOD[3]); }),
@@ -739,6 +754,7 @@ const ITEMS = {
 
 const ANIM_ITEMS = {
   flame: (f) => paint(14, 18, (s) => { s.ell(7, 11, 5, 6, FIRE); s.ell(7 + (f ? 1 : -1), 7, 2.4, 4, FIRE.slice(0, 1).concat(FIRE.slice(0, 3))); s.put(7 + (f ? -2 : 2), 2, FIRE[1]); }),
+  note: (f) => paint(10, 14, (s) => { const N = ['#ffe8ff', '#f070ff', '#b030e0', '#701a9a']; s.ell(3.5, 11 - f, 3, 2.4, N); s.line(6, 11 - f, 6, 2 - f, N[1]); s.line(6, 2 - f, 9, 4 - f, N[1]); }),
   spiritflame: (f) => { const SF = ['#e8fcff', '#8ae8ff', '#3aa8e0', '#1a5aa0']; return paint(14, 18, (s) => { s.ell(7, 11, 5, 6, SF); s.ell(7 + (f ? 1 : -1), 7, 2.4, 4, SF.slice(0, 1).concat(SF.slice(0, 3))); s.put(7 + (f ? -2 : 2), 2, SF[1]); }); },
   campfire: (f) => paint(22, 24, (s) => {
     for (let i = 0; i < 7; i++) { const a = Math.PI + i * Math.PI / 6; s.ell(11 + Math.cos(a) * 8, 21 + Math.sin(a) * 2.5, 2.4, 1.9, GREYS); }
@@ -801,7 +817,7 @@ export function buildDefaultSprites() {
 }
 
 export const SPRITE_GROUPS = {
-  Characters: ['caveman', 'tamer', 'shaman', 'knight', 'centurion', 'inventor', 'engineer', 'pilot', 'nova', 'wizard'],
+  Characters: ['caveman', 'tamer', 'shaman', 'knight', 'centurion', 'inventor', 'engineer', 'pilot', 'nova', 'bard', 'alchemist', 'inspector', 'rocker', 'zorp', 'wizard'],
   'Stone Age enemies': ['rival', 'wolf', 'raptor', 'sabertooth', 'golem', 'pebble', 'mammoth', 'trex'],
   'Roman enemies': ['legionary', 'spearman', 'gladiator', 'centurion', 'testudo', 'chariot', 'hydra', 'timecop'],
   'Medieval enemies': ['peasant', 'footman', 'jester', 'blackknight', 'slime', 'slimelet', 'troll', 'dragon'],
@@ -809,7 +825,7 @@ export const SPRITE_GROUPS = {
   'Industrial enemies': ['sweep', 'navvy', 'luddite', 'steamhound', 'coalcart', 'coal', 'rat', 'furnace', 'locomotive'],
   'Modern enemies': ['punk', 'agent', 'soldier', 'biker', 'drone', 'minidrone', 'taxi', 'tank', 'chopper'],
   'Future enemies': ['android', 'cyborg', 'greyalien', 'hoverbot', 'ufo', 'nanite', 'walker', 'overlord'],
-  Weapons: ['club', 'axe', 'spear', 'flame', 'rock', 'bolt', 'boneclub', 'amber', 'spiritflame', 'pilum', 'holyblade', 'tesla', 'steamhammer', 'drone_s', 'plasma', 'plasmabeam', 'dynamite', 'nailgun', 'nail', 'disc'],
+  Weapons: ['club', 'axe', 'spear', 'flame', 'rock', 'bolt', 'boneclub', 'amber', 'spiritflame', 'pilum', 'holyblade', 'tesla', 'steamhammer', 'drone_s', 'plasma', 'plasmabeam', 'dynamite', 'nailgun', 'nail', 'disc', 'lute', 'note', 'flask', 'swordcane', 'guitar', 'raygun', 'raybolt'],
   Items: ['treasure', 'chest_open', 'scroll', 'trophy', 'combo', 'cogicon', 'heart_half', 'shieldicon', 'potion_purple', 'rabbitfoot', 'firegem', 'mirror', 'gem_s', 'gem_m', 'gem_l', 'coin', 'spark', 'meat', 'magnet', 'chest', 'potion', 'star', 'reroll', 'skull', 'lock', 'crystal', 'feather', 'idol', 'ark', 'monalisa', 'alienegg', 'alien', 'excalibur', 'declaration', 'lightray'],
   Icons: ['heart', 'heart_empty', 'sandal', 'totem', 'flint', 'tusk', 'lodestone'],
   Scenery: ['boulder', 'fern', 'bones', 'tree', 'campfire', 'handprint', 'deer', 'hunters', 'column', 'broken', 'urn', 'cypress', 'brazier', 'banner', 'haybale', 'shrub', 'torch', 'gravestone', 'easel', 'gearpile', 'statue', 'lantern', 'chimney', 'crate', 'barrel', 'rails', 'hydrant', 'cone', 'trashcan', 'stopsign', 'bench', 'pylon', 'crystalrock', 'pod', 'antenna', 'holosign', 'coalicon', 'missile'],

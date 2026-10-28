@@ -50,6 +50,53 @@ export const boostedBlurb = (blurb, mult) => mult === 1 ? blurb : blurb
 
 export const statsOf = (key, level) => weaponStats(WEAPONS[key], level);
 
+// Weapon level-ups: each one raises a single stat, picked at random from the weapon's stats.
+// Whole-number stats (attacks, chain, pierce, bounce) go up by 1, as many times as the weapon's
+// old level table allowed. The other stats take a bigger step than the old per-level amount,
+// since they now share the level-ups, so a maxed weapon ends up about as strong as before.
+const WHOLE_STATS = ['count', 'chain', 'pierce', 'bounce'];
+const LEVEL_UPS = 29;
+export function upgradeOptions(key) {
+  const w = WEAPONS[key];
+  const st = w.stats || {};
+  const whole = [], cont = [];
+  for (const [k, s] of Object.entries(st)) {
+    if (!s || typeof s !== 'object') continue;
+    if (WHOLE_STATS.includes(k)) {
+      const cap = s.at ? s.at.filter(l => l > 1).length : Math.round((s.per || 0) * LEVEL_UPS);
+      if (cap > 0) whole.push({ stat: k, whole: true, cap });
+    } else if (s.per) cont.push({ stat: k, per: s.per });
+  }
+  const wholeUps = whole.reduce((a, o) => a + o.cap, 0);
+  const share = cont.length ? Math.max(1, LEVEL_UPS - wholeUps) / cont.length : 1;
+  for (const o of cont) o.step = (o.per * LEVEL_UPS) / share;
+  return [...whole, ...cont];
+}
+
+const round = (n, d) => +n.toFixed(d);
+// Card text for one weapon upgrade, with the exact amount ("+1 swing", "+8.4 damage")
+export function upgradeText(key, stat, amount) {
+  const w = WEAPONS[key];
+  const s = w.stats[stat] || {};
+  const n = Math.abs(amount);
+  switch (stat) {
+    case 'count': { const name = w.countName || 'attack'; return `+${n} ${name}${n > 1 ? 's' : ''}`; }
+    case 'chain': return `+${n} chain`;
+    case 'pierce': return `+${n} pierce`;
+    case 'bounce': return `+${n} bounce${n > 1 ? 's' : ''}`;
+    case 'dmg': return `+${round(n, 1)} damage`;
+    case 'cd': return `-${round(n, 2)}s between attacks`;
+    case 'tick': return `-${round(n, 2)}s between burns`;
+    case 'spin': return `+${round(n, 1)} spin speed`;
+    case 'slow': return `Slows ${Math.round(n * 100)}% more`;
+    case 'size': return `+${Math.round((n / (s.base || 1)) * 100)}% size`;
+    case 'radius': return `+${Math.round(n)} ${w.behavior === 'swing' ? 'reach' : 'area'}`;
+    case 'length': return `+${Math.round(n)} reach`;
+    case 'range': return `+${Math.round(n)} range`;
+    default: return `+${round(n, 2)} ${stat}`;
+  }
+}
+
 // What one weapon level adds, worked out from its stats ("+2.4 damage, +1 bounce")
 export function levelText(key, level, mult = 1) {
   const w = WEAPONS[key];

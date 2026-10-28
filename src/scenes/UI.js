@@ -1,7 +1,7 @@
 import Phaser from 'phaser';
 import { audio } from '../audio.js';
 import { save } from '../save.js';
-import { WEAPONS, PASSIVES, AGES, RARITIES, CHARACTERS, COMBOS, ENEMIES, RELICS, BAL, boostedBlurb, levelText, wholeEffect } from '../data.js';
+import { WEAPONS, PASSIVES, AGES, RARITIES, CHARACTERS, COMBOS, ENEMIES, RELICS, BAL, boostedBlurb, upgradeText, upgradeOptions, wholeEffect } from '../data.js';
 import { closestGoal } from '../quests.js';
 import { W, H, text, button, panel, roundBox, settingsPanel, COLORS, fmtTime, FONT } from '../ui.js';
 import { controls } from '../controls.js';
@@ -419,16 +419,14 @@ export default class UI extends Phaser.Scene {
   choiceCard(ch, x, y, onPick) {
     let name, desc, icon, tag, tagColor;
     const mult = ch.mult || 1;
-    const pct = Math.round((mult - 1) * 100);
     if (ch.type === 'weapon') {
       const d = WEAPONS[ch.key];
       name = d.name; icon = d.icon;
       if (ch.isNew) desc = `${d.kind}. ${d.blurb}`;
-      else if (d.levels && d.levels[ch.level - 1]) desc = d.levels[ch.level - 1].replace(/\+(\d+(\.\d+)?) damage/, (m, n) => `+${+(parseFloat(n) * mult).toFixed(1)} damage`);
-      else desc = levelText(ch.key, ch.level, mult);
-      if (mult > 1) desc += ch.isNew ? `\nStarts ${pct}% stronger` : `\n${pct}% bigger boost`;
-      const cs = d.stats?.count;
-      if (ch.rarity === 3 && cs && (cs.at || []).includes(ch.level) && !ch.isNew) desc += ', +1 extra attack';
+      else desc = ch.up ? upgradeText(ch.key, ch.up.stat, ch.up.amount) : 'Stronger';
+      // A Rare+ new weapon starts with extra damage (Game.applyUpgrade)
+      const dmg = d.stats?.dmg;
+      if (ch.isNew && mult > 1 && dmg && dmg.per) desc += `\nStarts with ${upgradeText(ch.key, 'dmg', (upgradeOptions(ch.key).find(o => o.stat === 'dmg') || { step: 0 }).step * (mult - 1))}`;
       const combo = ch.isNew && this.g.comboWith ? this.g.comboWith(ch.key) : null;
       if (combo) { desc = `COMBO: ${combo.name}!\n${combo.blurb}`; tag = 'NEW + COMBO'; }
       if (!combo) tag = ch.isNew ? 'NEW WEAPON' : `LV ${ch.level}`;
@@ -472,7 +470,7 @@ export default class UI extends Phaser.Scene {
     card.add(text(this, x - w / 2 + 100, y - 30, name.toUpperCase(), 12, '#ffffff', 0));
     if (tag) card.add(text(this, x + w / 2 - 12, y - 30, tag, 8, tagColor, 1));
     if (fancy) {
-      const label = `${rar.name} x${rar.mult}`;
+      const label = rar.name;
       const rt = text(this, x + w / 2 - 12, y + h / 2 - 12, label, 8, rar.text, 1);
       card.add(rt);
       if (ch.rarity >= 2) this.tweens.add({ targets: rt, alpha: 0.4, yoyo: true, repeat: -1, duration: 400 });

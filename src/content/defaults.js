@@ -4,17 +4,18 @@
 export const DEFAULT_CONFIG = {
   version: 1,
   // Bump when new built-in content is added, so saved editor edits get it too (see config.js)
-  contentVersion: 29,
+  contentVersion: 30,
 
   balance: {
     ageLength: 210,        // seconds until the time police arrive (the boss fight doesn't stop the clock)
-    maxEnemies: 160,
+    maxEnemies: 200,
     spawnBase: 1.6,        // enemies per second at the start of an age
-    spawnGrowth: 0.045,    // extra enemies per second, per second
+    spawnGrowth: 0.06,     // extra enemies per second, per second (eased by rampCurve)
     crowdStart: 30,        // max enemies alive at the start of an age
-    crowdGrowth: 0.65,     // extra allowed per second
-    ageSpawnStep: 3.2,     // each later age starts with this many more enemies per second
-    ageCrowdStep: 32,      // and this many more allowed at once
+    crowdGrowth: 1.0,      // extra allowed per second (eased by rampCurve)
+    rampCurve: 2,          // 1 = steady build-up; 2 = slow start that speeds up to the same peak
+    ageSpawnStep: 4,       // each later age starts with this many more enemies per second
+    ageCrowdStep: 40,      // and this many more allowed at once
     hpGrowth: 41.7,        // enemy HP goes up by its starting amount every this many seconds
     enemyHpMul: 1.4,       // all enemies (bosses too) have this much health
     ageHpBonus: 0.1,       // and +10% more after each age (stacks)

@@ -406,6 +406,8 @@ export const DEFAULT_CONFIG = {
     { id: 'pickup', name: 'Long Reach', icon: 'lodestone', max: 3, base: 30, grow: 30, amount: 0.15, blurb: '+15% pickup range.' },
     { id: 'rerolls', name: 'Lucky Charm', icon: 'reroll', max: 3, base: 60, grow: 60, amount: 1, blurb: '+1 reroll each run.' },
     { id: 'coins', name: 'Pouch', icon: 'coin', max: 3, base: 40, grow: 40, amount: 20, blurb: 'Start with +20 coins.' },
+    // costs: the price of each level, in order (instead of base + grow)
+    { id: 'sparks', name: 'Sparks Gain', icon: 'spark', max: 4, costs: [50, 150, 250, 500], amount: 0.25, blurb: '+0.25x Sparks from every run.' },
     { id: 'revive', name: 'Second Wind', icon: 'feather', max: 1, base: 300, grow: 0, amount: 1, blurb: 'Come back to life once per run.' },
   ],
 

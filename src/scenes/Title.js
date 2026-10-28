@@ -386,36 +386,56 @@ export default class Title extends Phaser.Scene {
     c.add(this.add.image(W / 2 - 40, 78, 'spark').setScale(2));
     const have = text(this, W / 2 - 22, 78, '', 12, '#ffe060', 0);
     c.add(have);
+    // The list scrolls inside this window (drag it, or use the mouse wheel)
+    const TOP = 146, BOTTOM = 716, ROW = 82;
+    const rows = this.add.container(0, 0);
+    c.add(rows);
+    const maskG = this.make.graphics({ add: false });
+    maskG.fillStyle(0xffffff).fillRect(0, TOP, W, BOTTOM - TOP);
+    rows.setMask(maskG.createGeometryMask());
     const TABS = [['weapon', 'WEAPONS'], ['passive', 'PASSIVES'], ['relic', 'RELICS']];
     const tabBtns = TABS.map(([id, label], i) => {
-      const b = button(this, W / 2 - 128 + i * 128, 118, 120, 38, label, () => { audio.play('select'); tab = id; page = 0; draw(); }, { size: 8 });
+      const b = button(this, W / 2 - 128 + i * 128, 118, 120, 38, label, () => { audio.play('select'); tab = id; scroll = 0; draw(); }, { size: 8 });
       c.add(b);
       return [id, b];
     });
-    const rows = this.add.container(0, 0);
-    c.add(rows);
-    const PER = 6;
-    let page = 0;
-    const pageText = text(this, W / 2, 690, '', 8, '#c0a080');
-    const prev = button(this, W / 2 - 110, 690, 70, 34, '<', () => { page--; draw(); }, { size: 12 });
-    const next = button(this, W / 2 + 110, 690, 70, 34, '>', () => { page++; draw(); }, { size: 12 });
-    c.add([pageText, prev, next]);
+    let scroll = 0, maxScroll = 0;
+    const setScroll = (v) => { scroll = Phaser.Math.Clamp(v, 0, maxScroll); rows.y = -scroll; };
+    const inList = (p) => p.y > TOP && p.y < BOTTOM;
+    let drag = null;
+    const onDown = (p) => { drag = inList(p) ? { y: p.y, start: scroll, moved: false } : null; };
+    const onMove = (p) => {
+      if (!drag || !p.isDown) return;
+      if (Math.abs(p.y - drag.y) > 8) drag.moved = true;
+      if (drag.moved) setScroll(drag.start - (p.y - drag.y));
+    };
+    const onUp = () => { this.time.delayedCall(0, () => { drag = null; }); };
+    const onWheel = (p, objs, dx, dy) => setScroll(scroll + dy * 0.6);
+    this.input.on('pointerdown', onDown);
+    this.input.on('pointermove', onMove);
+    this.input.on('pointerup', onUp);
+    this.input.on('wheel', onWheel);
+    const done = () => {
+      this.input.off('pointerdown', onDown); this.input.off('pointermove', onMove);
+      this.input.off('pointerup', onUp); this.input.off('wheel', onWheel);
+      maskG.destroy();
+      close();
+    };
     const draw = () => {
       rows.removeAll(true);
       have.setText(String(save.sparks));
       this.sparkText.setText(String(save.sparks));
       for (const [id, b] of tabBtns) b.setAlpha(id === tab ? 1 : 0.55);
       const list = unlockList(tab);
-      const pages = Math.max(1, Math.ceil(list.length / PER));
-      page = (page + pages) % pages;
-      pageText.setText(`${page + 1} / ${pages}`);
-      [pageText, prev, next].forEach(o => o.setVisible(pages > 1));
-      list.slice(page * PER, page * PER + PER).forEach((u, i) => {
-        const y = 186 + i * 82;
+      maxScroll = Math.max(0, list.length * ROW + 12 - (BOTTOM - TOP));
+      setScroll(scroll);
+      list.forEach((u, i) => {
+        const y = TOP + 46 + i * ROW;
         const open = u.unlocked, canBuy = !open && u.cost > 0;
         const g = this.add.graphics();
         g.fillStyle(0x0c1030, 1).fillRect(W / 2 - 196, y - 38, 392, 76);
         g.fillStyle(open ? 0x263ea8 : 0x1c2a70, 1).fillRect(W / 2 - 194, y - 36, 388, 72);
+        if (canBuy && u.ready) g.lineStyle(2, 0x9ae07a, 1).strokeRect(W / 2 - 194, y - 36, 388, 72);
         rows.add(g);
         if (this.textures.exists(u.icon)) {
           const ic = fit(this.add.image(W / 2 - 166, y, u.icon, 0), 42);
@@ -428,6 +448,8 @@ export default class Title extends Phaser.Scene {
         rows.add(this.add.text(W / 2 - 136, y - 10, desc || '', { fontFamily: FONT, fontSize: '7px', color: open ? '#d0b890' : u.type === 'relic' ? '#ffe060' : u.ready ? '#9ae07a' : '#ff9a8a', wordWrap: { width: textW }, lineSpacing: 3 }).setOrigin(0, 0));
         if (canBuy) {
           const b = button(this, W / 2 + 145, y, 86, 40, String(u.cost), () => {
+            // A drag to scroll, or a tap on a row scrolled out of view, doesn't buy
+            if ((drag && drag.moved) || !inList(this.input.activePointer)) return;
             if (!buyUnlock(u)) { audio.play('deny'); return; }
             audio.play('buy');
             draw();
@@ -438,7 +460,7 @@ export default class Title extends Phaser.Scene {
       });
     };
     draw();
-    c.add(button(this, W / 2, 742, 160, 36, 'BACK', close, { size: 12 }));
+    c.add(button(this, W / 2, 742, 160, 36, 'BACK', done, { size: 12 }));
   }
 
   // Permanent upgrades bought with Sparks

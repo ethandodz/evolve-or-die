@@ -102,7 +102,7 @@ export function passiveUnlocked(key) {
   return !!p && (!p.cost || bought('passive', key));
 }
 
-// Rows for one UNLOCK menu tab ('weapon', 'passive' or 'relic'), unlocked first.
+// Rows for one UNLOCK menu tab ('weapon', 'passive' or 'relic').
 // goal: what's still needed; ready: the goal is met so it can be bought for cost Sparks
 export function unlockList(tab) {
   const out = [];
@@ -119,7 +119,7 @@ export function unlockList(tab) {
       } else {
         // Shared weapons from later ages turn up once you reach their age
         const era = weaponEra(k);
-        Object.assign(row, { unlocked: era === 0 || !!save.weaponsFound[k], goal: `Reach the ${titleCase(AGES[era].name)} to find it` });
+        Object.assign(row, { order: era, unlocked: era === 0 || !!save.weaponsFound[k], goal: `Reach the ${titleCase(AGES[era].name)} to find it` });
       }
       out.push(row);
     }
@@ -134,7 +134,9 @@ export function unlockList(tab) {
         unlocked: !!save.relics[r.id], ready: true, goal: `Unlock it for ${r.cost} Sparks, then find it in treasure chests during a run.` });
     }
   }
-  return out.filter(r => r.unlocked).concat(out.filter(r => !r.unlocked));
+  // Unlocked, then ready to buy with Sparks, then still locked
+  const rank = (r) => (r.unlocked ? 0 : r.ready && r.cost ? 1 : 2);
+  return out.sort((a, b) => rank(a) - rank(b) || (a.order || 0) - (b.order || 0));
 }
 
 const titleCase = (t) => String(t).toLowerCase().replace(/\b\w/g, c => c.toUpperCase());

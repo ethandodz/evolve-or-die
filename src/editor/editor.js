@@ -436,6 +436,7 @@ function renderAges(main) {
       color(a, 'bg', 'Background color'),
       check(a, 'paintings', 'Cave paintings on the ground'),
       num(a, 'hpMul', 'Enemy health multiplier', 'Stone Age is 1'),
+      num(a, 'ease', 'Ease', 'Early ages: 0.7 = 30% fewer, weaker enemies (1 = full)'),
       num(a, 'xpMul', 'XP multiplier'),
       sel(a, 'music', 'Music', MUSIC),
       sel(a, 'bossMusic', 'Boss music', MUSIC),

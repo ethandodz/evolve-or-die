@@ -10,6 +10,8 @@ export const WEAPONS = CFG.weapons;
 // Weapons and passives taken out of the game for now (data kept; take a key out to bring it back)
 export const HIDDEN_WEAPONS = ['club', 'axes', 'spear', 'dynamite', 'nailgun', 'bonetoss'];
 export const HIDDEN_PASSIVES = ['heart'];
+// Random age events taken out of the game (the treasure thief, Lauren 2026-10-28)
+export const HIDDEN_EVENTS = ['thief'];
 export const PASSIVES = Object.fromEntries(Object.entries(CFG.passives).filter(([k]) => !HIDDEN_PASSIVES.includes(k)));
 export const SHOP_ITEMS = CFG.shop;
 // Characters taken out of the game for now (Aidan's playtest: build up again from Grug).
@@ -26,7 +28,7 @@ export const COMBOS = [];
 export const POOL_WEAPONS = Object.keys(WEAPONS).filter(k => !WEAPONS[k].signature && !HIDDEN_WEAPONS.includes(k));
 // A signature weapon counts as its normal weapon for combos
 export const baseWeapon = (k) => (WEAPONS[k] && WEAPONS[k].base) || k;
-export const EVENTS = CFG.events || [];
+export const EVENTS = (CFG.events || []).filter(e => !HIDDEN_EVENTS.includes(e.id));
 // Index of the age a shared weapon belongs to (0 = from the start)
 export const weaponEra = (k) => Math.max(0, AGES.findIndex(a => a.key === (WEAPONS[k] && WEAPONS[k].era)));
 

@@ -1,6 +1,6 @@
 // Quests and achievements: lifetime goals that pay Sparks when claimed on the menu.
 import { save, persist } from './save.js';
-import { WEAPONS, PASSIVES, AGES, ENEMIES, COMBOS, CHARACTERS, RELICS, weaponEra, HIDDEN_WEAPONS } from './data.js';
+import { WEAPONS, PASSIVES, AGES, ENEMIES, COMBOS, CHARACTERS, RELICS, weaponEra, HIDDEN_WEAPONS, HIDDEN_EVENTS } from './data.js';
 
 // Lifetime counters live in save.stats
 export function stats() {
@@ -54,6 +54,8 @@ export function allQuests() {
   ];
   // Weapon combos are switched off, so their quests are too
   if (!COMBOS.length) list = list.filter(q => !q.id.startsWith('combo'));
+  // The treasure thief is out of the game, so its quests are too
+  if (HIDDEN_EVENTS.includes('thief')) list = list.filter(q => !q.id.startsWith('thief'));
   // One per age boss
   AGES.forEach((a, i) => {
     const boss = ENEMIES[a.boss];

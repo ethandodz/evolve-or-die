@@ -1651,9 +1651,13 @@ export default class Game extends Phaser.Scene {
         if (c.rarity === 3) w.legendary = true;
       }
     } else if (c.type === 'passive') {
-      if (!this.passives[c.key]) { this.passives[c.key] = 0; this.passivePts[c.key] = 0; this.passiveOrder.push(c.key); }
+      const first = !this.passives[c.key];
+      if (first) { this.passives[c.key] = 0; this.passivePts[c.key] = 0; this.passiveOrder.push(c.key); }
       this.passives[c.key]++;
-      this.passivePts[c.key] += mult;
+      // The first pick of a passive counts as several levels so you feel it right away
+      const pts = mult * (first && !wholeEffect(PASSIVES[c.key].effect) ? (BAL.passiveFirstPick ?? 3) : 1);
+      this.passivePts[c.key] += pts;
+      if (first && pts > mult) this.floatText(this.player.x, this.player.y - 46, `${PASSIVES[c.key].name.toUpperCase()}!`, '#c08aff');
       if (PASSIVES[c.key].effect === 'hearts') { this.recomputeStats(); this.player.hearts = Math.min(this.player.maxHearts, this.player.hearts + Math.round(mult)); }
     }
     if (c.type === 'weapon') this.checkCombos();

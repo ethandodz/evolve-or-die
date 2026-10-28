@@ -4,7 +4,7 @@
 export const DEFAULT_CONFIG = {
   version: 1,
   // Bump when new built-in content is added, so saved editor edits get it too (see config.js)
-  contentVersion: 25,
+  contentVersion: 26,
 
   balance: {
     ageLength: 210,        // seconds until the time police arrive (the boss fight doesn't stop the clock)
@@ -50,6 +50,7 @@ export const DEFAULT_CONFIG = {
     bossTreasureChance: 0.25,  // chance an age boss drops a relic chest
     xpDrop: 0.6,           // XP from each enemy (0.6 = 40% less than the original)
     shopPriceMul: 5,       // wizard prices are this many times the listed cost
+    passiveFirstPick: 3,   // a passive's first level in a run counts this many levels, so it's noticeable
   },
 
   // Each character has a perk and a drawback. Optional stats: dmgMul, dmgPerLevel (damage per player level), critMul, xpMul,
@@ -233,13 +234,13 @@ export const DEFAULT_CONFIG = {
   // Attacks (count) add up in fractions; every whole number reached is one more attack.
   passives: {
     heart:   { name: 'Mammoth Heart', icon: 'heart', max: 30, effect: 'hearts', amount: 0.2, blurb: '+1 max heart now and every 5 levels. Heals 1.' },
-    sandals: { name: 'Swift Sandals', icon: 'sandal', max: 30, effect: 'speed', amount: 0.0375, blurb: '+3.75% move speed.' },
-    totem:   { name: 'Tribal Totem', icon: 'totem', max: 30, effect: 'count', amount: 0.25, blurb: '+0.25 attacks for every weapon. Each time the total reaches a whole number, every weapon gets one more attack.' },
-    flint:   { name: 'Sharp Flint', icon: 'flint', max: 30, effect: 'damage', amount: 0.06, blurb: '+6% damage.' },
-    tusk:    { name: 'Giant Tusk', icon: 'tusk', max: 30, effect: 'area', amount: 0.045, blurb: '+4.5% area and range.' },
-    magnet:  { name: 'Lodestone', icon: 'lodestone', max: 30, effect: 'pickup', amount: 0.09, blurb: '+9% XP pickup range.' },
-    crit:    { name: 'Focus', icon: 'crit', max: 30, effect: 'crit', amount: 0.015, blurb: '+1.5% chance of a critical hit (double damage, red number).' },
-    critdmg: { name: 'Lethality', icon: 'fang', max: 30, effect: 'critDamage', amount: 0.075, blurb: 'Critical hits do +7.5% more damage.' },
+    sandals: { name: 'Swift Sandals', icon: 'sandal', max: 30, effect: 'speed', amount: 0.075, blurb: '+7.5% move speed.' },
+    totem:   { name: 'Tribal Totem', icon: 'totem', max: 30, effect: 'count', amount: 0.5, blurb: '+0.5 attacks for every weapon. Each time the total reaches a whole number, every weapon gets one more attack.' },
+    flint:   { name: 'Sharp Flint', icon: 'flint', max: 30, effect: 'damage', amount: 0.12, blurb: '+12% damage.' },
+    tusk:    { name: 'Giant Tusk', icon: 'tusk', max: 30, effect: 'area', amount: 0.09, blurb: '+9% area and range.' },
+    magnet:  { name: 'Lodestone', icon: 'lodestone', max: 30, effect: 'pickup', amount: 0.18, blurb: '+18% XP pickup range.' },
+    crit:    { name: 'Focus', icon: 'crit', max: 30, effect: 'crit', amount: 0.03, blurb: '+3% chance of a critical hit (double damage, red number).' },
+    critdmg: { name: 'Lethality', icon: 'fang', max: 30, effect: 'critDamage', amount: 0.15, blurb: 'Critical hits do +15% more damage.' },
     danger:  { name: 'Difficulty', icon: 'wardrum', max: 30, effect: 'difficulty', amount: 0.05, blurb: '+5% more enemies and +5% enemy health. More enemies, more XP.' },
   },
 

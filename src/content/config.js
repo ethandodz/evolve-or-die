@@ -76,6 +76,11 @@ function addNewContent(cfg, d, seen) {
     const bc = cfg.weapons.boneclub;
     if (bc && bc.name === 'Bone Club') { bc.name = d.weapons.boneclub.name; bc.blurb = d.weapons.boneclub.blurb; }
   }
+  // Passives twice as strong (v26)
+  if (seen < 26) for (const [key, val] of Object.entries(d.passives)) {
+    const have = cfg.passives[key];
+    if (have && key !== 'heart' && key !== 'danger') { have.amount = val.amount; have.blurb = val.blurb; }
+  }
   // Fist size (v25)
   if (seen < 25 && cfg.weapons.fists && cfg.weapons.fists.stats && !cfg.weapons.fists.stats.size) {
     cfg.weapons.fists.stats.size = { ...d.weapons.fists.stats.size };

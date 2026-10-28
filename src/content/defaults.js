@@ -4,7 +4,7 @@
 export const DEFAULT_CONFIG = {
   version: 1,
   // Bump when new built-in content is added, so saved editor edits get it too (see config.js)
-  contentVersion: 30,
+  contentVersion: 31,
 
   balance: {
     ageLength: 210,        // seconds until the time police arrive (the boss fight doesn't stop the clock)
@@ -323,7 +323,7 @@ export const DEFAULT_CONFIG = {
       paintings: false,
       basic: ['rival', 'raptor', 'wolf'], medium: 'sabertooth', elite: 'mammoth', specials: ['golem'],
       stampede: 'wolf', stampedeName: 'STAMPEDE!', boss: 'trex', bossName: 'T-REX', bossAttacks: ['charge3', 'stomp', 'rocks', 'charge3', 'roar'], bossStyle: 'hunter',
-      music: 'stone', bossMusic: 'stoneBoss', hpMul: 1, xpMul: 1,
+      music: 'stone', bossMusic: 'stoneBoss', hpMul: 1, xpMul: 1, ease: 0.7,
     },
     {
       key: 'roman', name: 'ROMAN EMPIRE', ground: 'mosaic', bg: '#94b23e',
@@ -331,7 +331,7 @@ export const DEFAULT_CONFIG = {
       paintings: false,
       basic: ['legionary', 'gladiator', 'spearman'], medium: 'centurion', elite: 'chariot', specials: ['testudo'],
       stampede: 'chariot', stampedeName: 'CHARIOT RACE!', boss: 'hydra', bossName: 'HYDRA', bossAttacks: ['lunge', 'ring', 'pools', 'lunge', 'summon'], bossStyle: 'rooted',
-      music: 'roman', bossMusic: 'romanBoss', hpMul: 2.4, xpMul: 2,
+      music: 'roman', bossMusic: 'romanBoss', hpMul: 2.4, xpMul: 2, ease: 0.8,
     },
     {
       key: 'medieval', name: 'MIDDLE AGES', ground: 'tapestry', bg: '#46963c',
@@ -339,7 +339,7 @@ export const DEFAULT_CONFIG = {
       paintings: false,
       basic: ['peasant', 'footman', 'jester'], medium: 'blackknight', elite: 'troll', specials: ['slime'],
       stampede: 'peasant', stampedeName: 'PEASANT MOB!', boss: 'dragon', bossName: 'DRAGON', bossAttacks: ['fly', 'breath', 'meteors', 'fly', 'sweep'], bossStyle: 'flyer',
-      music: 'medieval', bossMusic: 'medievalBoss', hpMul: 4.5, xpMul: 3.2,
+      music: 'medieval', bossMusic: 'medievalBoss', hpMul: 4.5, xpMul: 3.2, ease: 0.9,
     },
     {
       key: 'renaissance', name: 'RENAISSANCE', ground: 'parchment', bg: '#68aa3e',

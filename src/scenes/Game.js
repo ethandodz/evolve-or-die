@@ -309,7 +309,13 @@ export default class Game extends Phaser.Scene {
   // ------------------------------------------------------------------
   // Spawning: more enemies with more health over time
   hpScale() {
-    return this.age.hpMul * (1 + this.ageTime / BAL.hpGrowth) * this.loopMul();
+    return this.age.hpMul * (1 + this.ageTime / BAL.hpGrowth) * this.loopMul() * this.ease();
+  }
+
+  // Early ages are gentler: fewer enemies, a smaller crowd and weaker normal enemies
+  // (age `ease`, 1 = full strength). Not after a Magic Mirror loop.
+  ease() {
+    return this.loop ? 1 : (this.age.ease ?? 1);
   }
 
   // Every enemy (bosses too) is tougher overall, and a bit more so after each age
@@ -333,10 +339,10 @@ export default class Game extends Phaser.Scene {
     // reaching the same peak by the end of the age
     const len = this.ageLen || AGE_LENGTH;
     const ramp = len * Math.pow(t / len, BAL.rampCurve ?? 1);
-    let rate = (BAL.spawnBase + st * (BAL.ageSpawnStep ?? 4) + ramp * BAL.spawnGrowth) * this.mods.spawn * more;
+    let rate = (BAL.spawnBase + st * (BAL.ageSpawnStep ?? 4) + ramp * BAL.spawnGrowth) * this.mods.spawn * more * this.ease();
     if (this.boss) rate *= 0.45;
     // The crowd grows over the age, up to the cap (Difficulty lets a few more in)
-    const cap = Math.min(MAX_ENEMIES * Math.min(1.5, more), (BAL.crowdStart + st * (BAL.ageCrowdStep ?? 40) + ramp * BAL.crowdGrowth) * more);
+    const cap = Math.min(MAX_ENEMIES * Math.min(1.5, more), (BAL.crowdStart + st * (BAL.ageCrowdStep ?? 40) + ramp * BAL.crowdGrowth) * more * this.ease());
     this.spawnAcc += rate * dt;
     while (this.spawnAcc >= 1) {
       this.spawnAcc -= 1;
@@ -349,9 +355,10 @@ export default class Game extends Phaser.Scene {
     if (t >= this.nextCluster && !this.boss) {
       this.nextCluster += 14;
       const a = rand(0, TAU);
-      const n = 6 + Math.floor(t / 40);
+      const n = Math.round((6 + Math.floor(t / 40)) * this.ease());
       const type = pick(this.age.basic);
-      for (let i = 0; i < n && this.enemies.length < MAX_ENEMIES + 20; i++) {
+      // Groups can go a little over the crowd limit, but not past it by much
+      for (let i = 0; i < n && this.enemies.length < cap + 20; i++) {
         this.spawnEnemy(type, Math.cos(a) * SPAWN_DIST + rand(-50, 50), Math.sin(a) * SPAWN_DIST + rand(-50, 50));
       }
     }

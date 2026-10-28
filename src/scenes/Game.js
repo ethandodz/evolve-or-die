@@ -2375,7 +2375,7 @@ export default class Game extends Phaser.Scene {
   }
 
   // ------------------------------------------------------------------
-  // Pet (Taka's baby raptor): runs to the nearest enemy and bites it
+  // Pet (Zorp's mini UFO): runs to the nearest enemy and bites it
   makePet(key) {
     const p = this.player;
     const tex = ENEMIES[key] ? ENEMIES[key].sprite : key;

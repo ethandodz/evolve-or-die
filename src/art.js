@@ -107,6 +107,25 @@ const BRASS = ['#f8d878', '#d8a848', '#a87a2a', '#6a4a14'];
 const COPPER = ['#e89a6a', '#c0703e', '#8a4a26', '#5a2c14'];
 const SEPIA = ['#f2e2c0', '#dcc6a0', '#b8a07a', '#8a7454'];
 const EYE = '#160c08';
+// Industrial, Modern and Future
+const SOOT = ['#5a5658', '#423e42', '#2e2a30', '#1c181e'];
+const BRICK = ['#c0604a', '#9a4434', '#722e24', '#4a1c16'];
+const DENIM = ['#6a8ac0', '#4a6aa0', '#344c7a', '#203252'];
+const TWEED = ['#8a7a5a', '#6a5c40', '#4c422c', '#30281a'];
+const IRON = ['#7a7a84', '#56565e', '#3c3c44', '#24242a'];
+const PINK = ['#ff8ad0', '#f04aa8', '#b82a7a', '#7a1450'];
+const BLACKL = ['#4a4450', '#34303a', '#24202a', '#16121a'];
+const SUIT = ['#3a3a48', '#2a2a36', '#1c1c26', '#101018'];
+const ARMY = ['#8a9a5a', '#6a7a40', '#4c5a2c', '#2e381a'];
+const YELLOWC = ['#ffe060', '#f0c020', '#c09010', '#806008'];
+const ORANGE = ['#ffb060', '#f08020', '#c05a10', '#803a08'];
+const BLOND = ['#f8e090', '#e0c060', '#b89440', '#806428'];
+const NEON = ['#e0fcff', '#5af0ff', '#20b0e0', '#106090'];
+const NEONP = ['#ffd0ff', '#f070ff', '#b030e0', '#701a9a'];
+const ALIENS = ['#c8e0c0', '#a0c098', '#78987a', '#4a6a50'];
+const SPACE = ['#f4f8ff', '#c8d4ea', '#94a2c0', '#5a6888'];
+const VISOR = ['#9af8ff', '#3ae0ff', '#1aa0d0', '#0a6090'];
+const VISORR = ['#ffb0a0', '#ff4a3a', '#c02020', '#801010'];
 
 // A gear: round body with square teeth
 function gear(s, cx, cy, r, ramp, teeth = 8, rot = 0) {
@@ -159,13 +178,21 @@ function human(o, f) {
     }
     if (o.hood) { s.ell(11.5, 6 + oy, 6.5, 5, o.hood); s.rect(5, 6 + oy, 3, 7, o.hood); }
     if (o.cap) { s.rect(6, 3 + oy, 12, 3, o.cap); s.rect(12, 6 + oy, 7, 1, ['#1a1a1a', '#1a1a1a', '#101010', '#080808']); s.put(11, 4 + oy, '#f0d040'); }
+    if (o.tophat) { s.rect(7, -3 + oy, 10, 7, o.tophat); s.rect(5, 4 + oy, 14, 1, o.tophat); }
+    if (o.flatcap) { s.ell(11, 5 + oy, 6.5, 2.6, o.flatcap); s.rect(13, 5 + oy, 7, 1, o.flatcap); }
+    if (o.mohawk) { s.rect(10, -2 + oy, 3, 7, o.mohawk); [[9, 0], [13, 1], [11, -3]].forEach(([x, y]) => s.put(x, y + oy, o.mohawk[0])); }
+    if (o.antenna) { s.line(11, 3 + oy, 11, -2 + oy, STEEL[1]); s.put(11, -3 + oy, '#ff3a5a'); }
     if (o.paint) { s.put(10, 9 + oy, '#e8e0d0'); s.put(10, 10 + oy, '#e8e0d0'); s.put(15, 9 + oy, '#e8e0d0'); }
     if (!o.grill) { s.put(14, 8 + oy, EYE); s.put(13, 8 + oy, '#f4ece0'); }
+    if (o.shades) { s.rect(11, 7 + oy, 6, 2, ['#2a2a34', '#1a1a22', '#101016', '#08080c']); s.put(12, 7 + oy, '#8a9ab0'); }
+    if (o.visor) { s.rect(9, 7 + oy, 9, 2, o.visor); s.put(15, 7 + oy, '#ffffff'); }
+    if (o.alienEyes) { s.ell(13.5, 8 + oy, 1.8, 2.4, [EYE, EYE, EYE, EYE]); s.put(13, 7 + oy, '#c0e0ff'); s.ell(9.5, 8 + oy, 1.4, 2.2, [EYE, EYE, EYE, EYE]); }
     // held items
     if (o.shield) { s.ell(4, 19 + oy, 4, 6, o.shield); s.put(4, 19 + oy, '#f0c060'); }
     if (o.spear) { s.line(20, 28 + oy, 20, -2 + oy, WOOD[2]); s.line(21, 28 + oy, 21, -2 + oy, WOOD[1]); s.ell(20.5, -2 + oy, 1.6, 2.4, STEEL); }
     if (o.sword) { s.line(19, 20 + oy, 22, 13 + oy, STEEL[1]); s.line(18, 20 + oy, 21, 13 + oy, STEEL[0]); }
     if (o.staff) { s.line(20, 30 + oy, 20, 4 + oy, WOOD[1]); s.ell(20.5, 3 + oy, 2.2, 2.2, o.staff); }
+    if (o.blaster) { s.rect(17, 19 + oy, 7, 2, DARKSTEEL); s.rect(17, 21 + oy, 2, 2, DARKSTEEL); s.put(23, 19 + oy, o.blaster); }
     if (o.trident) { s.line(20, 30 + oy, 20, 0 + oy, WOOD[1]); s.line(18, 0 + oy, 22, 0 + oy, STEEL[1]); [18, 20, 22].forEach(x => s.line(x, 0 + oy, x, -3 + oy, STEEL[0])); }
   });
 }
@@ -190,6 +217,18 @@ const CHAR_LOOKS = {
   halberdier: { skin: SKIN, helmet: STEEL, body: RED, halves: GOLD, belt: '#3a2a20', spear: true, legs: GOLD, boots: LEATHER },
   thief: { skin: SKIN2, hood: PURPLE, body: SACK, belt: '#f0c060', legs: LEATHER, boots: LEATHER },
   inventor: { skin: SKIN, hair: HAIR, goggles: BRASS, body: CREAM, arms: CREAM, tabard: LEATHER, belt: '#d8a848', staff: BRASS, legs: LEATHER, boots: LEATHER },
+  sweep: { skin: SKIN, tophat: SOOT, body: SOOT, arms: SOOT, belt: '#1a1418', staff: BLACKL, legs: SOOT, boots: BLACKL },
+  navvy: { skin: SKIN, flatcap: TWEED, body: DENIM, arms: SKIN, belt: '#3a2a20', spear: true, legs: DENIM, boots: LEATHER },
+  luddite: { skin: SKIN2, hair: BLACKH, beard: BLACKH, body: TWEED, belt: '#2a1a10', staff: IRON, legs: SACK, boots: LEATHER },
+  engineer: { skin: SKIN, hair: ['#c8643a', '#a04a28', '#78341a', '#4e200e'], goggles: BRASS, body: DENIM, arms: DENIM, tabard: LEATHER, belt: '#d8a848', staff: STEEL, legs: DENIM, boots: LEATHER },
+  punk: { skin: SKIN, mohawk: PINK, body: BLACKL, spots: true, belt: '#c0c0c8', legs: DENIM, boots: BLACKL },
+  agent: { skin: SKIN2, hair: BLACKH, shades: true, body: SUIT, arms: SUIT, belt: '#e8e8f0', legs: SUIT, boots: ['#2a2a2a', '#1a1a1a', '#101010', '#080808'] },
+  soldier: { skin: SKIN, helmet: ARMY, body: ARMY, arms: ARMY, belt: '#3a3020', blaster: '#ffe060', legs: ARMY, boots: BLACKL },
+  pilot: { skin: SKIN, hair: BLOND, shades: true, body: LEATHER, arms: LEATHER, belt: '#e0e0e8', legs: DENIM, boots: BLACKL },
+  android: { skin: STEEL, visor: VISOR, antenna: true, body: SPACE, arms: STEEL, legs: STEEL, boots: DARKSTEEL },
+  cyborg: { skin: SKIN, hair: BLACKH, visor: VISORR, body: DARKSTEEL, bodyTex: 0.2, arms: STEEL, blaster: '#ff3a5a', legs: DARKSTEEL, boots: DARKSTEEL },
+  greyalien: { skin: ALIENS, alienEyes: true, body: ALIENS, arms: ALIENS, legs: ALIENS, boots: ALIENS },
+  nova: { skin: SKIN2, hair: ['#f8f8ff', '#d8dcf0', '#a8acc8', '#70748c'], visor: VISOR, body: SPACE, arms: SPACE, belt: '#5af0ff', staff: NEON, legs: SPACE, boots: NEONP },
   timecop: { skin: SKIN, cap: NAVY, body: BLUE, badge: true, belt: '#1a1a2a', legs: NAVY, boots: ['#2a2a2a', '#1a1a1a', '#101010', '#080808'] },
 };
 
@@ -409,6 +448,145 @@ function quad(kind, f) {
       s.rect(22, 0, 4, 10, DARKSTEEL); s.rect(44, 0, 4, 10, DARKSTEEL);
       s.put(23, 0, '#e0e0e0'); s.put(45, f ? 0 : 1, '#e0e0e0');
     });
+    // Industrial Age
+    case 'steamhound': return paint(32, 22, (s) => {
+      const P = IRON;
+      s.ell(14, 10, 9, 5, P, 0.05); for (let x = 8; x <= 20; x += 4) s.put(x, 8, BRASS[1]);
+      s.ell(24, 6, 4.5, 4, P); s.rect(26, 7, 5, 3, P); s.put(25, 5, '#ff6a3a'); s.put(30, 9, BRASS[0]);
+      s.rect(20, 1, 2, 3, P);
+      s.line(5, 9, 2, f ? 4 : 6, P[2], 2);
+      const L = f ? [[8, 5], [12, 6], [17, 5], [21, 6]] : [[9, 6], [12, 5], [18, 6], [20, 5]];
+      L.forEach(([x, hgt]) => s.rect(x, 14, 2, hgt, DARKSTEEL));
+      s.ell(5, 4 - (f ? 1 : 0), 2.4, 2, WHITE); s.ell(3, 2 - (f ? 1 : 0), 1.8, 1.6, WHITE);
+    });
+    case 'furnace': return paint(40, 46, (s) => {
+      const lf = f ? 2 : 0;
+      s.rect(9 - lf, 36, 7, 9, DARKSTEEL); s.rect(24 + lf, 36, 7, 9, DARKSTEEL);
+      s.rect(4, 12, 32, 26, IRON, 0.05);
+      for (let y = 15; y < 36; y += 5) { s.put(6, y, IRON[0]); s.put(33, y, IRON[0]); }
+      s.rect(13, 22, 14, 10, FIRE); for (let x = 14; x < 27; x += 3) s.line(x, 22, x, 31, DARKSTEEL[2]);
+      s.put(14, 17, '#ff6a3a'); s.put(25, 17, '#ff6a3a'); s.rect(13, 16, 3, 1, DARKSTEEL[3]); s.rect(24, 16, 3, 1, DARKSTEEL[3]);
+      s.rect(1, 18 + lf, 4, 12, DARKSTEEL); s.rect(35, 18 - lf, 4, 12, DARKSTEEL);
+      s.rect(26, 0, 6, 13, BRICK); s.ell(29, 0, 4, 1.5, SOOT);
+    });
+    case 'coalcart': return paint(34, 28, (s) => {
+      s.ell(10, 7 + (f ? 1 : 0), 6, 4, SOOT, 0.3); s.ell(22, 6, 7, 5, SOOT, 0.3); s.ell(16, 3, 5, 3, SOOT, 0.3);
+      s.rect(2, 8, 30, 12, ['#a86a3a', '#80502a', '#5a361c', '#3a2210'], 0.05);
+      s.rect(2, 8, 30, 2, IRON); s.rect(2, 18, 30, 2, IRON);
+      s.put(12, 13, '#ffb040'); s.put(20, 13, '#ffb040');
+      s.ell(8, 22, 4, 4, DARKSTEEL); s.ell(26, 22, 4, 4, DARKSTEEL); s.put(8 + (f ? 1 : -1), 22, STEEL[0]); s.put(26 + (f ? 1 : -1), 22, STEEL[0]);
+    });
+    case 'coal': return paint(14, 12, (s) => {
+      s.ell(7, 6 + (f ? 1 : 0), 6, 4.5, SOOT, 0.3);
+      s.put(5, 5 + (f ? 1 : 0), '#ffa030'); s.put(9, 5 + (f ? 1 : 0), '#ffa030'); s.put(7, 8 + (f ? 1 : 0), '#c04010');
+    });
+    case 'rat': return paint(22, 12, (s) => {
+      s.ell(10, 6, 6, 3.5, GREYW, 0.1); s.ell(16, 5, 3.5, 2.8, GREYW); s.put(19, 5, '#e0a0a0'); s.put(16, 4, EYE);
+      s.ell(14, 2, 1.5, 1.5, ['#e0a0a0', '#c08080', '#a06060', '#704040']);
+      s.line(4, 6, 0, f ? 3 : 5, '#c08080');
+      const L = f ? [7, 13] : [8, 12]; L.forEach(x => s.rect(x, 9, 2, 2, GREYW));
+    });
+    case 'locomotive': return paint(76, 62, (s) => {
+      // Front of a steam engine, seen head on, with an angry face
+      s.rect(22, 0, 12, 14, SOOT); s.ell(28, 1, 8, 2.5, SOOT); s.ell(28, 0, 5, 1.5, ['#e8e8f0', '#c0c0c8', '#9a9aa8', '#6a6a78']);
+      s.rect(50, 4, 7, 10, BRASS); s.ell(53.5, 4, 4, 2, BRASS);
+      s.ell(38, 30, 26, 22, IRON, 0.04);
+      s.ell(38, 30, 20, 17, DARKSTEEL);
+      for (let a = 0; a < 12; a++) s.put(38 + Math.cos(a / 12 * Math.PI * 2) * 22, 30 + Math.sin(a / 12 * Math.PI * 2) * 19, BRASS[0]);
+      s.ell(38, 15, 5, 4, ['#fffbe0', '#ffe060', '#f0b020', '#a07010']);
+      // eyes and frown
+      s.rect(26, 24, 8, 4, ['#ffe0a0', '#ffb040', '#e07020', '#a04010']); s.rect(42, 24, 8, 4, ['#ffe0a0', '#ffb040', '#e07020', '#a04010']);
+      s.line(24, 21, 34, 24, EYE, 2); s.line(52, 21, 42, 24, EYE, 2);
+      s.rect(30, 34, 16, 6, EYE); for (let x = 31; x < 46; x += 3) s.rect(x, 34, 2, 2, BONE[1]);
+      // buffer beam and cowcatcher
+      s.rect(6, 48, 64, 6, RED); s.ell(10, 51, 4, 3, IRON); s.ell(66, 51, 4, 3, IRON);
+      for (let i = 0; i < 9; i++) s.line(14 + i * 6, 54, 38 + (i - 4) * 2, 61, IRON[i % 2 ? 1 : 2]);
+      s.ell(6 + (f ? 2 : 0), 8, 4, 3, WHITE); s.ell(2 + (f ? 2 : 0), 4, 3, 2.4, WHITE);
+    });
+    // Modern Age
+    case 'biker': return paint(36, 30, (s) => {
+      s.ell(8, 23, 6, 6, BLACKL); s.ell(8, 23, 2.5, 2.5, STEEL); s.ell(28, 23, 6, 6, BLACKL); s.ell(28, 23, 2.5, 2.5, STEEL);
+      s.rect(9, 16, 20, 5, RED); s.rect(24, 12, 3, 6, STEEL); s.rect(23, 11, 6, 2, BLACKL);
+      s.rect(12, 19, 10, 3, STEEL);
+      s.ell(17, 9, 4.5, 4, BLACKL); s.rect(13, 12, 8, 6, BLACKL); s.rect(19, 10, 6, 3, BLACKL);
+      s.ell(18, 4, 4, 4, RED); s.rect(19, 3, 4, 2, ['#9ac8f0', '#6a9ad0', '#4a7ab0', '#2a5a90']);
+      if (f) { s.put(1, 20, '#c0c0c8'); s.put(0, 22, '#9a9aa8'); }
+    });
+    case 'tank': return paint(50, 36, (s) => {
+      s.rect(2, 22, 46, 11, BLACKL); for (let x = 4 + (f ? 2 : 0); x < 46; x += 5) s.ell(x + 1, 27, 2, 2, IRON);
+      s.rect(5, 13, 40, 10, ARMY, 0.05); s.rect(3, 20, 44, 3, ARMY);
+      s.ell(22, 11, 10, 6, ARMY, 0.05); s.rect(30, 9, 18, 3, DARKSTEEL); s.rect(46, 8, 3, 5, DARKSTEEL);
+      s.put(18, 9, '#ffe060'); s.rect(16, 4, 2, 4, DARKSTEEL);
+      s.ell(12, 16, 2, 2, ['#e8e8d0', '#c8c8b0', '#a0a088', '#707060']);
+    });
+    case 'drone': return paint(30, 20, (s) => {
+      s.line(6, 8, 24, 8, IRON[2], 2); s.line(9, 14, 21, 14, IRON[2]);
+      s.ell(15, 10, 6, 4, ['#f0f0f8', '#c8c8d8', '#9898ac', '#686880']); s.put(17, 10, '#ff3a3a'); s.put(16, 10, '#ffb0a0');
+      const blade = f ? 5 : 2;
+      for (const x of [5, 25]) { s.rect(x - blade, 5, blade * 2 + 1, 1, '#c8d0e0'); s.rect(x - 1, 6, 3, 2, DARKSTEEL); }
+      s.line(13, 14, 11, 18, IRON[1]); s.line(17, 14, 19, 18, IRON[1]);
+    });
+    case 'minidrone': return paint(16, 11, (s) => {
+      s.ell(8, 6, 4, 2.6, ['#f0f0f8', '#c8c8d8', '#9898ac', '#686880']); s.put(9, 6, '#ff3a3a');
+      const blade = f ? 3 : 1;
+      for (const x of [3, 13]) s.rect(x - blade, 2, blade * 2 + 1, 1, '#c8d0e0');
+      s.line(3, 3, 6, 5, IRON[1]); s.line(13, 3, 10, 5, IRON[1]);
+    });
+    case 'taxi': return paint(40, 24, (s) => {
+      s.rect(2, 9, 36, 9, YELLOWC, 0.03); s.ell(19, 9, 11, 6, YELLOWC); s.rect(10, 4, 18, 5, YELLOWC);
+      s.rect(12, 5, 6, 4, ['#bce0f8', '#8ac0e8', '#5a98c8', '#3a6898']); s.rect(20, 5, 6, 4, ['#bce0f8', '#8ac0e8', '#5a98c8', '#3a6898']);
+      s.rect(16, 1, 6, 3, BLACKL); for (let x = 3; x < 37; x += 4) s.put(x, 13, EYE);
+      s.put(37, 11, '#fffbe0'); s.put(2, 11, '#ff3a3a');
+      s.ell(10, 19, 4, 4, BLACKL); s.ell(30, 19, 4, 4, BLACKL); s.put(10 + (f ? 1 : -1), 19, STEEL[0]); s.put(30 + (f ? 1 : -1), 19, STEEL[0]);
+    });
+    case 'chopper': return paint(80, 52, (s) => {
+      // Attack helicopter, side on, facing right
+      s.rect(4, 18, 34, 5, ARMY); s.rect(0, 10, 5, 13, ARMY); s.line(2, 12 + (f ? 0 : 4), 2, 18 + (f ? 4 : 0), '#d0d8e0', 2);
+      s.ell(48, 24, 20, 12, ARMY, 0.04); s.ell(60, 21, 9, 7, ['#d8f0ff', '#9ac8f0', '#5a98d0', '#2a5a90']);
+      s.put(61, 18, '#ffffff'); s.put(62, 19, '#ffffff');
+      s.rect(36, 34, 22, 4, DARKSTEEL); for (const x of [38, 46, 54]) { s.rect(x, 36, 5, 3, RED); s.put(x + 4, 37, '#ffe060'); }
+      s.line(36, 44, 62, 44, DARKSTEEL[1], 2); s.line(40, 36, 40, 44, DARKSTEEL[2]); s.line(58, 36, 58, 44, DARKSTEEL[2]);
+      s.rect(46, 8, 4, 6, DARKSTEEL);
+      const r = f ? 34 : 22; s.line(48 - r, 6, 48 + r, 6, '#c0c8d0', 2); s.put(48, 6, DARKSTEEL[0]);
+      s.put(56, 22, '#ff3a3a'); s.rect(26, 15, 6, 3, ['#e8e8d0', '#c8c8b0', '#a0a088', '#707060']);
+    });
+    // Far Future
+    case 'hoverbot': return paint(26, 28, (s) => {
+      s.ell(13, 24 + (f ? 1 : 0), 6, 2, ['#e0fcff', '#5af0ff', '#20b0e0', '#106090']);
+      s.ell(13, 12, 10, 10, SPACE, 0.03); s.rect(4, 11, 18, 2, DARKSTEEL);
+      s.ell(15, 10, 4, 4, DARKSTEEL); s.ell(15.5, 10, 2.2, 2.2, VISORR); s.put(14, 9, '#ffffff');
+      s.line(5, 4, 3, 0, STEEL[1]); s.put(3, 0, '#5af0ff');
+    });
+    case 'walker': return paint(48, 42, (s) => {
+      const lf = f ? 2 : 0;
+      for (const [x0, dir, up] of [[14, -1, lf], [18, -1, -lf], [30, 1, -lf], [34, 1, lf]]) {
+        s.line(x0, 18, x0 + dir * 12, 10 + up, DARKSTEEL[1], 2); s.line(x0 + dir * 12, 10 + up, x0 + dir * 14, 38, DARKSTEEL[2], 2);
+      }
+      s.ell(24, 18, 13, 9, SPACE, 0.05); s.rect(12, 18, 24, 3, DARKSTEEL);
+      s.ell(30, 15, 4, 3, ['#ffd0ff', '#f070ff', '#b030e0', '#701a9a']); s.put(31, 14, '#ffffff');
+      s.rect(20, 6, 3, 5, DARKSTEEL); s.put(21, 5, '#5af0ff');
+    });
+    case 'ufo': return paint(36, 22, (s) => {
+      s.ell(18, 7, 7, 6, ['#d8f8ff', '#a0e0f0', '#60b0d0', '#3080a0']);
+      s.ell(18, 9, 3, 3, ALIENS); s.put(19, 8, EYE); s.put(17, 8, EYE);
+      s.ell(18, 13, 17, 5, IRON, 0.03); s.rect(2, 13, 32, 1, DARKSTEEL);
+      for (let i = 0; i < 6; i++) s.put(5 + i * 5, 14, (i + (f ? 1 : 0)) % 2 ? '#5af0ff' : '#ff3aff');
+      s.ell(18, 19, 5, 2, ['#e0ffd0', '#a0f080', '#60c040', '#308020']);
+    });
+    case 'nanite': return paint(12, 12, (s) => {
+      for (let y = 1; y < 10; y++) s.line(6 - (y * 0.5), y, 6 + (y * 0.5), y, STEEL[y < 4 ? 0 : y < 7 ? 1 : 2]);
+      s.put(6, 6 + (f ? 1 : 0), '#ff3a3a');
+    });
+    case 'overlord': return paint(76, 68, (s) => {
+      // A floating AI core: a metal skull-shaped head, one red eye, cables trailing below
+      for (let i = 0; i < 5; i++) s.line(24 + i * 7, 46, 18 + i * 10 + (f ? 2 : -2) * (i % 2 ? 1 : -1), 66, i % 2 ? NEONP[2] : NEON[2], 2);
+      s.ell(38, 28, 26, 22, DARKSTEEL, 0.03);
+      s.ell(38, 24, 20, 15, SPACE, 0.02);
+      for (let x = 22; x <= 54; x += 4) s.put(x, 40, NEON[1]);
+      s.ell(38, 26, 9, 8, EYE); s.ell(38, 26, 6.5, 6, VISORR); s.ell(38, 26, 2.6, 2.6, ['#ffffff', '#fff0e0', '#ffd0b0', '#ffa080']);
+      s.rect(16, 12, 4, 10, NEONP); s.rect(56, 12, 4, 10, NEONP);
+      for (let a = 0; a < 16; a++) { const an = a / 16 * Math.PI * 2 + (f ? 0.2 : 0); s.put(38 + Math.cos(an) * 34, 28 + Math.sin(an) * 9, a % 2 ? NEON[1] : NEONP[1]); }
+    });
     case 'chariot': return paint(46, 32, (s) => {
       const H = LEATHER;
       // horse
@@ -528,6 +706,34 @@ const ITEMS = {
   haybale: () => paint(22, 16, (s) => { s.ell(11, 9, 10, 6, GOLD.slice(1).concat(['#5a3a10']), 0.3); s.rect(4, 6, 1, 8, LEATHER); s.rect(17, 6, 1, 8, LEATHER); }),
   shrub: () => paint(18, 14, (s) => { s.ell(9, 8, 8, 5, GREEN, 0.25); s.ell(5, 6, 4, 3, GREEN, 0.2); s.put(12, 6, '#d84a4a'); s.put(7, 9, '#d84a4a'); }),
   gravestone: () => paint(14, 18, (s) => { s.ell(7, 6, 5.5, 5, GREYS); s.rect(2, 6, 11, 10, GREYS, 0.1); s.line(7, 4, 7, 11, GREYS[3]); s.line(5, 6, 9, 6, GREYS[3]); s.ell(7, 16, 6, 1.5, GREEN); }),
+  // Weapons from the later ages
+  dynamite: () => paint(14, 16, (s) => { for (const x of [2, 6, 10]) s.rect(x, 5, 3, 10, RED); s.rect(2, 8, 11, 1, SACK); s.rect(2, 12, 11, 1, SACK); s.line(7, 5, 9, 1, '#5a4030'); s.put(10, 0, '#ffe060'); s.put(11, 1, '#ff8a20'); }),
+  nailgun: () => paint(18, 12, (s) => { s.rect(1, 2, 13, 5, ORANGE); s.rect(14, 3, 3, 2, STEEL); s.rect(3, 7, 4, 4, DARKSTEEL); s.rect(9, 7, 3, 2, BLACKL); s.put(3, 3, '#ffe0b0'); }),
+  nail: () => paint(14, 5, (s) => { s.line(1, 2, 11, 2, STEEL[0]); s.line(1, 3, 10, 3, STEEL[2]); s.rect(0, 1, 2, 3, STEEL); s.put(12, 2, STEEL[1]); }),
+  disc: () => paint(16, 16, (s) => { s.ell(8, 8, 7, 7, NEON); s.ell(8, 8, 3, 3, ['#1a0e30', '#1a0e30', '#120a24', '#0a0618']); s.put(5, 4, '#ffffff'); s.put(6, 4, '#ffffff'); }),
+  steamhammer: () => paint(18, 18, (s) => { s.line(2, 16, 10, 8, WOOD[1], 2); s.rect(8, 1, 9, 8, IRON, 0.05); s.rect(8, 3, 9, 1, BRASS[1]); s.rect(8, 6, 9, 1, BRASS[1]); s.ell(15, 1, 2, 1.4, WHITE); }),
+  drone_s: () => paint(16, 10, (s) => { s.ell(8, 6, 4, 2.6, ['#f0f0f8', '#c8c8d8', '#9898ac', '#686880']); s.put(9, 6, '#5af0ff'); s.rect(0, 2, 6, 1, '#c8d0e0'); s.rect(10, 2, 6, 1, '#c8d0e0'); s.line(3, 3, 6, 5, IRON[1]); s.line(13, 3, 10, 5, IRON[1]); }),
+  plasma: () => paint(32, 8, (s) => { s.rect(1, 2, 18, 4, SPACE); s.rect(4, 3, 12, 2, NEONP); s.line(19, 3, 27, 3, NEON[1]); s.line(19, 4, 27, 4, NEON[2]); s.ell(28, 3.5, 3.5, 2.6, NEON); s.put(28, 2, '#ffffff'); }),
+  plasmabeam: () => paint(34, 8, (s) => { s.line(0, 3, 30, 3, NEON[1], 2); s.line(0, 3, 30, 3, '#ffffff'); s.ell(30, 3.5, 3.2, 3.2, NEON); }),
+  coalicon: () => paint(14, 12, (s) => { s.ell(7, 6, 6, 5, SOOT, 0.3); s.put(5, 5, '#ff8a20'); s.put(9, 7, '#ffb040'); }),
+  missile: () => paint(10, 20, (s) => { s.rect(3, 4, 4, 12, STEEL); s.ell(5, 16, 2, 3, RED); s.rect(1, 3, 8, 2, RED); s.put(4, 1, FIRE[1]); s.put(5, 0, FIRE[0]); s.put(5, 2, FIRE[2]); }),
+  // Industrial decor
+  chimney: () => paint(22, 58, (s) => { s.rect(5, 6, 12, 50, BRICK, 0.15); for (let y = 9; y < 56; y += 4) s.line(5, y, 16, y, BRICK[3]); s.rect(3, 4, 16, 4, SOOT); s.ell(11, 2, 6, 2, WHITE); s.ell(7, 0, 4, 1.4, WHITE); }),
+  crate: () => paint(20, 18, (s) => { s.rect(1, 2, 18, 15, WOOD, 0.1); s.rect(1, 2, 18, 2, WOOD[3]); s.line(2, 4, 18, 16, WOOD[3]); s.line(18, 4, 2, 16, WOOD[3]); }),
+  barrel: () => paint(16, 20, (s) => { s.ell(8, 11, 7, 8, IRON, 0.05); s.rect(1, 5, 14, 1, DARKSTEEL); s.rect(1, 15, 14, 1, DARKSTEEL); s.ell(8, 3, 6, 2, SOOT); s.put(5, 10, '#f0c040'); }),
+  rails: () => paint(44, 12, (s) => { for (let x = 2; x < 42; x += 6) s.rect(x, 2, 3, 9, WOOD); s.line(0, 4, 43, 4, IRON[1]); s.line(0, 9, 43, 9, IRON[1]); }, { noOutline: true }),
+  // Modern decor
+  hydrant: () => paint(14, 18, (s) => { s.rect(4, 4, 6, 12, RED); s.ell(7, 4, 3.5, 2.5, RED); s.rect(1, 8, 12, 3, RED); s.rect(3, 15, 8, 2, RED); s.put(7, 1, RED[0]); }),
+  cone: () => paint(14, 16, (s) => { for (let y = 1; y < 13; y++) s.line(7 - y * 0.42, y, 7 + y * 0.42, y, (y > 4 && y < 8) ? WHITE[0] : ORANGE[y < 6 ? 0 : 1]); s.rect(1, 13, 12, 2, ORANGE); }),
+  trashcan: () => paint(16, 20, (s) => { s.rect(2, 5, 12, 14, STEEL, 0.05); for (let x = 4; x < 13; x += 3) s.line(x, 6, x, 18, STEEL[2]); s.ell(8, 4, 7, 2, STEEL); s.rect(6, 1, 4, 2, STEEL); }),
+  stopsign: () => paint(16, 38, (s) => { s.rect(7, 12, 2, 25, STEEL); s.ell(8, 7, 6.5, 6.5, RED); s.rect(4, 6, 8, 2, WHITE); }),
+  bench: () => paint(30, 16, (s) => { s.rect(1, 3, 28, 3, WOOD); s.rect(1, 8, 28, 2, WOOD); s.rect(3, 10, 2, 5, DARKSTEEL); s.rect(25, 10, 2, 5, DARKSTEEL); }),
+  // Future decor
+  pylon: () => paint(14, 44, (s) => { s.rect(4, 6, 6, 36, DARKSTEEL); s.rect(5, 8, 4, 30, NEON); s.rect(2, 40, 10, 3, DARKSTEEL); s.ell(7, 4, 4, 3, NEONP); }),
+  crystalrock: () => paint(22, 20, (s) => { s.ell(11, 16, 10, 4, SOOT); for (const [x, h] of [[6, 10], [11, 15], [16, 8]]) for (let y = 0; y < h; y++) s.line(x - (h - y) * 0.2, 17 - y, x + (h - y) * 0.2, 17 - y, NEONP[y > h - 4 ? 0 : 1]); }),
+  pod: () => paint(20, 26, (s) => { s.ell(10, 13, 8, 11, SPACE, 0.02); s.ell(10, 11, 5, 6, ['#d8f8ff', '#a0e0f0', '#60b0d0', '#3080a0']); s.put(8, 8, '#ffffff'); s.rect(4, 23, 12, 2, DARKSTEEL); }),
+  antenna: () => paint(18, 42, (s) => { s.line(9, 8, 9, 40, STEEL[1], 1); s.line(9, 40, 3, 40, STEEL[2]); s.line(9, 40, 15, 40, STEEL[2]); s.ell(9, 6, 6, 3, SPACE); s.put(9, 2, '#ff3a5a'); s.line(9, 3, 9, 6, STEEL[0]); }),
+  holosign: () => paint(26, 34, (s) => { s.rect(12, 18, 2, 15, DARKSTEEL); s.rect(1, 1, 24, 16, ['#5af0ff', '#20b0e0', '#106090', '#083050']); s.rect(3, 3, 20, 12, ['#1a0e30', '#1a0e30', '#120a24', '#0a0618']); s.line(5, 6, 20, 6, NEONP[1]); s.line(5, 10, 15, 10, NEON[1]); }),
   cypress: () => paint(18, 48, (s) => { s.rect(8, 40, 3, 7, WOOD); s.ell(9, 22, 7, 20, DARKLEAF, 0.3); }),
 };
 
@@ -585,7 +791,7 @@ export function buildDefaultSprites() {
   const out = {};
   const add = (key, grids) => { out[key] = toSprite(grids); };
   for (const [k, o] of Object.entries(CHAR_LOOKS)) { seed = 101; add(k, [human(o, 0), human(o, 1)]); }
-  for (const k of ['wolf', 'raptor', 'sabertooth', 'mammoth', 'trex', 'hydra', 'chariot', 'golem', 'pebble', 'testudo', 'slime', 'slimelet', 'troll', 'dragon', 'clockwork', 'gearling', 'cog', 'automaton', 'mech']) { seed = 202; add(k, [quad(k, 0), quad(k, 1)]); }
+  for (const k of ['wolf', 'raptor', 'sabertooth', 'mammoth', 'trex', 'hydra', 'chariot', 'golem', 'pebble', 'testudo', 'slime', 'slimelet', 'troll', 'dragon', 'clockwork', 'gearling', 'cog', 'automaton', 'mech', 'steamhound', 'furnace', 'coalcart', 'coal', 'rat', 'locomotive', 'biker', 'tank', 'drone', 'minidrone', 'taxi', 'chopper', 'hoverbot', 'walker', 'ufo', 'nanite', 'overlord']) { seed = 202; add(k, [quad(k, 0), quad(k, 1)]); }
   seed = 303; add('wizard', [wizard()]);
   for (const [k, fn] of Object.entries(ITEMS)) { seed = 404; add(k, [fn()]); }
   for (const [k, fn] of Object.entries(ANIM_ITEMS)) { seed = 505; add(k, [fn(0), fn(1)]); }
@@ -595,15 +801,18 @@ export function buildDefaultSprites() {
 }
 
 export const SPRITE_GROUPS = {
-  Characters: ['caveman', 'tamer', 'shaman', 'knight', 'centurion', 'inventor', 'wizard'],
+  Characters: ['caveman', 'tamer', 'shaman', 'knight', 'centurion', 'inventor', 'engineer', 'pilot', 'nova', 'wizard'],
   'Stone Age enemies': ['rival', 'wolf', 'raptor', 'sabertooth', 'golem', 'pebble', 'mammoth', 'trex'],
   'Roman enemies': ['legionary', 'spearman', 'gladiator', 'centurion', 'testudo', 'chariot', 'hydra', 'timecop'],
   'Medieval enemies': ['peasant', 'footman', 'jester', 'blackknight', 'slime', 'slimelet', 'troll', 'dragon'],
   'Renaissance enemies': ['apprentice', 'duelist', 'halberdier', 'clockwork', 'gearling', 'cog', 'automaton', 'thief', 'mech'],
-  Weapons: ['club', 'axe', 'spear', 'flame', 'rock', 'bolt', 'boneclub', 'amber', 'spiritflame', 'pilum', 'holyblade', 'tesla'],
+  'Industrial enemies': ['sweep', 'navvy', 'luddite', 'steamhound', 'coalcart', 'coal', 'rat', 'furnace', 'locomotive'],
+  'Modern enemies': ['punk', 'agent', 'soldier', 'biker', 'drone', 'minidrone', 'taxi', 'tank', 'chopper'],
+  'Future enemies': ['android', 'cyborg', 'greyalien', 'hoverbot', 'ufo', 'nanite', 'walker', 'overlord'],
+  Weapons: ['club', 'axe', 'spear', 'flame', 'rock', 'bolt', 'boneclub', 'amber', 'spiritflame', 'pilum', 'holyblade', 'tesla', 'steamhammer', 'drone_s', 'plasma', 'plasmabeam', 'dynamite', 'nailgun', 'nail', 'disc'],
   Items: ['treasure', 'chest_open', 'scroll', 'trophy', 'combo', 'cogicon', 'heart_half', 'shieldicon', 'potion_purple', 'rabbitfoot', 'firegem', 'mirror', 'gem_s', 'gem_m', 'gem_l', 'coin', 'spark', 'meat', 'magnet', 'chest', 'potion', 'star', 'reroll', 'skull', 'lock', 'crystal', 'feather', 'idol', 'ark', 'monalisa', 'alienegg', 'alien', 'excalibur', 'declaration', 'lightray'],
   Icons: ['heart', 'heart_empty', 'sandal', 'totem', 'flint', 'tusk', 'lodestone'],
-  Scenery: ['boulder', 'fern', 'bones', 'tree', 'campfire', 'handprint', 'deer', 'hunters', 'column', 'broken', 'urn', 'cypress', 'brazier', 'banner', 'haybale', 'shrub', 'torch', 'gravestone', 'easel', 'gearpile', 'statue', 'lantern'],
+  Scenery: ['boulder', 'fern', 'bones', 'tree', 'campfire', 'handprint', 'deer', 'hunters', 'column', 'broken', 'urn', 'cypress', 'brazier', 'banner', 'haybale', 'shrub', 'torch', 'gravestone', 'easel', 'gearpile', 'statue', 'lantern', 'chimney', 'crate', 'barrel', 'rails', 'hydrant', 'cone', 'trashcan', 'stopsign', 'bench', 'pylon', 'crystalrock', 'pod', 'antenna', 'holosign', 'coalicon', 'missile'],
 };
 
 export function getSprite(key, overrides = {}) {
@@ -645,6 +854,9 @@ export function generateTextures(scene, overrides = {}) {
   makeMosaicGround(scene);
   makeTapestryGround(scene);
   makeParchmentGround(scene);
+  makeNewsprintGround(scene);
+  makePopArtGround(scene);
+  makeNeonGround(scene);
   makeSimple(scene, 'px', 2, 2, (ctx) => { ctx.fillStyle = '#fff'; ctx.fillRect(0, 0, 2, 2); });
   makeSimple(scene, 'shadow', 16, 6, (ctx) => {
     ctx.fillStyle = 'rgba(40,16,6,0.32)';
@@ -795,5 +1007,56 @@ function makeParchmentGround(scene) {
       for (let t = 0; t < 30; t++) ctx.fillRect(Math.round(110 + t * 1.6), Math.round(40 + i * 3 - Math.sin(t / 30 * Math.PI) * 10), 1, 1);
     }
     for (let i = 0; i < 4; i++) { const y = 150 + i * 6; ctx.fillRect(20, y, 30 + Math.floor(r() * 20), 1); }
+  });
+}
+
+// Industrial Age: a Victorian newspaper engraving, grey paper with crosshatching and columns of print
+function makeNewsprintGround(scene) {
+  makeSimple(scene, 'ground_newsprint', 192, 192, (ctx) => {
+    let s = 1851;
+    const r = () => { s = (s * 16807) % 2147483647; return s / 2147483647; };
+    ctx.fillStyle = '#c8c2b2'; ctx.fillRect(0, 0, 192, 192);
+    const specks = ['#c0baa8', '#d0caba', '#bab4a2', '#d4cebe'];
+    for (let i = 0; i < 7000; i++) {
+      ctx.fillStyle = specks[Math.floor(r() * specks.length)];
+      ctx.fillRect(Math.floor(r() * 192), Math.floor(r() * 192), 1, 1);
+    }
+    // Columns of tiny print
+    ctx.fillStyle = 'rgba(40,36,32,0.16)';
+    for (const x0 of [8, 104]) for (let y = 10; y < 86; y += 4) ctx.fillRect(x0, y, 60 + Math.floor(r() * 18), 1);
+    ctx.fillStyle = 'rgba(40,36,32,0.22)'; ctx.fillRect(0, 96, 192, 1); ctx.fillRect(96, 0, 1, 96);
+    // Engraved crosshatching in the lower half
+    ctx.fillStyle = 'rgba(40,36,32,0.12)';
+    for (let i = -192; i < 192; i += 5) for (let t = 0; t < 96; t++) { const x = i + t, y = 96 + t; if (x >= 0 && x < 192) ctx.fillRect(x, y, 1, 1); }
+    for (let i = 0; i < 384; i += 9) for (let t = 0; t < 96; t++) { const x = i - t, y = 96 + t; if (x >= 0 && x < 192 && (x + y) % 3) ctx.fillRect(x, y, 1, 1); }
+  });
+}
+
+// Modern Age: pop-art comic page, yellow with soft Ben-Day dots and thick panel lines
+function makePopArtGround(scene) {
+  makeSimple(scene, 'ground_popart', 192, 192, (ctx) => {
+    ctx.fillStyle = '#f2d04e'; ctx.fillRect(0, 0, 192, 192);
+    ctx.fillStyle = '#e6b83e';
+    for (let y = 0; y < 192; y += 6) for (let x = (y / 6) % 2 ? 3 : 0; x < 192; x += 6) ctx.fillRect(x, y, 2, 2);
+    // A red-dotted panel
+    ctx.fillStyle = '#ecc04a'; ctx.fillRect(100, 100, 88, 88);
+    ctx.fillStyle = '#e09a7a';
+    for (let y = 102; y < 188; y += 6) for (let x = (y / 6) % 2 ? 105 : 102; x < 188; x += 6) ctx.fillRect(x, y, 2, 2);
+    ctx.fillStyle = 'rgba(30,24,40,0.5)';
+    ctx.fillRect(0, 96, 192, 3); ctx.fillRect(96, 0, 3, 192);
+  });
+}
+
+// Far Future: dark synthwave floor with a glowing neon grid and a few stars
+function makeNeonGround(scene) {
+  makeSimple(scene, 'ground_neongrid', 192, 192, (ctx) => {
+    let s = 3001;
+    const r = () => { s = (s * 16807) % 2147483647; return s / 2147483647; };
+    ctx.fillStyle = '#1c1036'; ctx.fillRect(0, 0, 192, 192);
+    for (let i = 0; i < 60; i++) { ctx.fillStyle = r() < 0.5 ? 'rgba(200,220,255,0.5)' : 'rgba(255,160,255,0.35)'; ctx.fillRect(Math.floor(r() * 192), Math.floor(r() * 192), 1, 1); }
+    ctx.fillStyle = 'rgba(200,60,255,0.28)';
+    for (let i = 0; i < 192; i += 32) { ctx.fillRect(i, 0, 1, 192); ctx.fillRect(0, i, 192, 1); }
+    ctx.fillStyle = 'rgba(90,240,255,0.18)';
+    for (let i = 16; i < 192; i += 32) { ctx.fillRect(i, 0, 1, 192); ctx.fillRect(0, i, 192, 1); }
   });
 }

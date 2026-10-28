@@ -494,7 +494,7 @@ function renderBalance(main) {
     ['maxEnemies', 'Most enemies at once', 'Phones may lag above ~200'],
     ['spawnBase', 'Spawns per second at start'], ['spawnGrowth', 'Extra spawns per second, each second'],
     ['crowdStart', 'Crowd size at start'], ['crowdGrowth', 'Crowd growth per second'],
-    ['ageSpawnStep', 'Extra spawns per age', 'Each later age starts with this many more enemies per second'], ['ageCrowdStep', 'Extra crowd per age', 'And this many more allowed at once'],
+    ['rampCurve', 'Build-up curve', '1 = steady, 2 = slow start that speeds up'], ['ageSpawnStep', 'Extra spawns per age', 'Each later age starts with this many more enemies per second'], ['ageCrowdStep', 'Extra crowd per age', 'And this many more allowed at once'],
     ['hpGrowth', 'Enemy health growth', 'Health doubles about every this many seconds'],
     ['enemyHpMul', 'Enemy health boost', '1.4 = every enemy has 40% more health'], ['ageHpBonus', 'Extra enemy health per age', '0.1 = +10% more after each age (stacks)'],
     ['miniBossHp', 'Mini-boss health multiplier'], ['stampedeSize', 'Stampede size'],

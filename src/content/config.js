@@ -76,6 +76,11 @@ function addNewContent(cfg, d, seen) {
     const bc = cfg.weapons.boneclub;
     if (bc && bc.name === 'Bone Club') { bc.name = d.weapons.boneclub.name; bc.blurb = d.weapons.boneclub.blurb; }
   }
+  // Same peak as before v29, but a slow start that speeds up (v30)
+  if (seen < 30) {
+    const V29 = { maxEnemies: 160, spawnGrowth: 0.045, crowdGrowth: 0.65, ageSpawnStep: 3.2, ageCrowdStep: 32 };
+    for (const [k, v] of Object.entries(V29)) if (cfg.balance[k] === v) cfg.balance[k] = d.balance[k];
+  }
   // Smaller crowds (v29): Lauren found it got too hard too quickly
   if (seen < 29) {
     const OLD = { maxEnemies: 200, spawnGrowth: 0.06, crowdGrowth: 1.0, ageSpawnStep: 4, ageCrowdStep: 40 };

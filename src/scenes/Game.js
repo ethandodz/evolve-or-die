@@ -329,10 +329,14 @@ export default class Game extends Phaser.Scene {
     // Later ages start busier, so a new age doesn't go quiet after the last one's big finish
     const st = this.stage();
     const more = 1 + this.stats.difficulty;
-    let rate = (BAL.spawnBase + st * (BAL.ageSpawnStep ?? 4) + t * BAL.spawnGrowth) * this.mods.spawn * more;
+    // The build-up starts slow and speeds up (rampCurve 2: a quarter of the way there at half time),
+    // reaching the same peak by the end of the age
+    const len = this.ageLen || AGE_LENGTH;
+    const ramp = len * Math.pow(t / len, BAL.rampCurve ?? 1);
+    let rate = (BAL.spawnBase + st * (BAL.ageSpawnStep ?? 4) + ramp * BAL.spawnGrowth) * this.mods.spawn * more;
     if (this.boss) rate *= 0.45;
     // The crowd grows over the age, up to the cap (Difficulty lets a few more in)
-    const cap = Math.min(MAX_ENEMIES * Math.min(1.5, more), (BAL.crowdStart + st * (BAL.ageCrowdStep ?? 40) + t * BAL.crowdGrowth) * more);
+    const cap = Math.min(MAX_ENEMIES * Math.min(1.5, more), (BAL.crowdStart + st * (BAL.ageCrowdStep ?? 40) + ramp * BAL.crowdGrowth) * more);
     this.spawnAcc += rate * dt;
     while (this.spawnAcc >= 1) {
       this.spawnAcc -= 1;

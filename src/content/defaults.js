@@ -4,7 +4,7 @@
 export const DEFAULT_CONFIG = {
   version: 1,
   // Bump when new built-in content is added, so saved editor edits get it too (see config.js)
-  contentVersion: 14,
+  contentVersion: 15,
 
   balance: {
     ageLength: 300,        // seconds until the time police arrive
@@ -65,6 +65,12 @@ export const DEFAULT_CONFIG = {
       damageTaken: 0.5, perk: 'Hits only take half a heart', drawback: '15% slower' },
     { key: 'inventor', name: 'NICO', title: 'The Inventor', sprite: 'inventor', weapon: 'tesla', hearts: 1, speed: 1, unlock: 'mech',
       cdMul: 0.8, areaMul: 0.8, perk: 'Weapons attack 25% faster', drawback: '-20% area and range' },
+    { key: 'engineer', name: 'ADA', title: 'The Engineer', sprite: 'engineer', weapon: 'steamhammer', hearts: 2, speed: 0.9, unlock: 'locomotive',
+      areaMul: 1.4, perk: '+40% area and range', drawback: '10% slower' },
+    { key: 'pilot', name: 'MAX', title: 'The Stunt Pilot', sprite: 'pilot', weapon: 'droneswarm', hearts: 2, speed: 1.2, unlock: 'chopper',
+      dmgMul: 0.85, perk: '20% faster', drawback: '-15% damage' },
+    { key: 'nova', name: 'NOVA', title: 'The Star Ranger', sprite: 'nova', weapon: 'plasmalance', hearts: 1, speed: 1, unlock: 'overlord',
+      cdMul: 0.87, dmgMul: 1.15, perk: '15% faster attacks, +15% damage', drawback: 'Only 1 heart' },
   ],
 
   // stats: each value is base + per * (level - 1) + one for every level in "at" that is reached
@@ -144,6 +150,43 @@ export const DEFAULT_CONFIG = {
       levels: ['', '+14.4 damage, faster', '+1 bolt', '+14.4 damage, faster', '+1 bolt, +1 chain', '+14.4 damage, faster', '+1 bolt'],
     },
     // Only from the Ark of the Covenant relic
+    steamhammer: {
+      name: 'Steam Hammer', icon: 'steamhammer', behavior: 'swing', kind: 'Melee', max: 7, signature: 'engineer', tier: 7, base: 'club',
+      blurb: "Ada's piston hammer. Huge swings that blast enemies away.",
+      stats: { cd: { base: 0.9, per: -0.05 }, dmg: { base: 52, per: 16 }, radius: { base: 96, per: 7 }, count: { base: 1, at: [3, 6] }, knockback: { base: 420 } },
+      levels: ['', '+16 damage', '+1 swing', 'Faster, +16 damage', 'Bigger swing, +16 damage', '+1 swing', 'Faster, +16 damage'],
+    },
+    droneswarm: {
+      name: 'Drone Swarm', icon: 'drone_s', behavior: 'orbit', kind: 'Orbit', max: 7, signature: 'pilot', tier: 8, base: 'axes',
+      blurb: "Max's stunt drones zip around you, four at a time.",
+      stats: { dmg: { base: 30, per: 10 }, radius: { base: 84, per: 6 }, count: { base: 4, at: [3, 5, 7] }, spin: { base: 4.2, per: 0.25 }, hitDelay: { base: 0.35 } },
+      levels: ['', '+10 damage, faster', '+1 drone', '+10 damage, wider', '+1 drone', '+10 damage, faster', '+1 drone'],
+    },
+    plasmalance: {
+      name: 'Plasma Lance', icon: 'plasma', fx: 'plasmabeam', behavior: 'thrust', kind: 'Melee', max: 7, signature: 'nova', tier: 9, base: 'spear',
+      blurb: "Nova's lance of pure starlight. Long beams that pierce everything.",
+      stats: { cd: { base: 0.85, per: -0.05 }, dmg: { base: 72, per: 22 }, length: { base: 260, per: 16 }, count: { base: 2, at: [3, 5, 7] } },
+      levels: ['', '+22 damage, longer', '+1 beam', '+22 damage, faster', '+1 beam', '+22 damage, longer', '+1 beam'],
+    },
+    // New weapons anyone can find
+    dynamite: {
+      name: 'Dynamite', icon: 'dynamite', behavior: 'rockfall', kind: 'Area', max: 7,
+      blurb: 'Sticks of dynamite land on enemies and blow up a wide area.',
+      stats: { cd: { base: 2.6, per: -0.12 }, dmg: { base: 32, per: 12 }, radius: { base: 54, per: 4 }, count: { base: 1, at: [3, 5, 7] } },
+      levels: ['', '+12 damage, bigger', '+1 stick', 'Faster, +12 damage', '+1 stick', 'Bigger, +12 damage', '+1 stick'],
+    },
+    nailgun: {
+      name: 'Nail Gun', icon: 'nailgun', fx: 'nail', behavior: 'shoot', kind: 'Projectile', max: 7,
+      blurb: 'Rapid-fire nails at the nearest enemy.',
+      stats: { cd: { base: 0.6, per: -0.03 }, dmg: { base: 9, per: 3.6 }, count: { base: 1, at: [3, 5, 7] }, pierce: { base: 0, at: [4, 6] }, speed: { base: 560 }, size: { base: 8 }, range: { base: 400 } },
+      levels: ['', '+3.6 damage, faster', '+1 nail', '+3.6 damage, nails pierce', '+1 nail', '+3.6 damage, pierce more', '+1 nail'],
+    },
+    laserdisc: {
+      name: 'Laser Disc', icon: 'disc', behavior: 'shoot', kind: 'Projectile', max: 7, spin: true,
+      blurb: 'Glowing discs that slice through a line of enemies.',
+      stats: { cd: { base: 1.5, per: -0.08 }, dmg: { base: 20, per: 7 }, count: { base: 1, at: [3, 6] }, pierce: { base: 4, at: [2, 5] }, speed: { base: 300 }, size: { base: 16 }, range: { base: 420 } },
+      levels: ['', '+7 damage, pierces more', '+1 disc', '+7 damage, faster', '+7 damage, pierces more', '+1 disc', '+7 damage, faster'],
+    },
     ark: {
       name: 'Ark of the Covenant', icon: 'ark', fx: 'lightray', behavior: 'thrust', kind: 'Melee', max: 7, signature: 'relic',
       blurb: 'Beams of holy light that pierce everything in their path.',
@@ -200,6 +243,32 @@ export const DEFAULT_CONFIG = {
     hydra:      { name: 'Hydra', sprite: 'hydra', hp: 11000, speed: 34, r: 36, xp: 0, scale: 2.2, color: '#3ab8a4', boss: true, heavy: true },
     dragon:     { name: 'Dragon', sprite: 'dragon', hp: 26000, speed: 40, r: 36, xp: 0, scale: 2.2, color: '#d84a2a', boss: true, heavy: true },
     mech:       { name: 'Steam Mech', sprite: 'mech', hp: 52000, speed: 40, r: 38, xp: 0, scale: 2.2, color: '#c8923a', boss: true, heavy: true },
+    sweep:      { name: 'Chimney Sweep', sprite: 'sweep', hp: 24, speed: 92, r: 10, xp: 1, scale: 1.5, color: '#4a4448' },
+    navvy:      { name: 'Navvy', sprite: 'navvy', hp: 36, speed: 58, r: 11, xp: 1, scale: 1.5, color: '#4a6aa0', ai: 'shield', shield: 3 },
+    luddite:    { name: 'Luddite', sprite: 'luddite', hp: 30, speed: 76, r: 11, xp: 1, scale: 1.5, color: '#6a5c40', ai: 'zigzag' },
+    steamhound: { name: 'Steam Hound', sprite: 'steamhound', hp: 180, speed: 84, r: 12, xp: 5, scale: 1.6, color: '#56565e', ai: 'charge' },
+    coalcart:   { name: 'Coal Cart', sprite: 'coalcart', hp: 200, speed: 46, r: 15, xp: 5, scale: 1.6, color: '#2e2a30', heavy: true, ai: 'split', splitInto: 'coal', splitCount: 4 },
+    coal:       { name: 'Coal Lump', sprite: 'coal', hp: 26, speed: 96, r: 8, xp: 1, scale: 1.5, color: '#2e2a30' },
+    rat:        { name: 'Sewer Rat', sprite: 'rat', hp: 18, speed: 120, r: 8, xp: 1, scale: 1.4, color: '#7c7680' },
+    furnace:    { name: 'Walking Furnace', sprite: 'furnace', hp: 760, speed: 32, r: 22, xp: 20, scale: 1.7, color: '#56565e', heavy: true },
+    locomotive: { name: 'Iron Horse', sprite: 'locomotive', hp: 90000, speed: 46, r: 40, xp: 0, scale: 2.2, color: '#56565e', boss: true, heavy: true },
+    punk:       { name: 'Punk', sprite: 'punk', hp: 26, speed: 94, r: 10, xp: 1, scale: 1.5, color: '#f04aa8', ai: 'zigzag' },
+    agent:      { name: 'Agent', sprite: 'agent', hp: 34, speed: 70, r: 11, xp: 1, scale: 1.5, color: '#2a2a36' },
+    soldier:    { name: 'Soldier', sprite: 'soldier', hp: 44, speed: 58, r: 11, xp: 1, scale: 1.5, color: '#6a7a40', ai: 'shield', shield: 3 },
+    biker:      { name: 'Biker', sprite: 'biker', hp: 190, speed: 90, r: 13, xp: 5, scale: 1.6, color: '#b8322a', ai: 'charge' },
+    drone:      { name: 'Drone', sprite: 'drone', hp: 210, speed: 60, r: 13, xp: 5, scale: 1.6, color: '#c8c8d8', heavy: true, ai: 'split', splitInto: 'minidrone', splitCount: 4 },
+    minidrone:  { name: 'Mini Drone', sprite: 'minidrone', hp: 26, speed: 110, r: 7, xp: 1, scale: 1.5, color: '#c8c8d8' },
+    taxi:       { name: 'Taxi', sprite: 'taxi', hp: 60, speed: 130, r: 12, xp: 1, scale: 1.5, color: '#f0c020' },
+    tank:       { name: 'Tank', sprite: 'tank', hp: 820, speed: 30, r: 23, xp: 20, scale: 1.7, color: '#6a7a40', heavy: true },
+    chopper:    { name: 'Attack Chopper', sprite: 'chopper', hp: 140000, speed: 70, r: 38, xp: 0, scale: 2.2, color: '#6a7a40', boss: true, heavy: true },
+    android:    { name: 'Android', sprite: 'android', hp: 30, speed: 96, r: 10, xp: 1, scale: 1.5, color: '#c8d4ea' },
+    cyborg:     { name: 'Cyborg', sprite: 'cyborg', hp: 40, speed: 76, r: 11, xp: 1, scale: 1.5, color: '#4a4a5c', ai: 'zigzag' },
+    greyalien:  { name: 'Grey Alien', sprite: 'greyalien', hp: 34, speed: 70, r: 10, xp: 1, scale: 1.5, color: '#a0c098', ai: 'shield', shield: 3 },
+    hoverbot:   { name: 'Hover Bot', sprite: 'hoverbot', hp: 200, speed: 80, r: 12, xp: 5, scale: 1.6, color: '#5af0ff', ai: 'charge' },
+    ufo:        { name: 'UFO', sprite: 'ufo', hp: 230, speed: 52, r: 16, xp: 5, scale: 1.6, color: '#56565e', heavy: true, ai: 'split', splitInto: 'greyalien', splitCount: 3 },
+    nanite:     { name: 'Nanite', sprite: 'nanite', hp: 22, speed: 130, r: 7, xp: 1, scale: 1.4, color: '#a8a8b8' },
+    walker:     { name: 'Spider Walker', sprite: 'walker', hp: 900, speed: 34, r: 22, xp: 20, scale: 1.7, color: '#c8d4ea', heavy: true },
+    overlord:   { name: 'AI Overlord', sprite: 'overlord', hp: 210000, speed: 40, r: 38, xp: 0, scale: 2.2, color: '#ff4a3a', boss: true, heavy: true },
   },
 
   // Mini-bosses (the giant elite at the halfway mark) use these moves: stomp, charge, summon, throw
@@ -237,6 +306,30 @@ export const DEFAULT_CONFIG = {
       basic: ['apprentice', 'duelist', 'halberdier'], medium: 'clockwork', elite: 'automaton', specials: ['gearling'],
       stampede: 'cog', stampedeName: 'COG AVALANCHE!', boss: 'mech', bossName: 'STEAM MECH', bossAttacks: ['steam', 'laser', 'cogs', 'charge', 'summon'], bossStyle: 'mech',
       music: 'renaissance', bossMusic: 'renaissanceBoss', hpMul: 7.5, xpMul: 4.6,
+    },
+    {
+      key: 'industrial', name: 'INDUSTRIAL AGE', ground: 'newsprint', bg: '#c8c2b2',
+      decor: ['chimney', 'crate', 'lantern', 'barrel', 'rails', 'crate'],
+      paintings: false,
+      basic: ['sweep', 'navvy', 'luddite'], medium: 'steamhound', elite: 'furnace', specials: ['coalcart'],
+      stampede: 'rat', stampedeName: 'RAT SWARM!', boss: 'locomotive', bossName: 'IRON HORSE', bossAttacks: ['charge3', 'smoke', 'coal', 'charge', 'summon'], bossStyle: 'train',
+      music: 'industrial', bossMusic: 'industrialBoss', hpMul: 10.5, xpMul: 6,
+    },
+    {
+      key: 'modern', name: 'MODERN AGE', ground: 'popart', bg: '#f2d04e',
+      decor: ['hydrant', 'cone', 'trashcan', 'stopsign', 'bench', 'cone'],
+      paintings: false,
+      basic: ['punk', 'agent', 'soldier'], medium: 'biker', elite: 'tank', specials: ['drone'],
+      stampede: 'taxi', stampedeName: 'RUSH HOUR!', boss: 'chopper', bossName: 'ATTACK CHOPPER', bossAttacks: ['missiles', 'strafe', 'missiles', 'summon', 'strafe'], bossStyle: 'chopper',
+      music: 'modern', bossMusic: 'modernBoss', hpMul: 14.5, xpMul: 7.6,
+    },
+    {
+      key: 'future', name: 'FAR FUTURE', ground: 'neongrid', bg: '#1c1036',
+      decor: ['pylon', 'crystalrock', 'pod', 'antenna', 'crystalrock', 'holosign'],
+      paintings: false,
+      basic: ['android', 'cyborg', 'greyalien'], medium: 'hoverbot', elite: 'walker', specials: ['ufo'],
+      stampede: 'nanite', stampedeName: 'NANITE SWARM!', boss: 'overlord', bossName: 'AI OVERLORD', bossAttacks: ['orbital', 'grid', 'blink', 'laser', 'summon'], bossStyle: 'warp',
+      music: 'future', bossMusic: 'futureBoss', hpMul: 20, xpMul: 9.6,
     },
   ],
 
@@ -325,11 +418,12 @@ export const BEHAVIORS = {
   aura: 'Damaging ring around the player (uses dmg, radius, tick, slow)',
   rockfall: 'Things fall on enemies (uses cd, dmg, radius, count)',
   lightning: 'Strikes random enemies (uses cd, dmg, radius, count, chain, range)',
+  shoot: 'Fires projectiles at the nearest enemy (uses cd, dmg, count, pierce, speed, size, range)',
 };
 
 export const PASSIVE_EFFECTS = ['hearts', 'speed', 'count', 'damage', 'area', 'pickup'];
-export const BOSS_ATTACKS = ['charge', 'charge3', 'stomp', 'rocks', 'roar', 'lunge', 'ring', 'pools', 'summon', 'breath', 'meteors', 'fly', 'sweep', 'steam', 'laser', 'cogs'];
-export const BOSS_STYLES = ['', 'hunter', 'rooted', 'flyer', 'mech'];
-export const MUSIC = ['stone', 'stoneBoss', 'roman', 'romanBoss', 'medieval', 'medievalBoss', 'renaissance', 'renaissanceBoss', 'police', 'title'];
-export const GROUNDS = ['cave', 'mosaic', 'tapestry', 'parchment'];
+export const BOSS_ATTACKS = ['charge', 'charge3', 'stomp', 'rocks', 'roar', 'lunge', 'ring', 'pools', 'summon', 'breath', 'meteors', 'fly', 'sweep', 'steam', 'laser', 'cogs', 'smoke', 'coal', 'missiles', 'strafe', 'orbital', 'grid', 'blink'];
+export const BOSS_STYLES = ['', 'hunter', 'rooted', 'flyer', 'mech', 'train', 'chopper', 'warp'];
+export const MUSIC = ['stone', 'stoneBoss', 'roman', 'romanBoss', 'medieval', 'medievalBoss', 'renaissance', 'renaissanceBoss', 'industrial', 'industrialBoss', 'modern', 'modernBoss', 'future', 'futureBoss', 'police', 'title'];
+export const GROUNDS = ['cave', 'mosaic', 'tapestry', 'parchment', 'newsprint', 'popart', 'neongrid'];
 export const ENEMY_AI = ['', 'charge', 'shield', 'split', 'zigzag'];

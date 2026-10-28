@@ -333,6 +333,69 @@ const TRACKS = {
     bass: pat(rep('33 - 33 33 - 33 32 - 33 - 33 33 - 36 35 -', 4)),
     drums: pat(rep('k h s h k k s h k h s h k s k s', 4)),
   },
+  // Industrial Age: clanking machine rhythm, minor square lead
+  industrial: {
+    bpm: 124, len: 64, leadWave: 'square', leadLen: 1.2,
+    lead: pat(`
+      57 - 60 - 57 - 64 - 62 - 60 - 57 - - -
+      55 - 58 - 55 - 62 - 60 - 58 - 55 - - -
+      57 - 60 - 64 - 69 - 67 - 64 - 62 - 60 -
+      59 - 62 - 59 - 56 - 57 - - - - - - -`),
+    bass: pat(rep('33 - 33 - 40 - 33 - 31 - 31 - 38 - 31 -', 4)),
+    drums: pat(rep('k - h h s - h h k k h h s - h s', 4)),
+  },
+  industrialBoss: {
+    bpm: 156, len: 64, leadWave: 'sawtooth', bassWave: 'square', leadLen: 1,
+    lead: pat(`
+      57 57 64 - 57 57 63 - 57 57 62 - 60 - 58 -
+      57 57 64 - 57 57 65 - 64 - 62 - 60 - 57 -
+      69 - 67 - 65 - 64 - 62 - 60 - 58 - 57 -
+      58 - 60 - 62 - 64 - 65 - 64 - 57 - - -`),
+    bass: pat(rep('33 33 - 33 33 - 32 - 33 33 - 33 36 - 34 -', 4)),
+    drums: pat(rep('k h s h k k s h k h s h k s k s', 4)),
+  },
+  // Modern Age: driving rock beat, bluesy riff
+  modern: {
+    bpm: 132, len: 64, leadWave: 'sawtooth', leadLen: 1,
+    lead: pat(`
+      64 - 67 - 69 - 67 64 - - 62 - 64 - - -
+      64 - 67 - 69 - 70 69 67 - 64 - 62 - - -
+      64 - 67 - 69 - 67 64 - - 62 - 64 - 67 -
+      69 - 71 - 72 - 71 69 67 - 64 - - - - -`),
+    bass: pat(rep('40 40 - 40 43 - 45 - 40 40 - 40 38 - 43 -', 4)),
+    drums: pat(rep('k - s - k k s - k - s - k k s s', 4)),
+  },
+  modernBoss: {
+    bpm: 164, len: 64, leadWave: 'sawtooth', bassWave: 'sawtooth', leadLen: 1,
+    lead: pat(`
+      76 - 76 74 - 76 79 - 76 - 74 - 72 - 71 -
+      76 - 76 74 - 76 81 - 79 - 76 - 74 - - -
+      72 - 74 - 76 - 79 - 81 - 79 - 76 - 74 -
+      72 - 71 - 69 - 67 - 69 - 71 - 64 - - -`),
+    bass: pat(rep('40 - 40 40 - 40 43 - 45 - 45 45 - 43 38 -', 4)),
+    drums: pat(rep('k h s h k k s h k h s h k s s s', 4)),
+  },
+  // Far Future: synthwave arpeggios
+  future: {
+    bpm: 112, len: 64, leadWave: 'triangle', leadLen: 1.4,
+    lead: pat(`
+      69 72 76 79 76 72 69 72 65 69 72 76 72 69 65 69
+      67 71 74 79 74 71 67 71 64 67 71 76 71 67 64 67
+      69 72 76 81 76 72 69 72 65 69 72 77 72 69 65 69
+      67 71 74 79 83 79 74 71 69 - - - 64 - - -`),
+    bass: pat(rep('45 - - - 45 - - - 41 - - - 41 - - - 43 - - - 43 - - - 40 - - - 40 - - -', 2)),
+    drums: pat(rep('k - h - s - h - k - h k s - h -', 4)),
+  },
+  futureBoss: {
+    bpm: 160, len: 64, leadWave: 'square', bassWave: 'sawtooth', leadLen: 1,
+    lead: pat(`
+      81 - 79 - 76 - 79 - 81 - 84 - 83 - 79 -
+      81 - 79 - 76 - 74 - 76 - 79 - 76 - - -
+      69 72 76 81 69 72 76 81 68 71 76 80 68 71 76 80
+      69 72 76 81 84 81 76 72 69 - - - - - - -`),
+    bass: pat(rep('33 33 45 33 33 45 33 45 32 32 44 32 32 44 32 44', 4)),
+    drums: pat(rep('k h s h k h s h k h s h k s k s', 4)),
+  },
   police: {
     bpm: 160, len: 32, leadWave: 'square', leadLen: 2,
     lead: pat('81 - 76 - 81 - 76 - 81 - 76 - 81 - 76 - 83 - 78 - 83 - 78 - 83 - 78 - 83 - 78 -'),

@@ -125,6 +125,7 @@ export default class Game extends Phaser.Scene {
     this.hitSrc = null;        // weapon doing the hitting, for per-weapon quests
     this.runHits = {};         // damage and kills per weapon this run, for the stats screen
     this.relics = new Set();   // relics taken this run
+    this.shots = [];           // projectiles from shooting weapons
     this.aliens = [];          // Alien Egg swarm
     this.sword = null;         // Excalibur
     this.coinsEarned = 0;
@@ -224,6 +225,7 @@ export default class Game extends Phaser.Scene {
     this.buildGrid();
     this.separate();
     this.updateWeapons(dt);
+    this.updateShots(dt);
     this.updatePet(dt);
     this.updateAliens(dt);
     this.updateSword(dt);
@@ -837,6 +839,7 @@ export default class Game extends Phaser.Scene {
         case 'aura': this.updateFire(w, st, dt); break;
         case 'rockfall': this.updateRocks(w, st, dt); break;
         case 'lightning': this.updateBolt(w, st, dt); break;
+        case 'shoot': this.updateShoot(w, st, dt); break;
       }
     }
     this.hitSrc = null;
@@ -952,6 +955,50 @@ export default class Game extends Phaser.Scene {
       });
       audio.play('swing');
     });
+  }
+
+  // Projectile weapons: fire at the nearest enemy; shots fly straight and can pierce
+  updateShoot(w, st, dt) {
+    w.t -= dt;
+    if (w.t > 0) return;
+    const range = (st.range || 400) * this.stats.area;
+    const target = this.nearestEnemy(range);
+    if (!target) { w.t = 0.1; return; }
+    w.t = st.cd;
+    const n = st.count + this.stats.count;
+    const p = this.player;
+    const aim = Math.atan2(target.y - p.y, target.x - p.x);
+    const spin = !!WEAPONS[w.key].spin;
+    for (let i = 0; i < n; i++) {
+      const ang = aim + (i - (n - 1) / 2) * 0.16;
+      this.time.delayedCall(i * 60, () => {
+        if (this.over) return;
+        const spr = this.add.image(p.x, p.y - 14, st.icon).setScale(1.5).setDepth(1e7 + 2).setRotation(spin ? 0 : ang);
+        this.shots.push({
+          key: w.key, x: p.x, y: p.y - 14, vx: Math.cos(ang) * (st.speed || 500), vy: Math.sin(ang) * (st.speed || 500),
+          dmg: st.dmg, pierce: Math.round(st.pierce || 0), r: (st.size || 8) * Math.sqrt(this.stats.area), life: range / (st.speed || 500) + 0.2, spr, spin, hit: new Set(),
+        });
+      });
+    }
+    audio.play('swing');
+  }
+
+  updateShots(dt) {
+    for (let i = this.shots.length - 1; i >= 0; i--) {
+      const s = this.shots[i];
+      s.x += s.vx * dt; s.y += s.vy * dt; s.life -= dt;
+      s.spr.setPosition(s.x, s.y);
+      if (s.spin) s.spr.rotation += dt * 14;
+      this.hitSrc = s.key;
+      this.query(s.x, s.y, s.r + 12, (e) => {
+        if (s.dead || s.hit.has(e) || Math.hypot(e.x - s.x, e.y - s.y) > e.r + s.r) return;
+        s.hit.add(e);
+        this.hitEnemy(e, s.dmg, s.x - s.vx * 0.05, s.y - s.vy * 0.05, 90);
+        if (s.pierce-- <= 0) s.dead = true;
+      });
+      this.hitSrc = null;
+      if (s.dead || s.life <= 0) { s.spr.destroy(); this.shots.splice(i, 1); }
+    }
   }
 
   updateAxes(w, st, dt) {
@@ -1528,7 +1575,7 @@ export default class Game extends Phaser.Scene {
     if (!this.canSummon()) return;
     const p = this.player;
     const e = this.spawnEnemy(this.age.boss, 0, -360);
-    e.ai = { state: 'walk', t: 2.5, n: 0, style: this.age.bossStyle || '', fast: 1 };
+    e.ai = { state: 'walk', t: 2.5, n: 0, style: this.age.bossStyle || '', fast: 1, dashMul: this.age.bossStyle === 'train' ? 1.2 : 1 };
     e.vx = 0; e.vy = 0;
     this.boss = e;
     this.bossSummoned = true;
@@ -1569,10 +1616,19 @@ export default class Game extends Phaser.Scene {
         audio.play('steam');
       }
     }
+    // Later bosses get angrier at half health
+    const RAGE = { train: ['FULL STEAM AHEAD!', 'Faster, longer charges', '#ff9a4a'], chopper: ['LOCKED ON!', 'It fires more often', '#ffe060'], warp: ['SYSTEM OVERLOAD!', 'It attacks faster', '#f070ff'] };
+    if (RAGE[ai.style] && !ai.enraged && b.hp < b.maxHp / 2) {
+      ai.enraged = true; ai.fast = 0.6;
+      if (ai.style === 'train') ai.dashMul = 1.45;
+      const [title, sub, color] = RAGE[ai.style];
+      this.ui.banner(title, sub, 1800, color);
+      audio.play('roar'); this.shake(300, 0.01);
+    }
     // The Hunter (T-Rex) gets faster as it gets hurt
     const hunt = ai.style === 'hunter' ? 1.4 + 0.8 * (1 - b.hp / b.maxHp) : 1;
     // Lift for flying bosses
-    b.lift += ((b.flying ? 90 : 0) - b.lift) * Math.min(1, dt * 4);
+    b.lift += ((b.flying ? 90 : ai.style === 'chopper' ? 46 : 0) - b.lift) * Math.min(1, dt * 4);
     b.spr.setAlpha(b.flying ? 0.75 : 1);
     switch (ai.state) {
       case 'walk':
@@ -1580,7 +1636,13 @@ export default class Game extends Phaser.Scene {
           // Stays put; burrows over to you when you get too far
           b.vx = 0; b.vy = 0;
           if (d > 380 && ai.t > 0.4) { this.bossBurrow(b); break; }
-        } else { b.vx = (dx / d) * b.speed * hunt; b.vy = (dy / d) * b.speed * hunt; }
+        } else if (ai.style === 'chopper') {
+          // Keeps its distance and circles you
+          const away = d > 300 ? 1 : d < 220 ? -1 : 0;
+          b.vx = ((dx / d) * away - (dy / d) * 0.8) * b.speed; b.vy = ((dy / d) * away + (dx / d) * 0.8) * b.speed;
+        } else if (ai.style === 'warp') { b.vx = (dx / d) * b.speed * 0.6; b.vy = (dy / d) * b.speed * 0.6; }
+        else { b.vx = (dx / d) * b.speed * hunt; b.vy = (dy / d) * b.speed * hunt; }
+        if (ai.style === 'train' && Math.random() < 0.15) this.burst(b.x, b.y - 110, 0xd0d0d8, 1, 50);
         if (ai.t <= 0) this.bossAttack(b);
         break;
       case 'burrow':
@@ -1617,7 +1679,7 @@ export default class Game extends Phaser.Scene {
         if (ai.t <= 0) ai.onWindup();
         break;
       case 'dash':
-        b.vx = ai.dx * 520; b.vy = ai.dy * 520;
+        b.vx = ai.dx * 520 * (ai.dashMul || 1); b.vy = ai.dy * 520 * (ai.dashMul || 1);
         if (Math.random() < 0.5) this.burst(b.x, b.y, 0x8a6a3a, 1, 60);
         if (ai.t <= 0) {
           // Chained charges: aim again right away
@@ -1748,6 +1810,66 @@ export default class Game extends Phaser.Scene {
       }
       this.addHazard({ kind: 'circle', x: p.x, y: p.y, r: 46, t: 1.0, rock: true, icon: 'cogicon', color: 0xc8923a });
       ai.state = 'rest'; ai.t = 0.9; audio.play('roar');
+    } else if (choice === 'smoke') {
+      // Clouds of choking smoke that hang around
+      for (let i = 0; i < 5; i++) {
+        const x = p.x + rand(-160, 160), y = p.y + rand(-160, 160);
+        this.addHazard({ kind: 'circle', x, y, r: 56, t: 1.0, persist: 4, color: 0x6a6a74 });
+      }
+      this.addHazard({ kind: 'circle', x: p.x, y: p.y, r: 56, t: 1.0, persist: 4, color: 0x6a6a74 });
+      ai.state = 'rest'; ai.t = 0.6; audio.play('steam');
+    } else if (choice === 'coal') {
+      for (let i = 0; i < 7; i++) {
+        const x = p.x + rand(-170, 170), y = p.y + rand(-170, 170);
+        this.addHazard({ kind: 'circle', x, y, r: 46, t: 1.0 + i * 0.13, rock: true, icon: 'coalicon', color: 0x3a3a40 });
+      }
+      this.addHazard({ kind: 'circle', x: p.x, y: p.y, r: 46, t: 1.0, rock: true, icon: 'coalicon', color: 0x3a3a40 });
+      ai.state = 'rest'; ai.t = 0.9; audio.play('roar');
+    } else if (choice === 'missiles') {
+      for (let i = 0; i < 6; i++) {
+        const x = p.x + rand(-150, 150), y = p.y + rand(-150, 150);
+        this.addHazard({ kind: 'circle', x, y, r: 48, t: 1.0 + i * 0.15, rock: true, icon: 'missile', color: 0xff6a3a });
+      }
+      this.addHazard({ kind: 'circle', x: p.x, y: p.y, r: 48, t: 1.0, rock: true, icon: 'missile', color: 0xff6a3a });
+      ai.state = 'rest'; ai.t = 0.8; audio.play('zap');
+    } else if (choice === 'strafe') {
+      // A line of gunfire walks toward you
+      ai.state = 'windup'; ai.t = 1.5;
+      for (let i = 0; i < 10; i++) {
+        const dd = 50 + i * 46;
+        this.addHazard({ kind: 'circle', x: b.x + Math.cos(ang) * dd, y: b.y + Math.sin(ang) * dd, r: 30, t: 0.7 + i * 0.07, color: 0xffe060 });
+      }
+      ai.onWindup = () => { ai.state = 'rest'; ai.t = 0.4; };
+      audio.play('zap');
+    } else if (choice === 'orbital') {
+      // Orbital strikes: big circles of light from the sky
+      for (let i = 0; i < 3; i++) {
+        const a = rand(0, TAU);
+        this.addHazard({ kind: 'circle', x: p.x + Math.cos(a) * 170, y: p.y + Math.sin(a) * 170, r: 120, t: 1.5 + i * 0.2, color: 0x5af0ff });
+      }
+      this.addHazard({ kind: 'circle', x: p.x, y: p.y, r: 110, t: 1.6, color: 0x5af0ff });
+      ai.state = 'rest'; ai.t = 1.2; audio.play('zap');
+    } else if (choice === 'grid') {
+      // Laser grid: find a gap between the lines
+      ai.state = 'windup'; ai.t = 1.6;
+      for (const off of [-150, 0, 150]) {
+        this.addHazard({ kind: 'line', x: p.x - 420, y: p.y + off, ang: 0, len: 840, w: 40, t: 1.4, color: 0xf070ff, flash: 0xffd0ff });
+        this.addHazard({ kind: 'line', x: p.x + off + 75, y: p.y - 420, ang: Math.PI / 2, len: 840, w: 40, t: 1.4, color: 0xf070ff, flash: 0xffd0ff });
+      }
+      ai.onWindup = () => { ai.state = 'rest'; ai.t = 0.5; };
+      audio.play('zap');
+    } else if (choice === 'blink') {
+      // Teleports and lands right next to you
+      const a = rand(0, TAU);
+      const tx = p.x + Math.cos(a) * 120, ty = p.y + Math.sin(a) * 120;
+      ai.state = 'windup'; ai.t = 0.9;
+      this.addHazard({ kind: 'circle', x: tx, y: ty, r: 120, t: 0.9, color: 0xf070ff });
+      ai.onWindup = () => {
+        this.burst(b.x, b.y, 0xf070ff, 24, 200);
+        b.x = tx; b.y = ty;
+        this.burst(b.x, b.y, 0x5af0ff, 30, 220); this.ringFx(b.x, b.y, 120, 0xf070ff);
+        ai.state = 'rest'; ai.t = 0.7; audio.play('zap');
+      };
     } else if (choice === 'breath') {
       ai.state = 'windup'; ai.t = 1.0;
       for (let i = -2; i <= 2; i++) this.addHazard({ kind: 'line', x: b.x, y: b.y - 20, ang: ang + i * 0.26, len: 400, w: 46, t: 1.0, color: 0xff7a2a, flash: 0xffc848 });
@@ -2449,7 +2571,7 @@ export default class Game extends Phaser.Scene {
         const x = cx * S + rnd() * S, y = cy * S + rnd() * S;
         const key = this.age.decor[Math.floor(rnd() * this.age.decor.length)];
         if (!this.textures.exists(key)) continue;
-        const flat = key === 'fern' || key === 'bones';
+        const flat = key === 'fern' || key === 'bones' || key === 'rails';
         const img = this.add.sprite(x, y, key, 0).setScale(1.5).setOrigin(0.5, 0.9).setDepth(flat ? -1.9e7 : y);
         if (this.textures.get(key).frameTotal > 2) img.flicker = rnd() * 10;
         if (key === 'campfire' || key === 'brazier') img.light = true;

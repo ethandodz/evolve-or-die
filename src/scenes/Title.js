@@ -78,7 +78,7 @@ export default class Title extends Phaser.Scene {
     const beaten = AGES.filter(a => save.bossesBeaten[a.key]).map(a => a.bossName);
     const info = [`RUNS ${save.runs}`, `BEST ${fmtTime(save.bestTime)}`];
     text(this, W / 2, 712, info.join('   '), 10, '#d8b890');
-    text(this, W / 2, 736, beaten.length ? `BOSSES BEATEN: ${beaten.join(', ')}` : 'NO BOSSES BEATEN YET', 8, '#d8b890');
+    text(this, W / 2, 736, beaten.length ? `BOSSES BEATEN: ${beaten.length}/${AGES.length}` : 'NO BOSSES BEATEN YET', 8, '#d8b890');
     text(this, W / 2, 770, 'v0.3', 8, '#5a4a6a');
 
     this.input.once('pointerdown', () => { audio.unlock(); audio.playMusic('title'); });
@@ -272,7 +272,7 @@ export default class Title extends Phaser.Scene {
     const c = this.add.container(0, 0).setDepth(500);
     c.add(this.add.rectangle(W / 2, H / 2, W, H, 0x000000, 0.7).setInteractive());
     c.add(panel(this, W / 2, H / 2, 410, 600));
-    c.add(text(this, W / 2, H / 2 - 262, 'CHOOSE YOUR\nCHARACTER', 16, '#e8c070'));
+    c.add(text(this, W / 2, H / 2 - 262, CHARACTERS.length > 6 ? 'CHOOSE YOUR CHARACTER' : 'CHOOSE YOUR\nCHARACTER', CHARACTERS.length > 6 ? 13 : 16, '#e8c070'));
     const beatenBosses = new Set(AGES.filter(a => save.bossesBeaten[a.key]).map(a => a.boss));
     // unlock: 'start', a boss key, or 'kills:N' (enemies defeated over all runs)
     const killsNeeded = (ch) => (String(ch.unlock || '').startsWith('kills:') ? parseInt(ch.unlock.slice(6), 10) || 0 : 0);
@@ -284,11 +284,13 @@ export default class Title extends Phaser.Scene {
       const boss = ENEMIES[ch.unlock];
       return `Beat ${boss ? boss.name : 'a boss'}`;
     };
-    const list = CHARACTERS.slice(0, 8);
+    const list = CHARACTERS.slice(0, 9);
+    // More than 6 characters: smaller cards in three rows
+    const compact = list.length > 6;
     const maxTier = Math.max(1, ...Object.values(WEAPONS).map(x => x.tier || 0));
     // Up to 3 per row (4 cards don't fit in one row, so they go 2 x 2)
     const cols = list.length === 4 ? 2 : Math.min(3, Math.max(1, list.length));
-    const cw = 112, ch0 = 120, gap = 122;
+    const cw = 112, ch0 = compact ? 92 : 120, gap = 122, rowGap = compact ? 98 : 130, top = compact ? H / 2 - 196 : H / 2 - 160;
     let selected = list.find(isOpen) || list[0];
     const desc = text(this, W / 2, H / 2 + 78, '', 8, '#e8d0b0');
     const wName = text(this, W / 2 + 12, H / 2 + 100, '', 8, '#ffe060');
@@ -298,7 +300,7 @@ export default class Title extends Phaser.Scene {
     const drawback = text(this, W / 2, H / 2 + 162, '', 8, '#ff9a8a');
     c.add([desc, wName, wIcon, wInfo, perk, drawback]);
     // What each kind of weapon does
-    const KIND_TIPS = { Melee: 'hits enemies close to you', Orbit: 'circles around you', Aura: 'burns everything around you', Area: 'strikes enemies from afar' };
+    const KIND_TIPS = { Melee: 'hits enemies close to you', Orbit: 'circles around you', Aura: 'burns everything around you', Area: 'strikes enemies from afar', Projectile: 'fires at the nearest enemy' };
     const cards = [];
     const refresh = () => {
       cards.forEach(({ ch, g, x, y }) => {
@@ -324,18 +326,19 @@ export default class Title extends Phaser.Scene {
     list.forEach((ch, i) => {
       const col = i % cols, row = Math.floor(i / cols);
       const inRow = Math.min(cols, list.length - row * cols);
-      const x = W / 2 - ((inRow - 1) * gap) / 2 + col * gap, y = H / 2 - 160 + row * 130;
+      const x = W / 2 - ((inRow - 1) * gap) / 2 + col * gap, y = top + row * rowGap;
       const g = this.add.graphics();
       c.add(g);
       cards.push({ ch, g, x, y });
       const open = isOpen(ch);
-      const spr = this.add.sprite(x, y - 14, this.textures.exists(ch.sprite) ? ch.sprite : 'caveman', 0).setScale(2);
+      const sy = compact ? y - 12 : y - 14;
+      const spr = this.add.sprite(x, sy, this.textures.exists(ch.sprite) ? ch.sprite : 'caveman', 0).setScale(compact ? 1.6 : 2);
       if (!open) spr.setTintFill(0x140a06);
-      else this.tweens.add({ targets: spr, y: y - 18, yoyo: true, repeat: -1, duration: 500 + i * 40 });
+      else this.tweens.add({ targets: spr, y: sy - 4, yoyo: true, repeat: -1, duration: 500 + i * 40 });
       c.add(spr);
-      if (!open) c.add(this.add.image(x, y - 14, 'lock').setScale(2));
-      c.add(text(this, x, y + 34, open ? ch.name : '???', 9, open ? '#ffffff' : '#7a6a5a'));
-      c.add(text(this, x, y + 49, open ? ch.title : lockText(ch), 6, '#c0a080'));
+      if (!open) c.add(this.add.image(x, sy, 'lock').setScale(2));
+      c.add(text(this, x, y + (compact ? 25 : 34), open ? ch.name : '???', 9, open ? '#ffffff' : '#7a6a5a'));
+      c.add(text(this, x, y + (compact ? 38 : 49), open ? ch.title : lockText(ch), 6, '#c0a080'));
       const hit = this.add.rectangle(x, y, cw, ch0, 0xffffff, 0.001).setInteractive({ useHandCursor: true });
       hit.on('pointerup', () => { if (!open) { audio.play('deny'); return; } audio.play('select'); selected = ch; refresh(); });
       c.add(hit);

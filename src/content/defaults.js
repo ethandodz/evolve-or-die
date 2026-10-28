@@ -4,7 +4,7 @@
 export const DEFAULT_CONFIG = {
   version: 1,
   // Bump when new built-in content is added, so saved editor edits get it too (see config.js)
-  contentVersion: 34,
+  contentVersion: 35,
 
   balance: {
     ageLength: 210,        // seconds until the time police arrive (the boss fight doesn't stop the clock)
@@ -27,6 +27,7 @@ export const DEFAULT_CONFIG = {
     coinChance: 0.09,
     meatChance: 0.012,
     magnetChance: 0.003,
+    ghostChance: 0.003,    // Ghost Heart: a temporary heart above max that the next hit takes
     rerolls: 3,
     xpBase: 5, xpPer: 4, xpCurve: 1.5,
     xpEarly: 0.45,         // first levels cost this much of normal, back to full by level 6

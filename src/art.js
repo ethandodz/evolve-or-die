@@ -796,8 +796,9 @@ function pixelHeart(kind) {
     if (ch === '.') return;
     let c = ch === '2' ? '#ffd0d8' : (i > 5 || j > 4) ? '#c01c3c' : '#ff3a5a';
     if (kind === 'empty' || (kind === 'half' && i > 4)) c = ch === '2' ? '#7a6a8a' : '#3a2c4a';
+    if (kind === 'ghost') c = ch === '2' ? '#ffffff' : (i > 5 || j > 4) ? '#7ac8e8' : '#c0f0ff';
     s.put(i + 1, j + 1, c);
-  })), { outline: '#2a0a18' });
+  })), { outline: kind === 'ghost' ? '#1a3a5a' : '#2a0a18' });
 }
 
 // Items, icons and decor
@@ -831,6 +832,7 @@ const ITEMS = {
   chest: () => paint(20, 16, (s) => { s.rect(1, 5, 18, 10, WOOD, 0.1); s.ell(10, 5, 9, 4, WOOD); s.rect(1, 8, 18, 1, BRONZE); s.rect(8, 7, 4, 4, GOLD); s.put(10, 9, EYE); }),
   heart: () => pixelHeart('full'),
   heart_empty: () => pixelHeart('empty'),
+  ghostheart: () => pixelHeart('ghost'),
   sandal: () => paint(14, 12, (s) => { s.ell(7, 8, 6, 2.6, LEATHER); s.line(4, 7, 8, 2, LEATHER[2]); s.line(10, 7, 8, 2, LEATHER[2]); s.put(8, 2, '#f0c060'); }),
   totem: () => paint(12, 18, (s) => { s.rect(2, 2, 8, 15, WOOD, 0.1); s.rect(1, 1, 10, 2, RED); s.put(4, 5, EYE); s.put(7, 5, EYE); s.rect(4, 8, 4, 1, RED[2]); s.put(4, 12, EYE); s.put(7, 12, EYE); s.rect(4, 14, 4, 1, GOLD[1]); }),
   flint: () => paint(12, 14, (s) => { for (let y = 0; y < 10; y++) s.line(6 - y * 0.5, y, 6 + y * 0.3, y, GREYS[y < 4 ? 0 : y < 7 ? 1 : 2]); s.rect(5, 10, 2, 4, LEATHER); }),
@@ -1012,7 +1014,7 @@ export const SPRITE_GROUPS = {
   'Future enemies': ['android', 'cyborg', 'greyalien', 'hoverbot', 'ufo', 'nanite', 'walker', 'overlord'],
   Weapons: ['club', 'axe', 'spear', 'flame', 'rock', 'bolt', 'boneclub', 'amber', 'spiritflame', 'pilum', 'holyblade', 'tesla', 'steamhammer', 'drone_s', 'plasma', 'plasmabeam', 'dynamite', 'nailgun', 'nail', 'disc', 'lute', 'note', 'flask', 'swordcane', 'gladius', 'guitar', 'raygun', 'raybolt', 'bone', 'meteor', 'gauntlet'],
   Items: ['treasure', 'chest_open', 'scroll', 'trophy', 'combo', 'cogicon', 'heart_half', 'shieldicon', 'potion_purple', 'rabbitfoot', 'firegem', 'mirror', 'gem_s', 'gem_m', 'gem_l', 'coin', 'spark', 'meat', 'magnet', 'chest', 'potion', 'star', 'reroll', 'skull', 'lock', 'crystal', 'feather', 'idol', 'ark', 'monalisa', 'alienegg', 'alien', 'excalibur', 'declaration', 'lightray'],
-  Icons: ['heart', 'heart_empty', 'sandal', 'totem', 'flint', 'tusk', 'lodestone', 'crit', 'fang', 'wardrum'],
+  Icons: ['heart', 'heart_empty', 'ghostheart', 'sandal', 'totem', 'flint', 'tusk', 'lodestone', 'crit', 'fang', 'wardrum'],
   Scenery: ['boulder', 'fern', 'bones', 'tree', 'tree_autumn', 'tree_alien', 'pine', 'bush', 'menhir', 'campfire', 'handprint', 'deer', 'hunters', 'column', 'broken', 'urn', 'cypress', 'brazier', 'banner', 'haybale', 'shrub', 'torch', 'gravestone', 'easel', 'gearpile', 'statue', 'lantern', 'chimney', 'crate', 'barrel', 'rails', 'hydrant', 'cone', 'trashcan', 'stopsign', 'bench', 'pylon', 'crystalrock', 'pod', 'antenna', 'holosign', 'coalicon', 'missile'],
 };
 

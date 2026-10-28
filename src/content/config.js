@@ -51,6 +51,13 @@ function addNewContent(cfg, d, seen) {
     const OLD_BAL = { maxEnemies: 150, spawnGrowth: 0.03, crowdGrowth: 0.6, hpGrowth: 85, sparkBoss: 4 };
     for (const [k, v] of Object.entries(OLD_BAL)) if (cfg.balance[k] === v) cfg.balance[k] = d.balance[k];
   }
+  // Even harder (v14): every character starts with 3 fewer hearts (at least 1), weaker Lodestone
+  if (seen < 14) {
+    for (const c of cfg.characters) if (typeof c.hearts === 'number') c.hearts = Math.max(1, c.hearts - 3);
+    for (const c of cfg.characters) if (/^Only \d hearts$/.test(c.drawback || '')) c.drawback = 'Only 1 heart';
+    const mag = cfg.passives.magnet;
+    if (mag && mag.amount === 0.28) { mag.amount = d.passives.magnet.amount; mag.blurb = d.passives.magnet.blurb; }
+  }
   for (const k of ['enemies', 'weapons', 'passives']) {
     for (const [key, val] of Object.entries(d[k])) {
       if (!cfg[k][key]) cfg[k][key] = val;

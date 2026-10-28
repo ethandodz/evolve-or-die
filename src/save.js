@@ -51,6 +51,12 @@ for (const [id, cost] of Object.entries(REMOVED_RELICS)) {
   if (save.relics[id]) { delete save.relics[id]; save.sparks += cost; }
 }
 
+// Thick Skin now only goes to level 1: levels bought past that give their Sparks back
+if ((save.upgrades.hearts || 0) > 1) {
+  for (let l = 1; l < save.upgrades.hearts; l++) save.sparks += 80 + 80 * l;
+  save.upgrades.hearts = 1;
+}
+
 export function persist() {
   try { localStorage.setItem(KEY, JSON.stringify(save)); } catch { /* private mode */ }
 }

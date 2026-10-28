@@ -492,6 +492,8 @@ export default class UI extends Phaser.Scene {
     const refresh = () => {
       coinT.setText(`${this.g.coins}`);
       list.forEach(it => { if (!it.sold && it.btn) it.btn.setAlpha(this.g.coins >= it.cost ? 1 : 0.55); });
+      // No rerolls once something has been bought
+      if (list.some(it => it.sold)) { rr.label.setText('NO REROLL'); rr.setDisabled(true); return; }
       rr.label.setText(`REROLL ${this.g.shopRerollCost()}`);
       rr.setAlpha(this.g.coins >= this.g.shopRerollCost() ? 1 : 0.55);
     };

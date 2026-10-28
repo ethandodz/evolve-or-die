@@ -65,7 +65,9 @@ export function levelText(key, level, mult = 1) {
   if (d('length') > 0) out.push('longer');
   else if (d('radius') > 0) out.push('bigger');
   if (d('slow') > 0) out.push('slows more');
-  const t = out.slice(0, 3).join(', ');
+  if (d('range') > 0) out.push('more range');
+  if (d('size') > 0) out.push('bigger');
+  const t = out.slice(0, 5).join(', ');
   return t ? t[0].toUpperCase() + t.slice(1) : 'Stronger';
 }
 

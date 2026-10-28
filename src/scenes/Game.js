@@ -1043,9 +1043,12 @@ export default class Game extends Phaser.Scene {
     while (w.fists.length > n) { const f = w.fists.pop(); this.tweens.killTweensOf(f.spr); f.spr.destroy(); }
     w.phase += dt * 1.6;
     const range = st.range * this.stats.area;
+    // Bigger fists with more levels and with Giant Tusk (area)
+    const size = (st.size || 1) * this.stats.area;
     w.fists.forEach((f, i) => {
+      f.spr.setScale(1.6 * size);
       const a = w.phase + (i * TAU) / n;
-      const hx = p.x + Math.cos(a) * 30, hy = p.y - 10 + Math.sin(a) * 18;
+      const hx = p.x + Math.cos(a) * (24 + 8 * size), hy = p.y - 10 + Math.sin(a) * (14 + 5 * size);
       f.t -= dt;
       if (!f.busy) { f.spr.setPosition(hx, hy + Math.sin(this.totalTime * 6 + i) * 2).setRotation(0); f.spr.setDepth(f.spr.y + 1); }
       if (f.busy || f.t > 0) return;
@@ -1066,13 +1069,13 @@ export default class Game extends Phaser.Scene {
         targets: f.spr, x: ex, y: ey, duration: 110, ease: 'Cubic.out', yoyo: true, hold: 40,
         onYoyo: () => {
           this.hitSrc = w.key;
-          this.query((hx + ex) / 2, (hy + ey) / 2, reach / 2 + 10, (e) => {
-            if (distToSeg(e.x, e.y, hx, hy, ex, ey) <= e.r + 12) this.hitEnemy(e, st.dmg, hx, hy, 160);
+          this.query((hx + ex) / 2, (hy + ey) / 2, reach / 2 + 12 * size, (e) => {
+            if (distToSeg(e.x, e.y, hx, hy, ex, ey) <= e.r + 12 * size) this.hitEnemy(e, st.dmg, hx, hy, 160);
           });
           this.hitSrc = null;
           this.burst(ex, ey, 0xffe06a, 5, 110);
           const streak = this.add.graphics().setDepth(1e7 + 2);
-          streak.lineStyle(6, 0xfff0a0, 0.6).lineBetween(hx, hy, ex, ey);
+          streak.lineStyle(6 * size, 0xfff0a0, 0.6).lineBetween(hx, hy, ex, ey);
           this.tweens.add({ targets: streak, alpha: 0, duration: 140, onComplete: () => streak.destroy() });
           audio.play('swing');
         },

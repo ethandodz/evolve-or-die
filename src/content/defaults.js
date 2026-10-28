@@ -4,7 +4,7 @@
 export const DEFAULT_CONFIG = {
   version: 1,
   // Bump when new built-in content is added, so saved editor edits get it too (see config.js)
-  contentVersion: 24,
+  contentVersion: 25,
 
   balance: {
     ageLength: 210,        // seconds until the time police arrive (the boss fight doesn't stop the clock)
@@ -212,8 +212,8 @@ export const DEFAULT_CONFIG = {
     },
     fists: {
       name: 'Fallen Star Fists', icon: 'gauntlet', era: 'stone', behavior: 'fists', kind: 'Melee', max: 30, countName: 'gauntlet',
-      blurb: 'Floating star gauntlets throw piercing punches at enemies that get too close.',
-      stats: { cd: { base: 1.1, per: -0.012 }, dmg: { base: 16, per: 2 }, count: { base: 2, per: 0.1 }, range: { base: 120, per: 4 } },
+      blurb: 'Floating star gauntlets throw piercing punches at enemies that get too close. Giant Tusk makes them bigger.',
+      stats: { cd: { base: 1.1, per: -0.012 }, dmg: { base: 16, per: 2 }, count: { base: 2, per: 0.1 }, range: { base: 120, per: 4 }, size: { base: 1, per: 0.015 } },
     },
     bonetoss: {
       name: 'Bone Club', icon: 'bone', era: 'stone', behavior: 'shoot', kind: 'Projectile', max: 30, spin: true, countName: 'bone',
@@ -457,7 +457,7 @@ export const BEHAVIORS = {
   rockfall: 'Things fall on enemies (uses cd, dmg, radius, count)',
   lightning: 'Strikes random enemies (uses cd, dmg, radius, count, chain, range)',
   shoot: 'Fires projectiles at the nearest enemy (uses cd, dmg, count, pierce, bounce, speed, size, range)',
-  fists: 'Floating gauntlets punch nearby enemies, piercing (uses cd, dmg, count, range)',
+  fists: 'Floating gauntlets punch nearby enemies, piercing (uses cd, dmg, count, range, size; size grows with area)',
 };
 
 export const PASSIVE_EFFECTS = ['hearts', 'speed', 'count', 'damage', 'area', 'pickup', 'crit', 'critDamage', 'difficulty'];

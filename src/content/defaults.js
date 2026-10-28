@@ -4,7 +4,7 @@
 export const DEFAULT_CONFIG = {
   version: 1,
   // Bump when new built-in content is added, so saved editor edits get it too (see config.js)
-  contentVersion: 31,
+  contentVersion: 32,
 
   balance: {
     ageLength: 210,        // seconds until the time police arrive (the boss fight doesn't stop the clock)
@@ -21,7 +21,7 @@ export const DEFAULT_CONFIG = {
     ageHpBonus: 0.1,       // and +10% more after each age (stacks)
     playerSpeed: 140,
     pickupRange: 80,
-    invincibility: 1.1,    // seconds of safety after a hit
+    invincibility: 1.5,    // seconds of safety after a hit
     critChance: 0.08,      // chance of a critical hit (red damage number)
     critDamage: 2,         // critical hits do this many times the damage
     coinChance: 0.09,
@@ -49,7 +49,7 @@ export const DEFAULT_CONFIG = {
     eventLength: 20,       // seconds a random event lasts
     treasureChance: 0.001,  // chance any enemy drops a relic chest (0.1%)
     bossTreasureChance: 0.25,  // chance an age boss drops a relic chest
-    xpDrop: 0.6,           // XP from each enemy (0.6 = 40% less than the original)
+    xpDrop: 0.8,           // XP from each enemy (0.8 = 20% less than the original)
     shopPriceMul: 5,       // wizard prices are this many times the listed cost
     passiveFirstPick: 3,   // a passive's first level in a run counts this many levels, so it's noticeable
   },
@@ -61,7 +61,7 @@ export const DEFAULT_CONFIG = {
   // cost: Sparks to buy it on the UNLOCK menu once the unlock goal is met.
   // Only Grug is in the game for now; the others are hidden (HIDDEN_CHARS in data.js) until they're reworked.
   characters: [
-    { key: 'caveman', name: 'GRUG', title: 'The Caveman', sprite: 'caveman', weapon: 'boneclub', hearts: 2, speed: 1, unlock: 'start',
+    { key: 'caveman', name: 'GRUG', title: 'The Caveman', sprite: 'caveman', weapon: 'boneclub', hearts: 3, speed: 1, unlock: 'start',
       dmgPerLevel: 0.005, weaponSlots: 2, perk: '+0.5% damage every level up', drawback: 'Only 2 weapon slots' },
     { key: 'shaman', name: 'ORA', title: 'The Shaman', sprite: 'shaman', weapon: 'spiritfire', hearts: 1, speed: 1, unlock: 'hydra',
       xpMul: 1.3, areaMul: 1.25, perk: '+30% XP, +25% area', drawback: 'Only 1 heart' },
@@ -323,7 +323,7 @@ export const DEFAULT_CONFIG = {
       paintings: false,
       basic: ['rival', 'raptor', 'wolf'], medium: 'sabertooth', elite: 'mammoth', specials: ['golem'],
       stampede: 'wolf', stampedeName: 'STAMPEDE!', boss: 'trex', bossName: 'T-REX', bossAttacks: ['charge3', 'stomp', 'rocks', 'charge3', 'roar'], bossStyle: 'hunter',
-      music: 'stone', bossMusic: 'stoneBoss', hpMul: 1, xpMul: 1, ease: 0.7,
+      music: 'stone', bossMusic: 'stoneBoss', hpMul: 1, xpMul: 1, ease: 0.6,
     },
     {
       key: 'roman', name: 'ROMAN EMPIRE', ground: 'mosaic', bg: '#94b23e',
@@ -331,7 +331,7 @@ export const DEFAULT_CONFIG = {
       paintings: false,
       basic: ['legionary', 'gladiator', 'spearman'], medium: 'centurion', elite: 'chariot', specials: ['testudo'],
       stampede: 'chariot', stampedeName: 'CHARIOT RACE!', boss: 'hydra', bossName: 'HYDRA', bossAttacks: ['lunge', 'ring', 'pools', 'lunge', 'summon'], bossStyle: 'rooted',
-      music: 'roman', bossMusic: 'romanBoss', hpMul: 2.4, xpMul: 2, ease: 0.8,
+      music: 'roman', bossMusic: 'romanBoss', hpMul: 2.4, xpMul: 2, ease: 0.75,
     },
     {
       key: 'medieval', name: 'MIDDLE AGES', ground: 'tapestry', bg: '#46963c',

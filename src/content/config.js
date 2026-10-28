@@ -76,6 +76,17 @@ function addNewContent(cfg, d, seen) {
     const bc = cfg.weapons.boneclub;
     if (bc && bc.name === 'Bone Club') { bc.name = d.weapons.boneclub.name; bc.blurb = d.weapons.boneclub.blurb; }
   }
+  // Easier start (v32): Grug 3 hearts, longer safety after a hit, more XP, gentler first ages
+  if (seen < 32) {
+    const OLD = { invincibility: 1.1, xpDrop: 0.6 };
+    for (const [k, v] of Object.entries(OLD)) if (cfg.balance[k] === v) cfg.balance[k] = d.balance[k];
+    const grug = cfg.characters.find(c => c.key === 'caveman');
+    if (grug && grug.hearts === 2) grug.hearts = 3;
+    for (const [key, old] of [['stone', 0.7], ['roman', 0.8]]) {
+      const a = cfg.ages.find(x => x.key === key), nd = d.ages.find(x => x.key === key);
+      if (a && nd && (a.ease === old || a.ease === undefined)) a.ease = nd.ease;
+    }
+  }
   // Same peak as before v29, but a slow start that speeds up (v30)
   if (seen < 30) {
     const V29 = { maxEnemies: 160, spawnGrowth: 0.045, crowdGrowth: 0.65, ageSpawnStep: 3.2, ageCrowdStep: 32 };

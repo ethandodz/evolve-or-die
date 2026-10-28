@@ -76,6 +76,16 @@ function addNewContent(cfg, d, seen) {
     const bc = cfg.weapons.boneclub;
     if (bc && bc.name === 'Bone Club') { bc.name = d.weapons.boneclub.name; bc.blurb = d.weapons.boneclub.blurb; }
   }
+  // Lauren's buffs (v33): Totem +1, Fire Ring +50% damage and size, Focus/Lethality +50%, 15% slower walk
+  if (seen < 33) {
+    for (const k of ['totem', 'crit', 'critdmg']) {
+      const p = cfg.passives[k], nd = d.passives[k];
+      if (p && nd) { p.amount = nd.amount; p.blurb = nd.blurb; if (nd.firstPick) p.firstPick = nd.firstPick; }
+    }
+    const f = cfg.weapons.fire;
+    if (f && f.stats) { f.stats.dmg = { ...d.weapons.fire.stats.dmg }; f.stats.radius = { ...d.weapons.fire.stats.radius }; }
+    if (cfg.balance.playerSpeed === 140) cfg.balance.playerSpeed = d.balance.playerSpeed;
+  }
   // Easier start (v32): Grug 3 hearts, longer safety after a hit, more XP, gentler first ages
   if (seen < 32) {
     const OLD = { invincibility: 1.1, xpDrop: 0.6 };

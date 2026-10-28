@@ -828,7 +828,8 @@ export default class Game extends Phaser.Scene {
   // Weapons you can be offered: shared ones from this age or earlier, plus any found in past runs,
   // plus the signature weapon of every character you've unlocked
   poolWeapons() {
-    return POOL_WEAPONS.filter(k => weaponUnlocked(k) && (weaponEra(k) <= this.ageIndex || this.loop > 0 || save.weaponsFound[k]))
+    // Weapons bought on the UNLOCK menu show up from the start
+    return POOL_WEAPONS.filter(k => weaponUnlocked(k) && (WEAPONS[k].cost || weaponEra(k) <= this.ageIndex || this.loop > 0 || save.weaponsFound[k]))
       .concat(unlockedSignatures());
   }
 
@@ -858,6 +859,8 @@ export default class Game extends Phaser.Scene {
       if (st.cd && this.charDef.cdMul) st.cd *= this.charDef.cdMul;
       if (w.bonusCount && st.count !== undefined) st.count += w.bonusCount;
       if (this.combos.has('pack') && (baseWeapon(w.key) === 'spear' || baseWeapon(w.key) === 'axes') && st.count !== undefined) st.count += 1;
+      // Attacks add up in fractions (Tribal Totem, gauntlets): each whole number is one more
+      if (st.count !== undefined) st.count = Math.floor(st.count + this.stats.count + 1e-6);
       this.hitSrc = w.key;
       switch (WEAPONS[w.key].behavior) {
         case 'swing': this.updateClub(w, st, dt); break;
@@ -867,6 +870,7 @@ export default class Game extends Phaser.Scene {
         case 'rockfall': this.updateRocks(w, st, dt); break;
         case 'lightning': this.updateBolt(w, st, dt); break;
         case 'shoot': this.updateShoot(w, st, dt); break;
+        case 'fists': this.updateFists(w, st, dt); break;
       }
     }
     this.hitSrc = null;
@@ -891,7 +895,7 @@ export default class Game extends Phaser.Scene {
     const radius = st.radius * this.stats.area;
     if (w.t <= 0) {
       w.t = st.cd;
-      const n = st.count + this.stats.count;
+      const n = st.count;
       const aim = this.aimAngle(radius + 120);
       for (let i = 0; i < n; i++) w.queue.push({ at: i * 0.1, ang: aim + i * (TAU / n) * (n === 2 ? 1 : 1) });
     }
@@ -953,7 +957,7 @@ export default class Game extends Phaser.Scene {
     const len = st.length * this.stats.area;
     if (w.t <= 0) {
       w.t = st.cd;
-      const n = st.count + this.stats.count;
+      const n = st.count;
       const aim = this.aimAngle(len + 60);
       for (let i = 0; i < n; i++) {
         const off = (i - (n - 1) / 2) * 0.32;
@@ -992,7 +996,7 @@ export default class Game extends Phaser.Scene {
     const target = this.nearestEnemy(range);
     if (!target) { w.t = 0.1; return; }
     w.t = st.cd;
-    const n = st.count + this.stats.count;
+    const n = st.count;
     const p = this.player;
     const aim = Math.atan2(target.y - p.y, target.x - p.x);
     const spin = !!WEAPONS[w.key].spin;
@@ -1030,6 +1034,58 @@ export default class Game extends Phaser.Scene {
     }
   }
 
+  // Fallen Star Fists: gauntlets float beside you and punch (piercing) at enemies that come close
+  updateFists(w, st, dt) {
+    const p = this.player;
+    const n = Math.max(1, st.count);
+    w.fists = w.fists || [];
+    while (w.fists.length < n) w.fists.push({ spr: this.add.image(p.x, p.y, st.icon).setScale(1.6).setDepth(1e7), t: 0.3 * w.fists.length, busy: false });
+    while (w.fists.length > n) { const f = w.fists.pop(); this.tweens.killTweensOf(f.spr); f.spr.destroy(); }
+    w.phase += dt * 1.6;
+    const range = st.range * this.stats.area;
+    w.fists.forEach((f, i) => {
+      const a = w.phase + (i * TAU) / n;
+      const hx = p.x + Math.cos(a) * 30, hy = p.y - 10 + Math.sin(a) * 18;
+      f.t -= dt;
+      if (!f.busy) { f.spr.setPosition(hx, hy + Math.sin(this.totalTime * 6 + i) * 2).setRotation(0); f.spr.setDepth(f.spr.y + 1); }
+      if (f.busy || f.t > 0) return;
+      // Nearest enemy to this gauntlet
+      let target = null, bd = range * range;
+      for (const e of this.enemies) {
+        if (!e.alive || e.flying) continue;
+        const d = (e.x - hx) ** 2 + (e.y - hy) ** 2;
+        if (d < bd) { bd = d; target = e; }
+      }
+      if (!target) { f.t = 0.1; return; }
+      f.t = st.cd; f.busy = true;
+      const ang = Math.atan2(target.y - hy, target.x - hx);
+      const reach = Math.sqrt(bd) + 30;
+      const ex = hx + Math.cos(ang) * reach, ey = hy + Math.sin(ang) * reach;
+      f.spr.setRotation(ang).setDepth(1e7 + 3);
+      this.tweens.add({
+        targets: f.spr, x: ex, y: ey, duration: 110, ease: 'Cubic.out', yoyo: true, hold: 40,
+        onYoyo: () => {
+          this.hitSrc = w.key;
+          this.query((hx + ex) / 2, (hy + ey) / 2, reach / 2 + 10, (e) => {
+            if (distToSeg(e.x, e.y, hx, hy, ex, ey) <= e.r + 12) this.hitEnemy(e, st.dmg, hx, hy, 160);
+          });
+          this.hitSrc = null;
+          this.burst(ex, ey, 0xffe06a, 5, 110);
+          const streak = this.add.graphics().setDepth(1e7 + 2);
+          streak.lineStyle(6, 0xfff0a0, 0.6).lineBetween(hx, hy, ex, ey);
+          this.tweens.add({ targets: streak, alpha: 0, duration: 140, onComplete: () => streak.destroy() });
+          audio.play('swing');
+        },
+        onComplete: () => { f.busy = false; },
+      });
+    });
+  }
+
+  dropFists(w) {
+    for (const f of w.fists || []) { this.tweens.killTweensOf(f.spr); f.spr.destroy(); }
+    w.fists = [];
+  }
+
   // Bouncing shots (Bone Club) fly on to the nearest enemy they haven't hit yet
   bounceShot(s) {
     const reach = 260 * this.stats.area;
@@ -1047,7 +1103,7 @@ export default class Game extends Phaser.Scene {
   }
 
   updateAxes(w, st, dt) {
-    const n = st.count + this.stats.count;
+    const n = st.count;
     while (w.sprites.length < n) w.sprites.push(this.add.image(0, 0, st.icon).setScale(1.6).setDepth(1e7));
     while (w.sprites.length > n) w.sprites.pop().destroy();
     w.phase += st.spin * dt;
@@ -1069,7 +1125,7 @@ export default class Game extends Phaser.Scene {
   updateFire(w, st, dt) {
     const p = this.player;
     const radius = st.radius * this.stats.area;
-    const tick = st.tick / (1 + 0.3 * this.stats.count);
+    const tick = st.tick / (1 + 0.3 * Math.floor(this.stats.count + 1e-6));
     w.phase += dt * 1.2;
     if (w.lastR !== radius) {
       w.lastR = radius;
@@ -1099,7 +1155,7 @@ export default class Game extends Phaser.Scene {
     w.t -= dt;
     if (w.t > 0) return;
     w.t = st.cd;
-    const n = st.count + this.stats.count;
+    const n = st.count;
     const p = this.player;
     const targets = shuffle(this.enemiesInRange(330));
     const radius = st.radius * this.stats.area;
@@ -1107,7 +1163,8 @@ export default class Game extends Phaser.Scene {
       const e = targets[i];
       const tx = e ? e.x + rand(-8, 8) : p.x + rand(-200, 200);
       const ty = e ? e.y + rand(-8, 8) : p.y + rand(-260, 260);
-      this.time.delayedCall(i * 90, () => this.dropRock(tx, ty, radius, st.icon, () => {
+      const drop = WEAPONS[w.key].fiery ? this.dropMeteor : this.dropRock;
+      this.time.delayedCall(i * 90, () => drop.call(this, tx, ty, radius, st.icon, () => {
         const magma = this.combos.has('magma');
         const burn = WEAPONS[w.key].burn || 0;
         this.hitSrc = w.key;
@@ -1142,13 +1199,45 @@ export default class Game extends Phaser.Scene {
     });
   }
 
+  // Meteor: a fireball streaks down at an angle, then leaves a smoking crater
+  dropMeteor(tx, ty, radius, icon, onImpact) {
+    const sh = this.add.image(tx, ty, 'shadow').setScale(radius / 22, radius / 36).setAlpha(0.3).setDepth(-1.85e7).setTint(0xff7a2a);
+    const m = this.add.image(tx + 160, ty - 240, icon).setScale(radius / 16).setDepth(1e7 + 5).setRotation(Math.atan2(240, -160) - Math.PI / 4);
+    this.tweens.add({ targets: sh, alpha: 0.7, duration: 420 });
+    this.tweens.add({
+      targets: m, x: tx, y: ty, duration: 420, ease: 'Quad.in',
+      onUpdate: () => { if (Math.random() < 0.6) this.burst(m.x + rand(-4, 4), m.y + rand(-4, 4), pick([0xff7a2a, 0xffc848, 0xf04a24]), 1, 30); },
+      onComplete: () => {
+        m.destroy(); sh.destroy();
+        onImpact();
+        this.burst(tx, ty, 0xff7a2a, 8, 140);
+        this.burst(tx, ty, 0xffe06a, 4, 90);
+        this.ringFx(tx, ty, radius * 0.8, 0xffa040);
+        this.crater(tx, ty, radius * 0.6);
+        audio.play('thud');
+      },
+    });
+  }
+
+  // A scorched crater with glowing embers that fades away
+  crater(x, y, r) {
+    if ((this.craters = (this.craters || 0)) > 24) return;
+    this.craters++;
+    const g = this.add.graphics().setDepth(-1.86e7);
+    g.fillStyle(0x6a4a2a, 0.9).fillEllipse(x, y, r * 2.2, r * 1.3);
+    g.fillStyle(0x3a2414, 1).fillEllipse(x, y + 1, r * 1.6, r * 0.9);
+    g.fillStyle(0x1e120a, 1).fillEllipse(x, y + 2, r * 0.9, r * 0.5);
+    for (let i = 0; i < 4; i++) g.fillStyle(pick([0xff7a2a, 0xffc848]), 1).fillRect(x + rand(-r * 0.6, r * 0.6), y + rand(-r * 0.25, r * 0.3), 2, 2);
+    this.tweens.add({ targets: g, alpha: 0, delay: 1800, duration: 900, onComplete: () => { g.destroy(); this.craters--; } });
+  }
+
   updateBolt(w, st, dt) {
     w.t -= dt;
     if (w.t > 0) return;
     const targets = shuffle(this.enemiesInRange(st.range));
     if (!targets.length) { w.t = 0.2; return; }
     w.t = st.cd * (this.combos.has('storm') ? 0.65 : 1);
-    const n = st.count + this.stats.count;
+    const n = st.count;
     const radius = st.radius * this.stats.area;
     for (let i = 0; i < n && i < targets.length; i++) {
       this.time.delayedCall(i * 70, () => {
@@ -1609,7 +1698,7 @@ export default class Game extends Phaser.Scene {
     this.stats.critDmg = (BAL.critDamage ?? 2) * (1 + sum.critDamage);
     this.stats.difficulty = sum.difficulty;
     this.stats.area = (1 + sum.area) * (ch.areaMul || 1);
-    this.stats.count = Math.round(sum.count) + this.bonusCount;
+    this.stats.count = sum.count + this.bonusCount;
     this.stats.pickup = BAL.pickupRange * (1 + sum.pickup + m.pickup);
     this.stats.speed = BAL.playerSpeed * (ch.speed || 1) * (1 + sum.speed + m.speed) * mods.speed * this.speedMul;
     const baseHearts = Math.max(1, Math.ceil(((ch.hearts || 5) + m.hearts) * mods.hearts));
@@ -1636,6 +1725,7 @@ export default class Game extends Phaser.Scene {
     e.vx = 0; e.vy = 0;
     this.boss = e;
     this.bossSummoned = true;
+    this.bossSummonT = this.totalTime;
     this.bossHits = 0;
     this.braveSummon = this.ageTime < 60;
     this.lootMul = this.currentLootMul();
@@ -2042,6 +2132,9 @@ export default class Game extends Phaser.Scene {
     this.endEvent(true);
     if (this.bossHits === 0) bump('flawless');
     if (this.braveSummon) bump('brave');
+    // Weapon unlock quests: a boss beaten within 10 seconds, or with just one weapon
+    if (this.totalTime - (this.bossSummonT ?? -99) <= 10) bump('fastBoss');
+    if (this.weapons.length === 1) bump('soloBoss');
     buzz(200);
     const lm = this.lootMul || 1;
     if (Math.random() < (BAL.bossTreasureChance ?? 0.25)) this.dropTreasure(b.x - 30, b.y + 10);
@@ -2158,6 +2251,7 @@ export default class Game extends Phaser.Scene {
       if (w.key === this.charDef.weapon) { this.weapons.push(w); continue; }
       w.sprites.forEach(sp => sp.destroy());
       if (w.ring) w.ring.destroy();
+      this.dropFists(w);
       const k = pool.find(x => !used.has(x) && x !== w.key) || pool.find(x => !used.has(x));
       used.add(k);
       const nw = this.addWeapon(k);
@@ -2305,7 +2399,7 @@ export default class Game extends Phaser.Scene {
       case 'ark': {
         // Every weapon and slot gives way to the Ark, at the best level you had
         const best = Math.max(1, ...this.weapons.map(w => w.level));
-        for (const w of this.weapons) { w.sprites.forEach(sp => sp.destroy()); if (w.ring) w.ring.destroy(); }
+        for (const w of this.weapons) { w.sprites.forEach(sp => sp.destroy()); if (w.ring) w.ring.destroy(); this.dropFists(w); }
         this.weapons = [];
         this.combos = new Set();
         this.weaponSlots = 1;

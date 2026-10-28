@@ -50,7 +50,9 @@ export default class UI extends Phaser.Scene {
       const bg = roundBox(this.add.graphics(), x - 16, y - 16, 32, 32, row ? 0x5a30a0 : 0x263ea8, row ? 0xc08aff : 0x7a98ff, 0.82);
       const ic = this.add.image(x, y, 'club').setScale(1.6).setVisible(false);
       const lv = this.add.text(x + 14, y + 14, '', { fontFamily: FONT, fontSize: '8px', color: '#ffffff', stroke: '#0c1030', strokeThickness: 3 }).setOrigin(1, 1);
-      this.slots.push({ bg, ic, lv });
+      // Gold border once the weapon or passive is at max level
+      const gold = this.add.graphics().lineStyle(3, 0xffd040, 1).strokeRect(x - 16, y - 16, 32, 32).setVisible(false);
+      this.slots.push({ bg, ic, lv, gold });
     }
 
     // Relics taken this run
@@ -168,9 +170,10 @@ export default class UI extends Phaser.Scene {
 
     for (let i = 0; i < 6; i++) {
       const s = this.slots[i];
-      let icon = null, lvl = 0;
-      if (i < 3) { const w = g.weapons[i]; if (w) { icon = WEAPONS[w.key].icon; lvl = w.level; } }
-      else { const k = g.passiveOrder[i - 3]; if (k) { icon = PASSIVES[k].icon; lvl = g.passives[k]; } }
+      let icon = null, lvl = 0, maxed = false;
+      if (i < 3) { const w = g.weapons[i]; if (w) { icon = WEAPONS[w.key].icon; lvl = w.level; maxed = lvl >= g.weaponMax(w.key); } }
+      else { const k = g.passiveOrder[i - 3]; if (k) { icon = PASSIVES[k].icon; lvl = g.passives[k]; maxed = lvl >= g.passiveMax(k); } }
+      s.gold.setVisible(maxed);
       const locked = i < 3 && i >= g.weaponSlots;
       s.ic.setVisible(!!icon || locked);
       if (icon) fit(s.ic.setTexture(icon, 0), 24).setAlpha(1);
@@ -394,7 +397,7 @@ export default class UI extends Phaser.Scene {
       });
     };
     build(choices);
-    const rr = button(this, W / 2, 680, 220, 46, `REROLL (${this.g.rerolls})`, () => {
+    const rr = button(this, opt.noReroll ? W / 2 : W / 2 - 98, 680, 180, 46, `REROLL (${this.g.rerolls})`, () => {
       const next = this.g.rerollChoices();
       if (!next) return;
       build(next);
@@ -402,7 +405,15 @@ export default class UI extends Phaser.Scene {
       rr.setDisabled(this.g.rerolls <= 0);
     }, { color: COLORS.purple, hi: COLORS.purpleHi, size: 12, icon: 'reroll' });
     rr.setDisabled(this.g.rerolls <= 0);
-    if (!opt.noReroll) c.add(rr); else rr.destroy();
+    if (!opt.noReroll) {
+      c.add(rr);
+      // Skip this level-up without taking anything
+      c.add(button(this, W / 2 + 98, 680, 180, 46, 'SKIP', () => {
+        audio.play('select');
+        this.closeModal();
+        this.g.applyChoice({ type: 'skip' });
+      }, { color: COLORS.grey, hi: COLORS.button, size: 12 }));
+    } else rr.destroy();
   }
 
   choiceCard(ch, x, y, onPick) {
@@ -427,6 +438,11 @@ export default class UI extends Phaser.Scene {
       name = d.name; icon = d.icon;
       // Hearts and attacks: a Legendary card counts as two levels
       desc = wholeEffect(d.effect) ? `${d.blurb}${mult > 1 ? `\nCounts as ${mult} levels` : ''}` : boostedBlurb(d.blurb, mult);
+      // Fractional attacks: show where the total gets to
+      if (d.effect === 'count') {
+        const now = d.amount * (this.g.passivePts[ch.key] || 0), next = now + d.amount * mult;
+        desc = `+${+(d.amount * mult).toFixed(2)} attacks (${+now.toFixed(2)} -> ${+next.toFixed(2)}).\nEach whole number = +1 attack for every weapon.`;
+      }
       tag = ch.isNew ? 'NEW PASSIVE' : `LV ${ch.level}`; tagColor = ch.isNew ? '#c08aff' : '#7ad0f4';
     } else if (ch.type === 'heal') {
       name = 'Roast Meat'; icon = 'meat'; desc = 'Heal all hearts.'; tag = ''; tagColor = '#fff';

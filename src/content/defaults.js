@@ -4,7 +4,7 @@
 export const DEFAULT_CONFIG = {
   version: 1,
   // Bump when new built-in content is added, so saved editor edits get it too (see config.js)
-  contentVersion: 23,
+  contentVersion: 24,
 
   balance: {
     ageLength: 210,        // seconds until the time police arrive (the boss fight doesn't stop the clock)
@@ -114,12 +114,14 @@ export const DEFAULT_CONFIG = {
       stats: { dmg: { base: 4, per: 1 }, radius: { base: 54, per: 3.5 }, tick: { base: 0.5, per: -0.008 }, slow: { base: 0.3, per: 0.015 } },
     },
     rocks: {
-      name: 'Rock Fall', icon: 'rock', era: 'stone', behavior: 'rockfall', kind: 'Area', max: 30,
-      blurb: 'Boulders crash down on enemies.',
+      name: 'Meteor', icon: 'meteor', era: 'stone', behavior: 'rockfall', kind: 'Area', max: 30, fiery: true,
+      unlock: 'trex', cost: 10,
+      blurb: 'Flaming meteors crash down on enemies and leave scorched craters.',
       stats: { cd: { base: 2.1, per: -0.04 }, dmg: { base: 20.8, per: 4 }, radius: { base: 36, per: 1.5 }, count: { base: 2, at: [6, 16, 25] } },
     },
     bolt: {
-      name: 'Sky Bolt', icon: 'bolt', era: 'renaissance', behavior: 'lightning', kind: 'Area', max: 30,
+      name: 'Thunderbolt', icon: 'bolt', era: 'renaissance', behavior: 'lightning', kind: 'Area', max: 30,
+      unlock: 'quest:fastboss', unlockText: 'Defeat a boss within 10 seconds', cost: 100,
       blurb: 'Lightning strikes enemies around you.',
       stats: { cd: { base: 1.7, per: -0.04 }, dmg: { base: 25.6, per: 4 }, radius: { base: 28, per: 1 }, count: { base: 1, at: [11, 20, 30] }, chain: { base: 0, at: [20, 20] }, range: { base: 270 } },
     },
@@ -204,8 +206,14 @@ export const DEFAULT_CONFIG = {
     },
     laserdisc: {
       name: 'Laser Disc', icon: 'disc', era: 'future', behavior: 'shoot', kind: 'Projectile', max: 30, spin: true,
+      unlock: 'quest:soloboss', unlockText: 'Defeat a boss with only one weapon', cost: 75,
       blurb: 'Glowing discs that slice through a line of enemies.',
       stats: { cd: { base: 1.5, per: -0.032 }, dmg: { base: 20, per: 3.5 }, count: { base: 1, at: [11, 25] }, pierce: { base: 4, at: [6, 20] }, speed: { base: 300 }, size: { base: 16 }, range: { base: 420 } },
+    },
+    fists: {
+      name: 'Fallen Star Fists', icon: 'gauntlet', era: 'stone', behavior: 'fists', kind: 'Melee', max: 30, countName: 'gauntlet',
+      blurb: 'Floating star gauntlets throw piercing punches at enemies that get too close.',
+      stats: { cd: { base: 1.1, per: -0.012 }, dmg: { base: 16, per: 2 }, count: { base: 2, per: 0.1 }, range: { base: 120, per: 4 } },
     },
     bonetoss: {
       name: 'Bone Club', icon: 'bone', era: 'stone', behavior: 'shoot', kind: 'Projectile', max: 30, spin: true, countName: 'bone',
@@ -221,16 +229,17 @@ export const DEFAULT_CONFIG = {
   },
 
   // effect: hearts | speed | count | damage | area | pickup | crit | critDamage | difficulty. amount is per level.
-  // Hearts and attacks are whole numbers: you get +1 at level 1, then again each time the levels add up to another 1.
+  // Hearts are whole numbers: +1 at level 1, then again each time the levels add up to another 1.
+  // Attacks (count) add up in fractions; every whole number reached is one more attack.
   passives: {
     heart:   { name: 'Mammoth Heart', icon: 'heart', max: 30, effect: 'hearts', amount: 0.2, blurb: '+1 max heart now and every 5 levels. Heals 1.' },
-    sandals: { name: 'Swift Sandals', icon: 'sandal', max: 30, effect: 'speed', amount: 0.025, blurb: '+2.5% move speed.' },
-    totem:   { name: 'Tribal Totem', icon: 'totem', max: 30, effect: 'count', amount: 0.1, blurb: '+1 attack for every weapon now and every 10 levels.' },
-    flint:   { name: 'Sharp Flint', icon: 'flint', max: 30, effect: 'damage', amount: 0.04, blurb: '+4% damage.' },
-    tusk:    { name: 'Giant Tusk', icon: 'tusk', max: 30, effect: 'area', amount: 0.03, blurb: '+3% area and range.' },
-    magnet:  { name: 'Lodestone', icon: 'lodestone', max: 30, effect: 'pickup', amount: 0.06, blurb: '+6% XP pickup range.' },
-    crit:    { name: 'Critical Chance', icon: 'crit', max: 30, effect: 'crit', amount: 0.01, blurb: '+1% chance of a critical hit (double damage, red number).' },
-    critdmg: { name: 'Critical Damage', icon: 'fang', max: 30, effect: 'critDamage', amount: 0.05, blurb: 'Critical hits do +5% more damage.' },
+    sandals: { name: 'Swift Sandals', icon: 'sandal', max: 30, effect: 'speed', amount: 0.0375, blurb: '+3.75% move speed.' },
+    totem:   { name: 'Tribal Totem', icon: 'totem', max: 30, effect: 'count', amount: 0.25, blurb: '+0.25 attacks for every weapon. Each time the total reaches a whole number, every weapon gets one more attack.' },
+    flint:   { name: 'Sharp Flint', icon: 'flint', max: 30, effect: 'damage', amount: 0.06, blurb: '+6% damage.' },
+    tusk:    { name: 'Giant Tusk', icon: 'tusk', max: 30, effect: 'area', amount: 0.045, blurb: '+4.5% area and range.' },
+    magnet:  { name: 'Lodestone', icon: 'lodestone', max: 30, effect: 'pickup', amount: 0.09, blurb: '+9% XP pickup range.' },
+    crit:    { name: 'Focus', icon: 'crit', max: 30, effect: 'crit', amount: 0.015, blurb: '+1.5% chance of a critical hit (double damage, red number).' },
+    critdmg: { name: 'Lethality', icon: 'fang', max: 30, effect: 'critDamage', amount: 0.075, blurb: 'Critical hits do +7.5% more damage.' },
     danger:  { name: 'Difficulty', icon: 'wardrum', max: 30, effect: 'difficulty', amount: 0.05, blurb: '+5% more enemies and +5% enemy health. More enemies, more XP.' },
   },
 
@@ -448,6 +457,7 @@ export const BEHAVIORS = {
   rockfall: 'Things fall on enemies (uses cd, dmg, radius, count)',
   lightning: 'Strikes random enemies (uses cd, dmg, radius, count, chain, range)',
   shoot: 'Fires projectiles at the nearest enemy (uses cd, dmg, count, pierce, bounce, speed, size, range)',
+  fists: 'Floating gauntlets punch nearby enemies, piercing (uses cd, dmg, count, range)',
 };
 
 export const PASSIVE_EFFECTS = ['hearts', 'speed', 'count', 'damage', 'area', 'pickup', 'crit', 'critDamage', 'difficulty'];

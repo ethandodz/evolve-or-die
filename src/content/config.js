@@ -52,7 +52,7 @@ function addNewContent(cfg, d, seen) {
     for (const [k, v] of Object.entries(OLD_BAL)) if (cfg.balance[k] === v) cfg.balance[k] = d.balance[k];
   }
   // Signature weapon power ranks were renumbered when achievement characters arrived (v17)
-  if (seen < 17) for (const [k, w] of Object.entries(d.weapons)) if (w.tier && cfg.weapons[k]) cfg.weapons[k].tier = w.tier;
+  if (seen < 18) for (const [k, w] of Object.entries(d.weapons)) if (w.tier && cfg.weapons[k]) cfg.weapons[k].tier = w.tier;
   // Even harder (v14): every character starts with 3 fewer hearts (at least 1), weaker Lodestone
   if (seen < 14) {
     for (const c of cfg.characters) if (typeof c.hearts === 'number') c.hearts = Math.max(1, c.hearts - 3);
@@ -97,8 +97,9 @@ function addNewContent(cfg, d, seen) {
     if (nd && OLD_START[c.key] && c.weapon === OLD_START[c.key]) c.weapon = nd.weapon;
   }
   // Characters that were taken out of the game
-  const REMOVED_CHARS = ['hunter'];
+  const REMOVED_CHARS = ['hunter', 'tamer'];
   cfg.characters = cfg.characters.filter(c => !REMOVED_CHARS.includes(c.key));
+  for (const [k, w] of Object.entries(cfg.weapons)) if (REMOVED_CHARS.includes(w.signature)) delete cfg.weapons[k];
   // Old default that the faster start replaced
   if (cfg.balance.spawnBase === 1.1) cfg.balance.spawnBase = d.balance.spawnBase;
   if ([0.15, 0.03].includes(cfg.balance.treasureChance)) cfg.balance.treasureChance = d.balance.treasureChance;

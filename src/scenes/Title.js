@@ -378,9 +378,9 @@ export default class Title extends Phaser.Scene {
     this.scene.start('Game', { character, daily });
   }
 
-  // Everything there is to unlock, in tabs: weapons, passives and relics.
+  // Everything there is to unlock, in tabs: characters, weapons, passives and relics.
   // Locked ones are blacked out as ??? with the quest that unlocks them; some then cost Sparks.
-  showUnlocks(tab = 'weapon') {
+  showUnlocks(tab = 'char') {
     const { c, close } = this.overlay(420, 760);
     c.add(text(this, W / 2, 46, 'UNLOCK', 22, '#ffe070'));
     c.add(this.add.image(W / 2 - 40, 78, 'spark').setScale(2));
@@ -393,9 +393,9 @@ export default class Title extends Phaser.Scene {
     const maskG = this.make.graphics({ add: false });
     maskG.fillStyle(0xffffff).fillRect(0, TOP, W, BOTTOM - TOP);
     rows.setMask(maskG.createGeometryMask());
-    const TABS = [['weapon', 'WEAPONS'], ['passive', 'PASSIVES'], ['relic', 'RELICS']];
+    const TABS = [['char', 'CHARACTERS'], ['weapon', 'WEAPONS'], ['passive', 'PASSIVES'], ['relic', 'RELICS']];
     const tabBtns = TABS.map(([id, label], i) => {
-      const b = button(this, W / 2 - 128 + i * 128, 118, 120, 38, label, () => { audio.play('select'); tab = id; scroll = 0; draw(); }, { size: 8 });
+      const b = button(this, W / 2 - 147 + i * 98, 118, 94, 38, label, () => { audio.play('select'); tab = id; scroll = 0; draw(); }, { size: 8 });
       c.add(b);
       return [id, b];
     });

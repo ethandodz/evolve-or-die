@@ -90,7 +90,8 @@ export function upgradeText(key, stat, amount) {
     case 'dmg': return `+${round(n, 1)} damage`;
     case 'cd': return `-${round(n, 2)}s between attacks`;
     case 'tick': return `-${round(n, 2)}s between burns`;
-    case 'spin': return `+${round(n, 1)} spin speed`;
+    case 'spin': return `+${round(n, 2)} ${w.behavior === 'gladius' ? 'orbit speed' : 'spin speed'}`;
+    case 'crit': return `+${round(n * 100, 1)}% critical chance`;
     case 'slow': return `Slows ${Math.round(n * 100)}% more`;
     case 'size': return `+${Math.round((n / (s.base || 1)) * 100)}% size`;
     case 'radius': return `+${Math.round(n)} ${w.behavior === 'swing' ? 'reach' : 'area'}`;

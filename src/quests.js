@@ -111,11 +111,18 @@ export function passiveUnlocked(key) {
   return !!p && goalMet(p) && (!p.cost || bought('passive', key));
 }
 
-// Rows for one UNLOCK menu tab ('weapon', 'passive' or 'relic').
+// Rows for one UNLOCK menu tab ('char', 'weapon', 'passive' or 'relic').
 // goal: what's still needed; ready: the goal is met so it can be bought for cost Sparks
 export function unlockList(tab) {
   const out = [];
-  if (tab === 'weapon') {
+  if (tab === 'char') {
+    CHARACTERS.forEach((ch, i) => {
+      const w = WEAPONS[ch.weapon];
+      const blurb = [ch.blurb, ch.perk && `+ ${ch.perk}`, w && `Starts with the ${w.name}`].filter(Boolean).join('\n');
+      out.push({ type: 'char', key: ch.key, name: `${ch.name} ${ch.title || ''}`.trim(), icon: ch.sprite, blurb, cost: ch.cost || 0, item: ch, order: i,
+        unlocked: charUnlocked(ch), ready: goalMet(ch), goal: ch.unlockText || goalText(ch) });
+    });
+  } else if (tab === 'weapon') {
     for (const [k, w] of Object.entries(WEAPONS)) {
       if (HIDDEN_WEAPONS.includes(k)) continue;
       const row = { type: 'weapon', key: k, name: w.name, icon: w.icon, blurb: w.blurb, cost: w.cost || 0, item: w };

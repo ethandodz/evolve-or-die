@@ -726,8 +726,9 @@ export default class Game extends Phaser.Scene {
   hitEnemy(e, base, sx, sy, kb = 0) {
     if (!e.alive || e.flying) return;
     // Crit chance over 100% is the chance of a double crit (twice a normal crit's damage)
-    const crit = Math.random() < this.stats.crit;
-    const double = crit && this.stats.crit > 1 && Math.random() < this.stats.crit - 1;
+    const critChance = this.stats.crit + (this.hitCrit || 0);
+    const crit = Math.random() < critChance;
+    const double = crit && critChance > 1 && Math.random() < critChance - 1;
     const critMul = double ? this.stats.critDmg * 2 : crit ? this.stats.critDmg : 1;
     let dmg = Math.max(1, Math.round(base * this.stats.dmg * critMul * (e.vuln ? 2 : 1)));
     if (e.shieldHits > 0 && !save.seenShield) {
@@ -883,9 +884,12 @@ export default class Game extends Phaser.Scene {
       // Attacks add up in fractions (Tribal Totem, gauntlets): each whole number is one more
       if (st.count !== undefined) st.count = Math.floor(st.count + this.stats.count + 1e-6);
       this.hitSrc = w.key;
+      // Weapons with their own crit chance (Gladius)
+      this.hitCrit = st.crit || 0;
       switch (WEAPONS[w.key].behavior) {
         case 'swing': this.updateClub(w, st, dt); break;
         case 'orbit': this.updateAxes(w, st, dt); break;
+        case 'gladius': this.updateGladius(w, st, dt); break;
         case 'thrust': this.updateSpear(w, st, dt); break;
         case 'aura': this.updateFire(w, st, dt); break;
         case 'rockfall': this.updateRocks(w, st, dt); break;
@@ -895,6 +899,7 @@ export default class Game extends Phaser.Scene {
       }
     }
     this.hitSrc = null;
+    this.hitCrit = 0;
   }
 
   aimAngle(range) {
@@ -1143,6 +1148,31 @@ export default class Game extends Phaser.Scene {
         e.hitBy[w.key] = this.totalTime;
         this.hitEnemy(e, st.dmg, p.x, p.y, 160);
       });
+    });
+  }
+
+  // Swords circle close to the player without spinning, points facing outward
+  updateGladius(w, st, dt) {
+    const n = st.count;
+    while (w.sprites.length < n) w.sprites.push(this.add.image(0, 0, st.icon).setDepth(1e7));
+    while (w.sprites.length > n) w.sprites.pop().destroy();
+    w.phase += st.spin * dt;
+    const p = this.player;
+    const size = (st.size || 1) * this.stats.area;
+    // Bigger swords sit a little further out so the hilt stays near the player
+    const radius = st.radius + 22 * (size - 1);
+    w.sprites.forEach((s, i) => {
+      const a = w.phase + (i * TAU) / n;
+      const x = p.x + Math.cos(a) * radius, y = p.y - 6 + Math.sin(a) * radius;
+      s.setPosition(x, y).setScale(1.6 * size).setRotation(a + Math.PI / 2);
+      // Hit along the blade: middle and tip
+      for (const d of [0, 14 * size]) {
+        this.query(x + Math.cos(a) * d, y + Math.sin(a) * d, 12 * size, (e) => {
+          if (this.totalTime - (e.hitBy[w.key] || -9) < (st.hitDelay || 0.4)) return;
+          e.hitBy[w.key] = this.totalTime;
+          this.hitEnemy(e, st.dmg, p.x, p.y, 140);
+        });
+      }
     });
   }
 
@@ -1589,7 +1619,7 @@ export default class Game extends Phaser.Scene {
       best('bestLevel', this.level);
       this.xpNeed = xpForLevel(this.level);
       this.pendingLevels++;
-      if (this.charDef.dmgPerLevel) this.recomputeStats();
+      if (this.charDef.dmgPerLevel || this.charDef.critPerLevel) this.recomputeStats();
     }
   }
 
@@ -1746,7 +1776,8 @@ export default class Game extends Phaser.Scene {
     // Grug's perk: a little more damage for every level up
     const levelDmg = 1 + (ch.dmgPerLevel || 0) * (this.level - 1);
     this.stats.dmg = (1 + sum.damage + m.damage) * this.powerMul * mods.dmg * (ch.dmgMul || 1) * levelDmg;
-    this.stats.crit = BAL.critChance * (ch.critMul || 1) + sum.crit;
+    // The Gladiator's perk: more crit chance every level up
+    this.stats.crit = BAL.critChance * (ch.critMul || 1) + sum.crit + (ch.critPerLevel || 0) * (this.level - 1);
     this.stats.critDmg = (BAL.critDamage ?? 2) * (1 + sum.critDamage);
     this.stats.difficulty = sum.difficulty;
     this.stats.haste = 1 + sum.haste;

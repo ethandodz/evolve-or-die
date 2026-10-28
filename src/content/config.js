@@ -76,6 +76,8 @@ function addNewContent(cfg, d, seen) {
     const bc = cfg.weapons.boneclub;
     if (bc && bc.name === 'Bone Club') { bc.name = d.weapons.boneclub.name; bc.blurb = d.weapons.boneclub.blurb; }
   }
+  // Lauren (v34): enemies drop the old amount of XP again
+  if (seen < 34 && cfg.balance.xpDrop === 0.8) cfg.balance.xpDrop = d.balance.xpDrop;
   // Lauren's buffs (v33): Totem +1, Fire Ring +50% damage and size, Focus/Lethality +50%, 15% slower walk
   if (seen < 33) {
     for (const k of ['totem', 'crit', 'critdmg']) {

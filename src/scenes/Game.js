@@ -3,7 +3,7 @@ import { audio } from '../audio.js';
 import { save, persist } from '../save.js';
 import { AGES, ENEMIES, WEAPONS, PASSIVES, SHOP_ITEMS, RARE_ITEMS, META, CFG, RARITIES, wholeEffect, AGE_LENGTH, BAL, CHARACTERS, COMBOS, EVENTS, statsOf, xpForLevel, POOL_WEAPONS, baseWeapon, RELICS, weaponEra } from '../data.js';
 import { W, H, FONT, buzz } from '../ui.js';
-import { stats, bump, best, allQuests, isDone, doneIds } from '../quests.js';
+import { stats, bump, best, allQuests, isDone, doneIds, unlockedSignatures } from '../quests.js';
 import { submitScore, cloudBackup, onlineEnabled } from '../online.js';
 import { controls } from '../controls.js';
 
@@ -821,9 +821,11 @@ export default class Game extends Phaser.Scene {
 
   // ------------------------------------------------------------------
   // Weapons
-  // Shared weapons you can be offered: those from this age or earlier, plus any found in past runs
+  // Weapons you can be offered: shared ones from this age or earlier, plus any found in past runs,
+  // plus the signature weapon of every character you've unlocked
   poolWeapons() {
-    return POOL_WEAPONS.filter(k => weaponEra(k) <= this.ageIndex || this.loop > 0 || save.weaponsFound[k]);
+    return POOL_WEAPONS.filter(k => weaponEra(k) <= this.ageIndex || this.loop > 0 || save.weaponsFound[k])
+      .concat(unlockedSignatures());
   }
 
   addWeapon(key) {
@@ -2116,12 +2118,12 @@ export default class Game extends Phaser.Scene {
   // Confusion Potion: every weapon becomes a different random one at the same level
   confuseWeapons() {
     const old = this.weapons;
-    const pool = shuffle(this.poolWeapons().filter(k => !old.some(w => w.key === k)).concat(old.map(w => w.key).filter(k => !WEAPONS[k].signature)));
+    const pool = shuffle(this.poolWeapons().filter(k => !old.some(w => w.key === k)).concat(old.map(w => w.key).filter(k => k !== this.charDef.weapon)));
     this.weapons = [];
     const used = new Set();
     for (const w of old) {
       // A character's own weapon stays theirs
-      if (WEAPONS[w.key].signature) { this.weapons.push(w); continue; }
+      if (w.key === this.charDef.weapon) { this.weapons.push(w); continue; }
       w.sprites.forEach(sp => sp.destroy());
       if (w.ring) w.ring.destroy();
       const k = pool.find(x => !used.has(x) && x !== w.key) || pool.find(x => !used.has(x));

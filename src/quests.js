@@ -1,6 +1,6 @@
 // Quests and achievements: lifetime goals that pay Sparks when claimed on the menu.
 import { save, persist } from './save.js';
-import { WEAPONS, AGES, ENEMIES, COMBOS } from './data.js';
+import { WEAPONS, AGES, ENEMIES, COMBOS, CHARACTERS } from './data.js';
 
 // Lifetime counters live in save.stats
 export function stats() {
@@ -69,6 +69,24 @@ export function claim(q) {
   save.sparks += q.reward;
   persist();
   return true;
+}
+
+// Whether a character is unlocked.
+// unlock: 'start', a boss key, 'kills:N' (enemies defeated over all runs) or 'quest:<id>' (an achievement)
+export function charUnlocked(ch) {
+  const u = String(ch.unlock || '');
+  if (!u || u === 'start') return true;
+  if (u.startsWith('kills:')) return save.totalKills >= (parseInt(u.slice(6), 10) || 0);
+  if (u.startsWith('quest:')) { const q = allQuests().find(x => x.id === u.slice(6)); return !!q && isDone(q); }
+  return AGES.some(a => a.boss === u && save.bossesBeaten[a.key]);
+}
+
+// Signature weapons of unlocked characters: anyone can be offered them
+export function unlockedSignatures() {
+  return Object.keys(WEAPONS).filter(k => {
+    const ch = CHARACTERS.find(c => c.key === WEAPONS[k].signature);
+    return ch && charUnlocked(ch);
+  });
 }
 
 // The unfinished goal closest to done, for the "so close" note on the results screen

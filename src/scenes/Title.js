@@ -3,7 +3,7 @@ import { audio } from '../audio.js';
 import { save, persist, resetProgress } from '../save.js';
 import { CHARACTERS, AGES, WEAPONS, ENEMIES, META, TWISTS, RELICS } from '../data.js';
 import { W, H, text, button, panel, settingsPanel, COLORS, fmtTime, FONT } from '../ui.js';
-import { allQuests, progress, isDone, isClaimed, claimable, claim } from '../quests.js';
+import { allQuests, progress, isDone, isClaimed, claimable, claim, charUnlocked } from '../quests.js';
 import { onlineEnabled, topScores, playerName, cloudCode, cloudBackup, cloudRestore } from '../online.js';
 
 const fit = (img, size) => { const f = img.frame; return img.setScale(Math.min(size / f.width, size / f.height)); };
@@ -277,12 +277,9 @@ export default class Title extends Phaser.Scene {
     c.add(this.add.rectangle(W / 2, H / 2, W, H, 0x000000, 0.7).setInteractive());
     c.add(panel(this, W / 2, H / 2, 410, 600));
     c.add(text(this, W / 2, H / 2 - 262, CHARACTERS.length > 6 ? 'CHOOSE YOUR CHARACTER' : 'CHOOSE YOUR\nCHARACTER', CHARACTERS.length > 6 ? 13 : 16, '#ffe070'));
-    const beatenBosses = new Set(AGES.filter(a => save.bossesBeaten[a.key]).map(a => a.boss));
-    // unlock: 'start', a boss key, 'kills:N' (enemies defeated over all runs) or 'quest:<id>' (an achievement)
     const killsNeeded = (ch) => (String(ch.unlock || '').startsWith('kills:') ? parseInt(ch.unlock.slice(6), 10) || 0 : 0);
     const questOf = (ch) => (String(ch.unlock || '').startsWith('quest:') ? allQuests().find(q => q.id === ch.unlock.slice(6)) : null);
-    const isOpen = (ch) => !ch.unlock || ch.unlock === 'start' || beatenBosses.has(ch.unlock)
-      || (killsNeeded(ch) && save.totalKills >= killsNeeded(ch)) || (questOf(ch) && isDone(questOf(ch))) || this.unlockAll;
+    const isOpen = (ch) => charUnlocked(ch) || this.unlockAll;
     const lockText = (ch) => {
       const k = killsNeeded(ch);
       if (k) return `${Math.min(save.totalKills, k)}/${k} kills`;
@@ -330,7 +327,7 @@ export default class Title extends Phaser.Scene {
         wIcon.setX(wName.x - wName.width / 2 - 16);
       } else wIcon.setVisible(false);
       const tip = w ? KIND_TIPS[w.kind] : '';
-      wInfo.setText(w ? `${tip ? `${w.kind}: ${tip}. ` : ''}${own ? `Only ${selected.name} has it. Power ${w.tier}/${maxTier}` : 'Starting weapon'}` : '');
+      wInfo.setText(w ? `${tip ? `${w.kind}: ${tip}. ` : ''}${own ? `Starts with it. Unlocks it for everyone. Power ${w.tier}/${maxTier}` : 'Starting weapon'}` : '');
       perk.setText(selected.perk ? `+ ${selected.perk}` : '');
       drawback.setText(selected.drawback ? `- ${selected.drawback}` : '');
     };

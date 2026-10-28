@@ -8,13 +8,13 @@ export const DEFAULT_CONFIG = {
 
   balance: {
     ageLength: 210,        // seconds until the time police arrive (the boss fight doesn't stop the clock)
-    maxEnemies: 150,
+    maxEnemies: 160,
     spawnBase: 1.6,        // enemies per second at the start of an age
-    spawnGrowth: 0.035,    // extra enemies per second, per second
+    spawnGrowth: 0.045,    // extra enemies per second, per second
     crowdStart: 30,        // max enemies alive at the start of an age
-    crowdGrowth: 0.5,      // extra allowed per second
-    ageSpawnStep: 2.5,     // each later age starts with this many more enemies per second
-    ageCrowdStep: 25,      // and this many more allowed at once
+    crowdGrowth: 0.65,     // extra allowed per second
+    ageSpawnStep: 3.2,     // each later age starts with this many more enemies per second
+    ageCrowdStep: 32,      // and this many more allowed at once
     hpGrowth: 41.7,        // enemy HP goes up by its starting amount every this many seconds
     enemyHpMul: 1.4,       // all enemies (bosses too) have this much health
     ageHpBonus: 0.1,       // and +10% more after each age (stacks)

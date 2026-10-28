@@ -1,7 +1,7 @@
 import Phaser from 'phaser';
 import { audio } from '../audio.js';
 import { save, persist } from '../save.js';
-import { AGES, ENEMIES, WEAPONS, PASSIVES, SHOP_ITEMS, RARE_ITEMS, META, CFG, RARITIES, wholeEffect, AGE_LENGTH, BAL, CHARACTERS, COMBOS, EVENTS, statsOf, xpForLevel, POOL_WEAPONS, baseWeapon, RELICS, weaponEra } from '../data.js';
+import { AGES, ENEMIES, WEAPONS, PASSIVES, SHOP_ITEMS, RARE_ITEMS, META, CFG, RARITIES, wholeEffect, AGE_LENGTH, BAL, CHARACTERS, COMBOS, EVENTS, statsOf, upgradeOptions, upgradeText, xpForLevel, POOL_WEAPONS, baseWeapon, RELICS, weaponEra } from '../data.js';
 import { W, H, FONT, buzz } from '../ui.js';
 import { stats, bump, best, allQuests, isDone, doneIds, unlockedSignatures, weaponUnlocked, passiveUnlocked } from '../quests.js';
 import { submitScore, cloudBackup, onlineEnabled } from '../online.js';
@@ -835,7 +835,7 @@ export default class Game extends Phaser.Scene {
   }
 
   addWeapon(key) {
-    const w = { key, level: 1, t: 0.4, queue: [], sprites: [], phase: 0 };
+    const w = { key, level: 1, ups: {}, t: 0.4, queue: [], sprites: [], phase: 0 };
     this.weapons.push(w);
     // Equipping a later age's weapon for the first time unlocks it from the Stone Age on
     if (!WEAPONS[key].signature && !save.weaponsFound[key]) {
@@ -852,10 +852,12 @@ export default class Game extends Phaser.Scene {
 
   updateWeapons(dt) {
     for (const w of this.weapons) {
-      const st = statsOf(w.key, w.level);
+      // Level 1 stats plus whatever each level-up added
+      const st = statsOf(w.key, 1);
+      for (const [k, v] of Object.entries(w.ups || {})) st[k] = (st[k] || 0) + v;
+      if (st.cd) st.cd = Math.max(0.15, st.cd);
+      if (st.tick) st.tick = Math.max(0.1, st.tick);
       st.icon = WEAPONS[w.key].fx || WEAPONS[w.key].icon;
-      // Rare+ level-ups add a bigger share of each stat's per-level step
-      if (w.boost) for (const [k, s] of Object.entries(WEAPONS[w.key].stats || {})) if (s && s.per) st[k] += s.per * w.boost;
       if (w.dmgMul) st.dmg *= w.dmgMul;
       if (st.cd && this.charDef.cdMul) st.cd *= this.charDef.cdMul;
       // Attack speed (English Tea)
@@ -1632,7 +1634,29 @@ export default class Game extends Phaser.Scene {
     c.rarity = ri;
     c.mult = RARITIES[ri].mult;
     c.level = c.cur + 1;
+    // A weapon level-up raises one stat, shown on the card
+    if (c.type === 'weapon' && !c.isNew) c.up = this.rollUpgrade(this.weapons.find(w => w.key === c.key), c.mult);
     return c;
+  }
+
+  // Pick the one stat a weapon level-up raises, and by how much.
+  // Rarity multiplies the amount. Whole-number stats (+1 swing) are Common, or +2 on a Legendary.
+  rollUpgrade(w, mult = 1) {
+    const opts = upgradeOptions(w.key).filter(o => !o.whole || (w.ups?.[o.stat] || 0) < o.cap);
+    const cont = opts.filter(o => !o.whole);
+    const pool = mult > 1 && mult < 2 && cont.length ? cont : opts;
+    const o = pick(pool);
+    if (!o) return null;
+    if (o.whole) return { stat: o.stat, amount: Math.min(mult >= 2 ? 2 : 1, o.cap - (w.ups?.[o.stat] || 0)) };
+    return { stat: o.stat, amount: o.step * mult };
+  }
+
+  // Level a weapon up by one, raising the given stat (or a random one)
+  levelWeapon(w, up = this.rollUpgrade(w)) {
+    w.level++;
+    w.ups ??= {};
+    if (up) w.ups[up.stat] = (w.ups[up.stat] || 0) + up.amount;
+    return up;
   }
 
   rerollChoices() {
@@ -1647,14 +1671,14 @@ export default class Game extends Phaser.Scene {
     if (c.rarity === 3) bump('legendary');
     if (c.type === 'weapon') {
       let w = this.weapons.find(x => x.key === c.key);
-      if (w) w.level++; else w = this.addWeapon(c.key);
-      if (mult > 1) {
-        w.boost = (w.boost || 0) + (mult - 1);
-        // Legendary doubles this level's extra attacks too
-        const cs = WEAPONS[c.key].stats?.count;
-        if (c.rarity === 3 && cs && (cs.at || []).includes(w.level)) w.bonusCount = (w.bonusCount || 0) + 1;
-        if (c.rarity === 3) w.legendary = true;
+      if (w) this.levelWeapon(w, c.up || this.rollUpgrade(w, mult));
+      else {
+        w = this.addWeapon(c.key);
+        // A Rare+ new weapon starts with extra damage
+        const dmg = upgradeOptions(c.key).find(o => o.stat === 'dmg');
+        if (mult > 1 && dmg) w.ups.dmg = dmg.step * (mult - 1);
       }
+      if (c.rarity === 3) w.legendary = true;
     } else if (c.type === 'passive') {
       const first = !this.passives[c.key];
       if (first) { this.passives[c.key] = 0; this.passivePts[c.key] = 0; this.passiveOrder.push(c.key); }
@@ -2268,7 +2292,10 @@ export default class Game extends Phaser.Scene {
       const k = pool.find(x => !used.has(x) && x !== w.key) || pool.find(x => !used.has(x));
       used.add(k);
       const nw = this.addWeapon(k);
-      Object.assign(nw, { level: Math.min(w.level, this.weaponMax(k)), boost: w.boost, dmgMul: w.dmgMul, bonusCount: w.bonusCount, legendary: w.legendary });
+      Object.assign(nw, { dmgMul: w.dmgMul, bonusCount: w.bonusCount, legendary: w.legendary });
+      // The new weapon gets as many (random) level-ups as the old one had
+      const lv = Math.min(w.level, this.weaponMax(k));
+      while (nw.level < lv) this.levelWeapon(nw);
     }
   }
 
@@ -2286,14 +2313,14 @@ export default class Game extends Phaser.Scene {
         const opts = this.upgradableWeapons();
         if (!opts.length) return false;
         const w = opts.find(x => x.key === choice) || pick(opts);
-        w.level++;
-        it.result = `${WEAPONS[w.key].name} is now level ${w.level}`;
+        const up = this.levelWeapon(w);
+        it.result = `${WEAPONS[w.key].name} is now level ${w.level}${up ? `: ${upgradeText(w.key, up.stat, up.amount)}` : ''}`;
         break;
       }
       case 'crystal': {
         const opts = this.upgradableWeapons();
         if (!opts.length) return false;
-        opts.forEach(w => w.level++);
+        opts.forEach(w => this.levelWeapon(w));
         it.result = 'All your weapons leveled up!';
         break;
       }

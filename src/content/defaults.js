@@ -4,7 +4,7 @@
 export const DEFAULT_CONFIG = {
   version: 1,
   // Bump when new built-in content is added, so saved editor edits get it too (see config.js)
-  contentVersion: 27,
+  contentVersion: 28,
 
   balance: {
     ageLength: 210,        // seconds until the time police arrive (the boss fight doesn't stop the clock)
@@ -115,13 +115,13 @@ export const DEFAULT_CONFIG = {
       stats: { dmg: { base: 4, per: 1 }, radius: { base: 54, per: 3.5 }, tick: { base: 0.5, per: -0.008 }, slow: { base: 0.3, per: 0.015 } },
     },
     rocks: {
-      name: 'Meteor', icon: 'meteor', era: 'stone', behavior: 'rockfall', kind: 'Area', max: 30, fiery: true,
+      name: 'Meteor', countName: 'meteor', icon: 'meteor', era: 'stone', behavior: 'rockfall', kind: 'Area', max: 30, fiery: true,
       unlock: 'trex', cost: 10,
       blurb: 'Flaming meteors crash down on enemies and leave scorched craters.',
       stats: { cd: { base: 2.1, per: -0.04 }, dmg: { base: 20.8, per: 4 }, radius: { base: 36, per: 1.5 }, count: { base: 2, at: [6, 16, 25] } },
     },
     bolt: {
-      name: 'Thunderbolt', icon: 'bolt', era: 'renaissance', behavior: 'lightning', kind: 'Area', max: 30,
+      name: 'Thunderbolt', countName: 'bolt', icon: 'bolt', era: 'renaissance', behavior: 'lightning', kind: 'Area', max: 30,
       unlock: 'quest:fastboss', unlockText: 'Defeat a boss within 10 seconds', cost: 100,
       blurb: 'Lightning strikes enemies around you.',
       stats: { cd: { base: 1.7, per: -0.04 }, dmg: { base: 25.6, per: 4 }, radius: { base: 28, per: 1 }, count: { base: 1, at: [11, 20, 30] }, chain: { base: 0, at: [20, 20] }, range: { base: 270 } },
@@ -129,7 +129,7 @@ export const DEFAULT_CONFIG = {
     // Signature weapons: each character starts with their own, never offered to anyone else.
     // tier = power rank (later unlocks are stronger); base = the normal weapon it counts as for combos.
     boneclub: {
-      name: 'Mammoth Club', icon: 'boneclub', behavior: 'swing', kind: 'Melee', max: 30, signature: 'caveman', tier: 1, base: 'club', iconScale: 1.15,
+      name: 'Mammoth Club', countName: 'swing', icon: 'boneclub', behavior: 'swing', kind: 'Melee', max: 30, signature: 'caveman', tier: 1, base: 'club', iconScale: 1.15,
       blurb: "Grug's mammoth-bone club. Hits harder and knocks enemies further.",
       stats: { cd: { base: 0.95, per: -0.024 }, dmg: { base: 13.6, per: 2.8 }, radius: { base: 94.3, per: 3.45 }, count: { base: 1, at: [11, 25] }, knockback: { base: 330 } },
     },
@@ -206,7 +206,7 @@ export const DEFAULT_CONFIG = {
       stats: { cd: { base: 0.6, per: -0.012 }, dmg: { base: 9, per: 1.8 }, count: { base: 1, at: [11, 20, 30] }, pierce: { base: 0, at: [16, 25] }, speed: { base: 560 }, size: { base: 8 }, range: { base: 400 } },
     },
     laserdisc: {
-      name: 'Laser Disc', icon: 'disc', era: 'future', behavior: 'shoot', kind: 'Projectile', max: 30, spin: true,
+      name: 'Laser Disc', countName: 'disc', icon: 'disc', era: 'future', behavior: 'shoot', kind: 'Projectile', max: 30, spin: true,
       unlock: 'quest:soloboss', unlockText: 'Defeat a boss with only one weapon', cost: 75,
       blurb: 'Glowing discs that slice through a line of enemies.',
       stats: { cd: { base: 1.5, per: -0.032 }, dmg: { base: 20, per: 3.5 }, count: { base: 1, at: [11, 25] }, pierce: { base: 4, at: [6, 20] }, speed: { base: 300 }, size: { base: 16 }, range: { base: 420 } },

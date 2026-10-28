@@ -76,6 +76,11 @@ function addNewContent(cfg, d, seen) {
     const bc = cfg.weapons.boneclub;
     if (bc && bc.name === 'Bone Club') { bc.name = d.weapons.boneclub.name; bc.blurb = d.weapons.boneclub.blurb; }
   }
+  // Fist size (v25)
+  if (seen < 25 && cfg.weapons.fists && cfg.weapons.fists.stats && !cfg.weapons.fists.stats.size) {
+    cfg.weapons.fists.stats.size = { ...d.weapons.fists.stats.size };
+    cfg.weapons.fists.blurb = d.weapons.fists.blurb;
+  }
   // Lauren's weapon overhaul (v24): new names, unlock costs and 50% stronger passives
   if (seen < 24) {
     const RENAMED = { rocks: 'Rock Fall', bolt: 'Sky Bolt' };

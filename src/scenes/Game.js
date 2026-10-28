@@ -45,7 +45,7 @@ export default class Game extends Phaser.Scene {
 
   // Permanent upgrades bought with Sparks, as totals (e.g. damage: 0.12)
   metaBonus() {
-    const out = { hearts: 0, damage: 0, speed: 0, xp: 0, pickup: 0, rerolls: 0, coins: 0, revive: 0 };
+    const out = { hearts: 0, damage: 0, speed: 0, xp: 0, pickup: 0, rerolls: 0, coins: 0, revive: 0, sparks: 0 };
     for (const m of META || []) {
       const lvl = Math.min(save.upgrades[m.id] || 0, m.max);
       if (out[m.id] !== undefined) out[m.id] += lvl * m.amount;
@@ -1461,7 +1461,11 @@ export default class Game extends Phaser.Scene {
       d.played = true;
       if (this.totalTime > d.best) { d.best = Math.floor(this.totalTime); d.bestKills = this.kills; dailyNew = true; }
     }
-    const total = lines.reduce((a, l) => a + l[1], 0);
+    // Sparks Gain (EVOLVE menu) multiplies everything earned this run
+    const earned = lines.reduce((a, l) => a + l[1], 0);
+    const gain = Math.round(earned * this.meta.sparks);
+    if (gain) lines.push([`Sparks Gain x${1 + this.meta.sparks}`, gain]);
+    const total = earned + gain;
     save.sparks += total;
     save.bestTime = Math.max(save.bestTime, Math.floor(this.totalTime));
     save.totalKills += this.kills;

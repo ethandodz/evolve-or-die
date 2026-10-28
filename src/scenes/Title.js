@@ -477,24 +477,24 @@ export default class Title extends Phaser.Scene {
     c.add(have);
     const rows = this.add.container(0, 0);
     c.add(rows);
-    const cost = (m) => m.base + m.grow * (save.upgrades[m.id] || 0);
+    const cost = (m) => (m.costs ? m.costs[Math.min(save.upgrades[m.id] || 0, m.costs.length - 1)] : m.base + m.grow * (save.upgrades[m.id] || 0));
     const draw = () => {
       rows.removeAll(true);
       have.setText(String(save.sparks));
       this.sparkText.setText(String(save.sparks));
       (META || []).forEach((m, i) => {
-        const y = 160 + i * 66;
+        const y = 152 + i * 60;
         const lvl = save.upgrades[m.id] || 0;
         const maxed = lvl >= m.max;
         const g = this.add.graphics();
-        g.fillStyle(0x0c1030, 1).fillRect(W / 2 - 196, y - 29, 392, 60);
-        g.fillStyle(0x263ea8, 1).fillRect(W / 2 - 194, y - 27, 388, 56);
+        g.fillStyle(0x0c1030, 1).fillRect(W / 2 - 196, y - 28, 392, 56);
+        g.fillStyle(0x263ea8, 1).fillRect(W / 2 - 194, y - 26, 388, 52);
         rows.add(g);
         if (this.textures.exists(m.icon)) rows.add(fit(this.add.image(W / 2 - 168, y, m.icon, 0), 36));
         rows.add(text(this, W / 2 - 140, y - 13, m.name.toUpperCase(), 9, '#ffffff', 0));
         rows.add(this.add.text(W / 2 - 140, y + 8, m.blurb, { fontFamily: FONT, fontSize: '7px', color: '#d0b890' }).setOrigin(0, 0.5));
         // Level pips
-        for (let k = 0; k < m.max; k++) rows.add(this.add.rectangle(W / 2 - 136 + k * 12, y + 22, 9, 4, k < lvl ? 0xffe060 : 0x5a4030));
+        for (let k = 0; k < m.max; k++) rows.add(this.add.rectangle(W / 2 - 136 + k * 12, y + 19, 9, 4, k < lvl ? 0xffe060 : 0x5a4030));
         const b = button(this, W / 2 + 140, y, 96, 40, maxed ? 'MAX' : String(cost(m)), () => {
           if (maxed) return;
           const c2 = cost(m);

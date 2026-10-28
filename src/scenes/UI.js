@@ -3,7 +3,7 @@ import { audio } from '../audio.js';
 import { save } from '../save.js';
 import { WEAPONS, PASSIVES, AGES, RARITIES, CHARACTERS, COMBOS, ENEMIES, RELICS, boostedBlurb } from '../data.js';
 import { closestGoal } from '../quests.js';
-import { W, H, text, button, panel, settingsPanel, COLORS, fmtTime, FONT } from '../ui.js';
+import { W, H, text, button, panel, roundBox, settingsPanel, COLORS, fmtTime, FONT } from '../ui.js';
 import { controls } from '../controls.js';
 
 
@@ -19,18 +19,18 @@ export default class UI extends Phaser.Scene {
     this.ready = true;
 
     // XP bar
-    this.xpBg = this.add.rectangle(0, 0, W, 16, 0x1e1009).setOrigin(0, 0).setStrokeStyle(2, 0xc89a5a);
-    this.xpFill = this.add.rectangle(2, 2, 0, 12, 0xd0601e).setOrigin(0, 0);
+    this.xpBg = roundBox(this.add.graphics(), 0, 0, W, 18, 0x141a48, 0x4a5cc0);
+    this.xpFill = this.add.rectangle(4, 4, 0, 10, 0x3ad0ff).setOrigin(0, 0);
     // Stone tablet behind the timer
     panel(this, W / 2, 50, 130, 44);
-    this.xpShine = this.add.rectangle(2, 2, 0, 3, 0xffffff, 0.35).setOrigin(0, 0);
+    this.xpShine = this.add.rectangle(4, 4, 0, 3, 0xffffff, 0.45).setOrigin(0, 0);
     this.lvText = text(this, 8, 9, 'LV 1', 8, '#ffffff', 0);
 
     // Hearts
     this.hearts = [];
     // Timer and age
     this.timer = text(this, W / 2, 40, '5:00', 18);
-    this.ageText = text(this, W / 2, 62, '', 8, '#e8c070');
+    this.ageText = text(this, W / 2, 62, '', 8, '#ffe070');
 
     // Pause button
     this.pauseBtn = button(this, W - 28, 44, 40, 40, 'II', () => this.togglePause(), { size: 12 });
@@ -47,9 +47,9 @@ export default class UI extends Phaser.Scene {
     this.slots = [];
     for (let row = 0; row < 2; row++) for (let i = 0; i < 3; i++) {
       const x = 22 + i * 34, y = 82 + row * 34;
-      const bg = this.add.rectangle(x, y, 30, 30, 0x1e1009, 0.7).setStrokeStyle(2, row ? 0x7a48b0 : 0x8a5a2e);
+      const bg = roundBox(this.add.graphics(), x - 16, y - 16, 32, 32, row ? 0x5a30a0 : 0x263ea8, row ? 0xc08aff : 0x7a98ff, 0.82);
       const ic = this.add.image(x, y, 'club').setScale(1.6).setVisible(false);
-      const lv = this.add.text(x + 14, y + 14, '', { fontFamily: FONT, fontSize: '8px', color: '#ffffff', stroke: '#120c18', strokeThickness: 3 }).setOrigin(1, 1);
+      const lv = this.add.text(x + 14, y + 14, '', { fontFamily: FONT, fontSize: '8px', color: '#ffffff', stroke: '#0c1030', strokeThickness: 3 }).setOrigin(1, 1);
       this.slots.push({ bg, ic, lv });
     }
 
@@ -64,7 +64,7 @@ export default class UI extends Phaser.Scene {
 
     // Boss bar
     this.bossBox = this.add.container(W / 2, 196).setVisible(false);
-    const bb = this.add.rectangle(0, 0, 364, 20, 0x1e1009).setStrokeStyle(2, 0xe8c070);
+    const bb = roundBox(this.add.graphics(), -184, -12, 368, 24, 0x0c1030, 0xff8a8a);
     this.bossFill = this.add.rectangle(-180, 0, 360, 14, 0xd83c3c).setOrigin(0, 0.5);
     this.bossName = text(this, 0, -20, '', 10, '#ffffff');
     this.bossBox.add([bb, this.bossFill, this.bossName]);
@@ -139,13 +139,13 @@ export default class UI extends Phaser.Scene {
     if (!g || !g.player) return;
     const p = g.player;
 
-    this.xpFill.width = (W - 4) * Math.min(1, g.xp / g.xpNeed);
+    this.xpFill.width = (W - 8) * Math.min(1, g.xp / g.xpNeed);
     this.xpShine.width = this.xpFill.width;
     this.lvText.setText(`LV ${g.level}`);
 
     while (this.hearts.length < p.maxHearts) {
       const i = this.hearts.length;
-      this.hearts.push(this.add.image(18 + (i % 8) * 22, 34 + Math.floor(i / 8) * 20, 'heart').setScale(1.6));
+      this.hearts.push(this.add.image(18 + (i % 8) * 22, 34 + Math.floor(i / 8) * 20, 'heart').setScale(1.8));
     }
     this.hearts.forEach((h, i) => {
       h.setVisible(i < p.maxHearts);
@@ -153,7 +153,7 @@ export default class UI extends Phaser.Scene {
     });
 
     const left = g.ageLen - g.ageTime;
-    if (g.bossDead && !g.endless) { this.timer.setText('--:--').setColor('#e8c070'); }
+    if (g.bossDead && !g.endless) { this.timer.setText('--:--').setColor('#ffe070'); }
     else if (g.endless) { this.timer.setText(fmtTime(g.totalTime)).setColor('#7ad0f4'); }
     else if (g.boss) { this.timer.setText('BOSS!').setColor('#d83c3c'); }
     else if (left <= 0) {
@@ -195,7 +195,7 @@ export default class UI extends Phaser.Scene {
       this.summon.setScale(left < 30 ? 1 + Math.sin(g.totalTime * 8) * 0.04 : 1);
       const m = g.currentLootMul();
       this.lootText.setText(m > 1 ? `LOOT x${m.toFixed(1)}` : 'LOOT x1');
-      this.lootText.setColor(m >= 2 ? '#f2c84b' : m > 1 ? '#e8c070' : '#a090b0');
+      this.lootText.setColor(m >= 2 ? '#f2c84b' : m > 1 ? '#ffe070' : '#a090b0');
     }
 
     // Tips hide while a card or shop screen is open
@@ -266,7 +266,7 @@ export default class UI extends Phaser.Scene {
     const ey = Math.max(150, Math.min(H - 24, H / 2 + Math.sin(a) * 400));
     const pulse = size * (pulsing ? 1 + Math.sin(g.totalTime * 10) * 0.15 : 1);
     const pt = (r, da) => [ex + Math.cos(a + da) * r * pulse, ey + Math.sin(a + da) * r * pulse];
-    this.arrow.fillStyle(0x120c18, 1).fillTriangle(...pt(20, 0), ...pt(15, 2.4), ...pt(15, -2.4));
+    this.arrow.fillStyle(0x0c1030, 1).fillTriangle(...pt(20, 0), ...pt(15, 2.4), ...pt(15, -2.4));
     this.arrow.fillStyle(color, 1).fillTriangle(...pt(15, 0), ...pt(11, 2.4), ...pt(11, -2.4));
     return { x: ex - Math.cos(a) * 22, y: ey - Math.sin(a) * 22 };
   }
@@ -283,7 +283,7 @@ export default class UI extends Phaser.Scene {
     if (arrowTo === 'summon') {
       // Arrow pointing up at the Summon button
       const a = this.add.graphics();
-      a.fillStyle(0x120c18, 1).fillTriangle(0, -16, -15, 6, 15, 6);
+      a.fillStyle(0x0c1030, 1).fillTriangle(0, -16, -15, 6, 15, 6);
       a.fillStyle(0xf2c84b, 1).fillTriangle(0, -10, -9, 3, 9, 3);
       a.setPosition(W - 80, 232);
       c.add(a);
@@ -349,7 +349,7 @@ export default class UI extends Phaser.Scene {
     const c = this.openModal();
     c.kind = 'pause';
     c.add(panel(this, W / 2, H / 2, 340, 470));
-    c.add(text(this, W / 2, H / 2 - 195, 'PAUSED', 24, '#e8c070'));
+    c.add(text(this, W / 2, H / 2 - 195, 'PAUSED', 24, '#ffe070'));
     const g = this.g;
     const lines = g.weapons.map(w => `${WEAPONS[w.key].name} LV ${w.level}`)
       .concat(g.passiveOrder.map(k => `${PASSIVES[k].name} LV ${g.passives[k]}`));
@@ -444,7 +444,7 @@ export default class UI extends Phaser.Scene {
     };
     draw(false);
     card.add(bg);
-    card.add(this.add.rectangle(x - w / 2 + 50, y, 70, 70, 0x1e1009));
+    card.add(this.add.rectangle(x - w / 2 + 50, y, 70, 70, 0x0c1030));
     card.add(fit(this.add.image(x - w / 2 + 50, y, icon, 0), 60));
     card.add(text(this, x - w / 2 + 100, y - 30, name.toUpperCase(), 12, '#ffffff', 0));
     if (tag) card.add(text(this, x + w / 2 - 12, y - 30, tag, 8, tagColor, 1));

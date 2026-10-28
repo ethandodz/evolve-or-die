@@ -4,7 +4,7 @@
 export const DEFAULT_CONFIG = {
   version: 1,
   // Bump when new built-in content is added, so saved editor edits get it too (see config.js)
-  contentVersion: 18,
+  contentVersion: 19,
 
   balance: {
     ageLength: 300,        // seconds until the time police arrive
@@ -310,56 +310,56 @@ export const DEFAULT_CONFIG = {
 
   ages: [
     {
-      key: 'stone', name: 'STONE AGE', ground: 'cave', bg: '#b88c58',
-      decor: ['boulder', 'fern', 'bones', 'fern', 'boulder', 'tree', 'campfire'],
-      paintings: true,
+      key: 'stone', name: 'STONE AGE', ground: 'cave', bg: '#70b834',
+      decor: ['tree', 'pine', 'boulder', 'fern', 'bush', 'menhir', 'bones', 'fern', 'tree', 'campfire'],
+      paintings: false,
       basic: ['rival', 'raptor', 'wolf'], medium: 'sabertooth', elite: 'mammoth', specials: ['golem'],
       stampede: 'wolf', stampedeName: 'STAMPEDE!', boss: 'trex', bossName: 'T-REX', bossAttacks: ['charge3', 'stomp', 'rocks', 'charge3', 'roar'], bossStyle: 'hunter',
       music: 'stone', bossMusic: 'stoneBoss', hpMul: 1, xpMul: 1,
     },
     {
-      key: 'roman', name: 'ROMAN EMPIRE', ground: 'mosaic', bg: '#d8c8a0',
-      decor: ['column', 'urn', 'broken', 'cypress', 'brazier', 'broken'],
+      key: 'roman', name: 'ROMAN EMPIRE', ground: 'mosaic', bg: '#94b23e',
+      decor: ['column', 'urn', 'broken', 'cypress', 'brazier', 'tree', 'bush', 'broken', 'cypress'],
       paintings: false,
       basic: ['legionary', 'gladiator', 'spearman'], medium: 'centurion', elite: 'chariot', specials: ['testudo'],
       stampede: 'chariot', stampedeName: 'CHARIOT RACE!', boss: 'hydra', bossName: 'HYDRA', bossAttacks: ['lunge', 'ring', 'pools', 'lunge', 'summon'], bossStyle: 'rooted',
       music: 'roman', bossMusic: 'romanBoss', hpMul: 2.4, xpMul: 2,
     },
     {
-      key: 'medieval', name: 'MIDDLE AGES', ground: 'tapestry', bg: '#6a2a2a',
-      decor: ['banner', 'haybale', 'shrub', 'torch', 'gravestone', 'shrub'],
+      key: 'medieval', name: 'MIDDLE AGES', ground: 'tapestry', bg: '#46963c',
+      decor: ['banner', 'haybale', 'shrub', 'torch', 'gravestone', 'pine', 'tree', 'bush', 'pine'],
       paintings: false,
       basic: ['peasant', 'footman', 'jester'], medium: 'blackknight', elite: 'troll', specials: ['slime'],
       stampede: 'peasant', stampedeName: 'PEASANT MOB!', boss: 'dragon', bossName: 'DRAGON', bossAttacks: ['fly', 'breath', 'meteors', 'fly', 'sweep'], bossStyle: 'flyer',
       music: 'medieval', bossMusic: 'medievalBoss', hpMul: 4.5, xpMul: 3.2,
     },
     {
-      key: 'renaissance', name: 'RENAISSANCE', ground: 'parchment', bg: '#d8c49a',
-      decor: ['easel', 'gearpile', 'statue', 'lantern', 'cypress', 'gearpile'],
+      key: 'renaissance', name: 'RENAISSANCE', ground: 'parchment', bg: '#68aa3e',
+      decor: ['easel', 'gearpile', 'statue', 'lantern', 'cypress', 'tree', 'bush', 'cypress'],
       paintings: false,
       basic: ['apprentice', 'duelist', 'halberdier'], medium: 'clockwork', elite: 'automaton', specials: ['gearling'],
       stampede: 'cog', stampedeName: 'COG AVALANCHE!', boss: 'mech', bossName: 'STEAM MECH', bossAttacks: ['steam', 'laser', 'cogs', 'charge', 'summon'], bossStyle: 'mech',
       music: 'renaissance', bossMusic: 'renaissanceBoss', hpMul: 7.5, xpMul: 4.6,
     },
     {
-      key: 'industrial', name: 'INDUSTRIAL AGE', ground: 'newsprint', bg: '#c8c2b2',
-      decor: ['chimney', 'crate', 'lantern', 'barrel', 'rails', 'crate'],
+      key: 'industrial', name: 'INDUSTRIAL AGE', ground: 'newsprint', bg: '#bc8038',
+      decor: ['chimney', 'crate', 'lantern', 'barrel', 'rails', 'tree_autumn', 'tree_autumn', 'crate'],
       paintings: false,
       basic: ['sweep', 'navvy', 'luddite'], medium: 'steamhound', elite: 'furnace', specials: ['coalcart'],
       stampede: 'rat', stampedeName: 'RAT SWARM!', boss: 'locomotive', bossName: 'IRON HORSE', bossAttacks: ['charge3', 'smoke', 'coal', 'charge', 'summon'], bossStyle: 'train',
       music: 'industrial', bossMusic: 'industrialBoss', hpMul: 10.5, xpMul: 6,
     },
     {
-      key: 'modern', name: 'MODERN AGE', ground: 'popart', bg: '#f2d04e',
-      decor: ['hydrant', 'cone', 'trashcan', 'stopsign', 'bench', 'cone'],
+      key: 'modern', name: 'MODERN AGE', ground: 'popart', bg: '#5cbc42',
+      decor: ['hydrant', 'cone', 'trashcan', 'stopsign', 'bench', 'tree', 'bush', 'tree'],
       paintings: false,
       basic: ['punk', 'agent', 'soldier'], medium: 'biker', elite: 'tank', specials: ['drone'],
       stampede: 'taxi', stampedeName: 'RUSH HOUR!', boss: 'chopper', bossName: 'ATTACK CHOPPER', bossAttacks: ['missiles', 'strafe', 'missiles', 'summon', 'strafe'], bossStyle: 'chopper',
       music: 'modern', bossMusic: 'modernBoss', hpMul: 14.5, xpMul: 7.6,
     },
     {
-      key: 'future', name: 'FAR FUTURE', ground: 'neongrid', bg: '#1c1036',
-      decor: ['pylon', 'crystalrock', 'pod', 'antenna', 'crystalrock', 'holosign'],
+      key: 'future', name: 'FAR FUTURE', ground: 'neongrid', bg: '#22a8a0',
+      decor: ['pylon', 'crystalrock', 'pod', 'antenna', 'tree_alien', 'holosign', 'tree_alien', 'crystalrock'],
       paintings: false,
       basic: ['android', 'cyborg', 'greyalien'], medium: 'hoverbot', elite: 'walker', specials: ['ufo'],
       stampede: 'nanite', stampedeName: 'NANITE SWARM!', boss: 'overlord', bossName: 'AI OVERLORD', bossAttacks: ['orbital', 'grid', 'blink', 'laser', 'summon'], bossStyle: 'warp',

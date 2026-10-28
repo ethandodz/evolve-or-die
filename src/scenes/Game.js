@@ -30,6 +30,10 @@ function distToSeg(px, py, x1, y1, x2, y2) {
   return Math.hypot(px - (x1 + t * dx), py - (y1 + t * dy));
 }
 
+// The world is drawn a bit finer than the characters, like a camera pulled back (characters keep their size)
+const GROUND_SCALE = 1.125;
+const DECOR_SCALE = 1.25;
+
 export default class Game extends Phaser.Scene {
   constructor() { super('Game'); }
 
@@ -135,7 +139,7 @@ export default class Game extends Phaser.Scene {
     this.pet = null;
 
     this.cameras.main.setRoundPixels(true);
-    this.ground = this.add.tileSprite(W / 2, H / 2, W, H, 'ground_cave').setScrollFactor(0).setDepth(-3e7).setTileScale(1.5);
+    this.ground = this.add.tileSprite(W / 2, H / 2, W, H, 'ground_cave').setScrollFactor(0).setDepth(-3e7).setTileScale(GROUND_SCALE);
 
     // Player
     this.player = {
@@ -239,8 +243,8 @@ export default class Game extends Phaser.Scene {
     this.updateChunks();
 
     const cam = this.cameras.main;
-    this.ground.tilePositionX = cam.scrollX / 1.5;
-    this.ground.tilePositionY = cam.scrollY / 1.5;
+    this.ground.tilePositionX = cam.scrollX / GROUND_SCALE;
+    this.ground.tilePositionY = cam.scrollY / GROUND_SCALE;
     this.updateDarkness(dt);
     this.questT -= dt;
     if (this.questT <= 0) { this.questT = 1; this.checkQuests(); }
@@ -2051,7 +2055,7 @@ export default class Game extends Phaser.Scene {
     wiz.setAlpha(0);
     this.tweens.add({ targets: wiz, alpha: 1, duration: 500, delay: 400 });
     this.tweens.add({ targets: wiz, y: wiz.y - 3, yoyo: true, repeat: -1, duration: 700 });
-    const label = this.add.text(wiz.x, wiz.y - 52, 'SHOP', { fontFamily: FONT, fontSize: '10px', color: '#e8c070', stroke: '#120c18', strokeThickness: 3 }).setOrigin(0.5).setDepth(1e7 + 10);
+    const label = this.add.text(wiz.x, wiz.y - 52, 'SHOP', { fontFamily: FONT, fontSize: '10px', color: '#ffe070', stroke: '#0c1030', strokeThickness: 3 }).setOrigin(0.5).setDepth(1e7 + 10);
     this.portal = { x, y, spr: portal, glow, wiz, label, shopReady: true, entering: false, locked };
     if (locked) {
       this.tweens.killTweensOf([portal, glow]);
@@ -2216,7 +2220,7 @@ export default class Game extends Phaser.Scene {
           this.frozen = false;
           const cap = WEAPONS[this.weapons[0].key] ? this.weaponMax(this.weapons[0].key) : 0;
           if (this.loop && next === 0) this.ui.banner(`LOOP ${this.loop + 1}`, `Back to the ${this.age.name.toLowerCase()}. Tougher enemies.\nWeapons can now reach level ${cap}`, 3200, '#c890ff');
-          else this.ui.banner(this.age.name, `Weapons can now reach level ${cap}`, 3000, '#e8c070');
+          else this.ui.banner(this.age.name, `Weapons can now reach level ${cap}`, 3000, '#ffe070');
         });
       },
     });
@@ -2495,7 +2499,7 @@ export default class Game extends Phaser.Scene {
     let n = this.numbers.find(q => !q.alive);
     if (!n) {
       if (this.numbers.length > 40) return;
-      n = { txt: this.add.text(0, 0, '', { fontFamily: FONT, fontSize: '8px', color: '#ffffff', stroke: '#120c18', strokeThickness: 3 }).setOrigin(0.5).setDepth(1e7 + 8) };
+      n = { txt: this.add.text(0, 0, '', { fontFamily: FONT, fontSize: '8px', color: '#ffffff', stroke: '#0c1030', strokeThickness: 3 }).setOrigin(0.5).setDepth(1e7 + 8) };
       this.numbers.push(n);
     }
     Object.assign(n, { alive: true, x: x + rand(-6, 6), y, life: 0.55, vy: -70 });
@@ -2503,7 +2507,7 @@ export default class Game extends Phaser.Scene {
   }
 
   floatText(x, y, str, color) {
-    const t = this.add.text(x, y, str, { fontFamily: FONT, fontSize: '10px', color, stroke: '#120c18', strokeThickness: 3 }).setOrigin(0.5).setDepth(1e7 + 9);
+    const t = this.add.text(x, y, str, { fontFamily: FONT, fontSize: '10px', color, stroke: '#0c1030', strokeThickness: 3 }).setOrigin(0.5).setDepth(1e7 + 9);
     this.tweens.add({ targets: t, y: y - 30, alpha: 0, duration: 1100, onComplete: () => t.destroy() });
   }
 
@@ -2590,7 +2594,9 @@ export default class Game extends Phaser.Scene {
         const key = this.age.decor[Math.floor(rnd() * this.age.decor.length)];
         if (!this.textures.exists(key)) continue;
         const flat = key === 'fern' || key === 'bones' || key === 'rails';
-        const img = this.add.sprite(x, y, key, 0).setScale(1.5).setOrigin(0.5, 0.9).setDepth(flat ? -1.9e7 : y);
+        const img = this.add.sprite(x, y, key, 0).setScale(DECOR_SCALE).setOrigin(0.5, 0.95).setDepth(flat ? -1.9e7 : y);
+        // soft blue shadow at the base of standing scenery
+        if (!flat) { const fw = img.frame.width * DECOR_SCALE; list.push(this.add.image(x + 3, y, 'shadow').setScale(fw / 18, Math.max(1, fw / 50)).setDepth(-1.85e7)); }
         if (this.textures.get(key).frameTotal > 2) img.flicker = rnd() * 10;
         if (key === 'campfire' || key === 'brazier') img.light = true;
         list.push(img);

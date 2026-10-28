@@ -28,10 +28,14 @@ export default class Title extends Phaser.Scene {
 
   create() {
     audio.setVolumes(save.settings.music, save.settings.sfx);
-    this.cameras.main.setBackgroundColor('#120c18');
-    this.bg = this.add.tileSprite(W / 2, H / 2, W, H, 'ground_cave').setTileScale(1.5).setAlpha(0.5);
-    this.add.rectangle(W / 2, H / 2, W, H, 0x1e1009, 0.55);
-    for (let i = 0; i < 8; i++) this.add.image(Phaser.Math.Between(20, W - 20), Phaser.Math.Between(60, H - 60), ['handprint', 'deer', 'hunters'][i % 3]).setScale(2).setAlpha(0.35);
+    this.cameras.main.setBackgroundColor('#0c1030');
+    this.bg = this.add.tileSprite(W / 2, H / 2, W, H, 'ground_cave').setTileScale(1.125);
+    // a few trees around the edges of the meadow
+    [[34, 130, 'tree'], [420, 96, 'pine'], [410, 330, 'tree'], [30, 420, 'pine'], [60, 760, 'tree'], [400, 790, 'pine'], [220, 790, 'bush']].forEach(([x, y, k]) => {
+      this.add.image(x + 3, y, 'shadow').setScale(3.4, 1.6);
+      this.add.image(x, y, k).setScale(1.25).setOrigin(0.5, 0.95);
+    });
+    this.add.rectangle(W / 2, H / 2, W, H, 0x0c1030, 0.3);
 
     // March of the ages behind the title
     const marchers = ['wolf', 'rival', 'raptor', 'legionary', 'spearman', 'mammoth', 'centurion'];
@@ -42,7 +46,7 @@ export default class Title extends Phaser.Scene {
       this.marchers.push(m);
     }
 
-    const t1 = text(this, W / 2, 150, 'EVOLVE', 44, '#e8c070');
+    const t1 = text(this, W / 2, 150, 'EVOLVE', 44, '#ffe070');
     const t2 = text(this, W / 2, 210, 'OR DIE', 44, '#d83c3c');
     this.tweens.add({ targets: [t1, t2], y: '+=6', yoyo: true, repeat: -1, duration: 1400, ease: 'Sine.inOut' });
     text(this, W / 2, 262, 'SURVIVE THE AGES', 10, '#c0b0d0');
@@ -66,7 +70,7 @@ export default class Title extends Phaser.Scene {
     if (ready) {
       const qb = this.mainButtons[3];
       const badge = this.add.container(qb.x + 56, qb.y - 22);
-      badge.add(this.add.circle(0, 0, 11, 0xd83c3c).setStrokeStyle(2, 0x120c18));
+      badge.add(this.add.circle(0, 0, 11, 0xd83c3c).setStrokeStyle(2, 0x0c1030));
       badge.add(text(this, 0, 1, String(ready), 8, '#ffffff'));
       this.tweens.add({ targets: badge, scale: 1.2, yoyo: true, repeat: -1, duration: 500 });
       this.mainButtons.push(badge);
@@ -123,7 +127,7 @@ export default class Title extends Phaser.Scene {
   // Quests: progress bars, and a CLAIM button for finished ones
   showQuests() {
     const { c, close } = this.overlay(420, 760);
-    c.add(text(this, W / 2, 50, 'QUESTS', 22, '#e8c070'));
+    c.add(text(this, W / 2, 50, 'QUESTS', 22, '#ffe070'));
     c.add(text(this, W / 2, 78, 'Finish them for Sparks', 8, '#c0a080'));
     const rows = this.add.container(0, 0);
     c.add(rows);
@@ -145,8 +149,8 @@ export default class Title extends Phaser.Scene {
         const y = 130 + i * 78;
         const done = isDone(q), claimed = isClaimed(q);
         const g = this.add.graphics();
-        g.fillStyle(0x1e1009, 1).fillRect(W / 2 - 196, y - 34, 392, 70);
-        g.fillStyle(done && !claimed ? 0x4a3a18 : 0x3a2618, 1).fillRect(W / 2 - 194, y - 32, 388, 66);
+        g.fillStyle(0x0c1030, 1).fillRect(W / 2 - 196, y - 34, 392, 70);
+        g.fillStyle(done && !claimed ? 0x2f7a3a : 0x263ea8, 1).fillRect(W / 2 - 194, y - 32, 388, 66);
         if (done && !claimed) g.lineStyle(2, 0xffe060, 1).strokeRect(W / 2 - 194, y - 32, 388, 66);
         rows.add(g);
         rows.add(text(this, W / 2 - 182, y - 18, q.name.toUpperCase(), 9, claimed ? '#8a7a6a' : '#ffffff', 0));
@@ -182,7 +186,7 @@ export default class Title extends Phaser.Scene {
   // Best runs: online top 10 when Supabase is set up, otherwise this device's best runs
   showScores() {
     const { c, close } = this.overlay(420, 720);
-    c.add(text(this, W / 2, 72, 'SCORES', 22, '#e8c070'));
+    c.add(text(this, W / 2, 72, 'SCORES', 22, '#ffe070'));
     const rows = this.add.container(0, 0);
     c.add(rows);
     const status = text(this, W / 2, 400, '', 8, '#c0a080');
@@ -195,7 +199,7 @@ export default class Title extends Phaser.Scene {
       list.forEach((r, i) => {
         const y = 150 + i * 44;
         const g = this.add.graphics();
-        g.fillStyle(i % 2 ? 0x3a2618 : 0x2e1e12, 1).fillRect(W / 2 - 190, y - 20, 380, 40);
+        g.fillStyle(i % 2 ? 0x263ea8 : 0x22368f, 1).fillRect(W / 2 - 190, y - 20, 380, 40);
         rows.add(g);
         rows.add(text(this, W / 2 - 178, y, `${i + 1}`, 10, i === 0 ? '#ffe060' : '#ffffff', 0));
         rows.add(text(this, W / 2 - 144, y - 8, String(r.name || r.hero || '').toUpperCase(), 8, '#ffffff', 0));
@@ -239,7 +243,7 @@ export default class Title extends Phaser.Scene {
   showCloud() {
     const { c, close } = this.overlay(400, 520);
     const back = () => { close(); this.openSettings(); };
-    c.add(text(this, W / 2, H / 2 - 220, 'CLOUD SAVE', 18, '#e8c070'));
+    c.add(text(this, W / 2, H / 2 - 220, 'CLOUD SAVE', 18, '#ffe070'));
     if (!onlineEnabled) {
       c.add(text(this, W / 2, H / 2 - 40, 'Cloud saves are coming soon.\nYour progress is saved\non this device.', 9, '#d0b890'));
       c.add(button(this, W / 2, H / 2 + 200, 160, 40, 'BACK', back, { size: 12 }));
@@ -272,7 +276,7 @@ export default class Title extends Phaser.Scene {
     const c = this.add.container(0, 0).setDepth(500);
     c.add(this.add.rectangle(W / 2, H / 2, W, H, 0x000000, 0.7).setInteractive());
     c.add(panel(this, W / 2, H / 2, 410, 600));
-    c.add(text(this, W / 2, H / 2 - 262, CHARACTERS.length > 6 ? 'CHOOSE YOUR CHARACTER' : 'CHOOSE YOUR\nCHARACTER', CHARACTERS.length > 6 ? 13 : 16, '#e8c070'));
+    c.add(text(this, W / 2, H / 2 - 262, CHARACTERS.length > 6 ? 'CHOOSE YOUR CHARACTER' : 'CHOOSE YOUR\nCHARACTER', CHARACTERS.length > 6 ? 13 : 16, '#ffe070'));
     const beatenBosses = new Set(AGES.filter(a => save.bossesBeaten[a.key]).map(a => a.boss));
     // unlock: 'start', a boss key, 'kills:N' (enemies defeated over all runs) or 'quest:<id>' (an achievement)
     const killsNeeded = (ch) => (String(ch.unlock || '').startsWith('kills:') ? parseInt(ch.unlock.slice(6), 10) || 0 : 0);
@@ -313,7 +317,7 @@ export default class Title extends Phaser.Scene {
       cards.forEach(({ ch, g, x, y }) => {
         const open = isOpen(ch), sel = ch === selected;
         g.clear();
-        g.fillStyle(open ? (sel ? 0x5a3a22 : 0x3a2618) : 0x2a1c14, 1).fillRect(x - cw / 2, y - ch0 / 2, cw, ch0);
+        g.fillStyle(open ? (sel ? 0x3a5ad0 : 0x263ea8) : 0x1c2a70, 1).fillRect(x - cw / 2, y - ch0 / 2, cw, ch0);
         g.lineStyle(3, sel ? 0xf0c060 : open ? COLORS.border : 0x4a3a30, 1).strokeRect(x - cw / 2, y - ch0 / 2, cw, ch0);
       });
       const w = WEAPONS[selected.weapon];
@@ -382,7 +386,7 @@ export default class Title extends Phaser.Scene {
     const c = this.add.container(0, 0).setDepth(500);
     c.add(this.add.rectangle(W / 2, H / 2, W, H, 0x000000, 0.75).setInteractive());
     c.add(panel(this, W / 2, H / 2, 420, 740));
-    c.add(text(this, W / 2, 62, 'RELICS', 22, '#e8c070'));
+    c.add(text(this, W / 2, 62, 'RELICS', 22, '#ffe070'));
     c.add(text(this, W / 2, 90, 'Unlock a powerful relic for a chance\nto encounter them in your run.', 7, '#c0a080'));
     c.add(this.add.image(W / 2 - 40, 126, 'spark').setScale(2));
     const have = text(this, W / 2 - 22, 126, '', 12, '#ffe060', 0);
@@ -397,8 +401,8 @@ export default class Title extends Phaser.Scene {
         const y = 182 + i * 82;
         const owned = !!save.relics[r.id];
         const g = this.add.graphics();
-        g.fillStyle(0x1e1009, 1).fillRect(W / 2 - 196, y - 37, 392, 76);
-        g.fillStyle(owned ? 0x3a2a40 : 0x3a2618, 1).fillRect(W / 2 - 194, y - 35, 388, 72);
+        g.fillStyle(0x0c1030, 1).fillRect(W / 2 - 196, y - 37, 392, 76);
+        g.fillStyle(owned ? 0x4a2e8a : 0x263ea8, 1).fillRect(W / 2 - 194, y - 35, 388, 72);
         rows.add(g);
         if (this.textures.exists(r.icon)) {
           const ic = fit(this.add.image(W / 2 - 166, y, r.icon, 0), 42);
@@ -432,7 +436,7 @@ export default class Title extends Phaser.Scene {
     const c = this.add.container(0, 0).setDepth(500);
     c.add(this.add.rectangle(W / 2, H / 2, W, H, 0x000000, 0.75).setInteractive());
     c.add(panel(this, W / 2, H / 2, 420, 740));
-    c.add(text(this, W / 2, 62, 'EVOLVE', 22, '#e8c070'));
+    c.add(text(this, W / 2, 62, 'EVOLVE', 22, '#ffe070'));
     c.add(text(this, W / 2, 90, 'Upgrades that last forever', 8, '#c0a080'));
     c.add(this.add.image(W / 2 - 40, 118, 'spark').setScale(2));
     const have = text(this, W / 2 - 22, 118, '', 12, '#ffe060', 0);
@@ -449,8 +453,8 @@ export default class Title extends Phaser.Scene {
         const lvl = save.upgrades[m.id] || 0;
         const maxed = lvl >= m.max;
         const g = this.add.graphics();
-        g.fillStyle(0x1e1009, 1).fillRect(W / 2 - 196, y - 29, 392, 60);
-        g.fillStyle(0x3a2618, 1).fillRect(W / 2 - 194, y - 27, 388, 56);
+        g.fillStyle(0x0c1030, 1).fillRect(W / 2 - 196, y - 29, 392, 60);
+        g.fillStyle(0x263ea8, 1).fillRect(W / 2 - 194, y - 27, 388, 56);
         rows.add(g);
         if (this.textures.exists(m.icon)) rows.add(fit(this.add.image(W / 2 - 168, y, m.icon, 0), 36));
         rows.add(text(this, W / 2 - 140, y - 13, m.name.toUpperCase(), 9, '#ffffff', 0));
@@ -491,7 +495,7 @@ export default class Title extends Phaser.Scene {
       const t = TWISTS.find(x => x.id === id);
       const y = H / 2 - 120 + i * 76;
       const g = this.add.graphics();
-      g.fillStyle(0x1e1009, 1).fillRect(W / 2 - 170, y - 30, 340, 62);
+      g.fillStyle(0x0c1030, 1).fillRect(W / 2 - 170, y - 30, 340, 62);
       g.fillStyle(0x5a2018, 1).fillRect(W / 2 - 168, y - 28, 336, 58);
       c.add(g);
       c.add(text(this, W / 2, y - 10, t.name.toUpperCase(), 12, '#ffd0a0'));
@@ -500,7 +504,7 @@ export default class Title extends Phaser.Scene {
     if (daily.weapon) c.add(text(this, W / 2, H / 2 + 34, `Starting weapon: ${WEAPONS[daily.weapon].name}`, 8, '#7ad0f4'));
     const d = save.daily;
     const today = d.date === daily.date;
-    c.add(text(this, W / 2, H / 2 + 70, today && d.best ? `TODAY'S BEST: ${fmtTime(d.best)}  (${d.bestKills} kills)` : 'No run yet today', 9, '#e8c070'));
+    c.add(text(this, W / 2, H / 2 + 70, today && d.best ? `TODAY'S BEST: ${fmtTime(d.best)}  (${d.bestKills} kills)` : 'No run yet today', 9, '#ffe070'));
     if (!(today && d.played)) {
       c.add(this.add.image(W / 2 - 92, H / 2 + 100, 'spark').setScale(1.6));
       c.add(text(this, W / 2 - 78, H / 2 + 100, 'First run today: +10 Sparks', 8, '#ffe060', 0));

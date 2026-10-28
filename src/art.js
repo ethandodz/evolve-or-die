@@ -16,6 +16,7 @@ function paint(w, h, fn, opts = {}) {
   const idx = (s) => (s > 0.5 ? 0 : s > 0.1 ? 1 : s > -0.3 ? 2 : 3);
   const api = {
     put,
+    get: (x, y) => (buf[Math.floor(y)] ? buf[Math.floor(y)][Math.floor(x)] : null),
     ell(cx, cy, rx, ry, ramp, tex = 0) {
       for (let y = Math.floor(cy - ry); y <= cy + ry; y++) for (let x = Math.floor(cx - rx); x <= cx + rx; x++) {
         const nx = (x + 0.5 - cx) / rx, ny = (y + 0.5 - cy) / ry, d = nx * nx + ny * ny;
@@ -44,7 +45,50 @@ function paint(w, h, fn, opts = {}) {
   };
   fn(api);
   if (opts.noOutline) return buf;
-  return buf.map((row, y) => row.map((c, x) => c || (((buf[y - 1] && buf[y - 1][x]) || (buf[y + 1] && buf[y + 1][x]) || row[x - 1] || row[x + 1]) ? (opts.outline || OUT) : null)));
+  // Dark outline tinted by the colour it touches (green trees get a deep green edge, skin a deep brown...)
+  return buf.map((row, y) => row.map((c, x) => {
+    if (c) return c;
+    const n = (buf[y + 1] && buf[y + 1][x]) || (buf[y - 1] && buf[y - 1][x]) || row[x - 1] || row[x + 1];
+    return n ? (opts.outline || edgeOf(n)) : null;
+  }));
+}
+
+// ---------------------------------------------------------------------------
+// Colour helpers for the lush look: tinted outlines and a saturated, hue-shifted grade
+const rgbOf = (h) => [parseInt(h.slice(1, 3), 16), parseInt(h.slice(3, 5), 16), parseInt(h.slice(5, 7), 16)];
+const hexOf = (c) => '#' + c.map(v => Math.max(0, Math.min(255, Math.round(v))).toString(16).padStart(2, '0')).join('');
+const edgeCache = {};
+function edgeOf(c) {
+  if (edgeCache[c]) return edgeCache[c];
+  const [r, g, b] = rgbOf(c), k = 0.3;
+  return (edgeCache[c] = hexOf([r * k + 16 * 0.7, g * k + 8 * 0.7, b * k + 30 * 0.7]));
+}
+function rgb2hsl([r, g, b]) {
+  r /= 255; g /= 255; b /= 255;
+  const mx = Math.max(r, g, b), mn = Math.min(r, g, b), l = (mx + mn) / 2;
+  if (mx === mn) return [0, 0, l];
+  const d = mx - mn, s = l > 0.5 ? d / (2 - mx - mn) : d / (mx + mn);
+  const h = mx === r ? (g - b) / d + (g < b ? 6 : 0) : mx === g ? (b - r) / d + 2 : (r - g) / d + 4;
+  return [h * 60, s, l];
+}
+function hsl2rgb([h, s, l]) {
+  const q = l < 0.5 ? l * (1 + s) : l + s - l * s, p = 2 * l - q;
+  const t = (x) => { x = (x % 360 + 360) % 360 / 360; return x < 1 / 6 ? p + (q - p) * 6 * x : x < 0.5 ? q : x < 2 / 3 ? p + (q - p) * (2 / 3 - x) * 6 : p; };
+  return [t(h + 120) * 255, t(h) * 255, t(h - 120) * 255];
+}
+// Brighter colours lean warm (toward yellow), darker ones lean cool (toward blue-purple), and everything gets punchier
+const gradeCache = {};
+function grade(c) {
+  if (!c || c[0] !== '#' || c.length !== 7) return c;
+  if (gradeCache[c]) return gradeCache[c];
+  let [h, s, l] = rgb2hsl(rgbOf(c));
+  if (s > 0.06) {
+    s = Math.min(1, s * 1.12 + 0.02);
+    const toward = (target, amt) => { let d = ((target - h + 540) % 360) - 180; h += d * amt; };
+    if (l < 0.42) toward(250, (0.42 - l) * 0.35);
+    else if (l > 0.62) toward(50, (l - 0.62) * 0.3);
+  }
+  return (gradeCache[c] = hexOf(hsl2rgb([h, s, l])));
 }
 
 // Turns colour grids (one per frame) into editable sprite data
@@ -52,6 +96,7 @@ function toSprite(grids) {
   const pal = [];
   const frames = grids.map(g => g.map(row => row.map(c => {
     if (!c) return '.';
+    c = grade(c);
     let i = pal.indexOf(c);
     if (i < 0) { pal.push(c); i = pal.length - 1; }
     return CHARS[i];
@@ -67,19 +112,19 @@ function letters(rows, map, outline = true) {
 
 // ---------------------------------------------------------------------------
 // Ramps (light to dark), warm and earthy to match the cave-painting look
-const SKIN = ['#e8a874', '#c47e50', '#935632', '#5e321c'];
-const SKIN2 = ['#c88a5c', '#9e6440', '#72422a', '#4a2618'];
-const HAIR = ['#7a4a28', '#5a321a', '#3e2010', '#24120a'];
+const SKIN = ['#ffd2a4', '#f0a874', '#c87e54', '#8e5236'];
+const SKIN2 = ['#e2a87c', '#c08258', '#94603e', '#64402a'];
+const HAIR = ['#94603a', '#6e4228', '#4e2c1a', '#341a10'];
 const BLACKH = ['#4a3a3a', '#302424', '#201618', '#140c0e'];
-const FUR = ['#ecc88a', '#c89a5a', '#9a6a36', '#6a4220'];
+const FUR = ['#fadc9a', '#e2b26a', '#b88446', '#845a30'];
 const LEATHER = ['#b0784a', '#8a5a34', '#623e22', '#3e2614'];
-const WOOD = ['#a8774a', '#7f5534', '#5a3a24', '#3a2516'];
-const GREYW = ['#a8a2a6', '#7c7680', '#565260', '#36323e'];
+const WOOD = ['#d29256', '#a8693c', '#7e4a2c', '#58321e'];
+const GREYW = ['#ccd4e6', '#9ca6c2', '#727c9e', '#4e5678'];
 const DINO = ['#c8843a', '#a0642a', '#76461c', '#4c2c12'];
 const SABER = ['#ecb04c', '#c8862c', '#98601a', '#64400e'];
 const MAMM = ['#8a5a3a', '#6a4028', '#4a2a1a', '#2e180e'];
 const TREXR = ['#9aa45a', '#76823e', '#52602a', '#323e1a'];
-const STONE = ['#d8c8aa', '#b0a084', '#86785e', '#5c503c'];
+const STONE = ['#eeeadc', '#c6c0b4', '#9a948e', '#716c72'];
 const GREYS = ['#b8b4b0', '#8c8884', '#64605c', '#403c38'];
 const BRONZE = ['#f0c060', '#c8923a', '#966420', '#603c10'];
 const STEEL = ['#dcdce4', '#a8a8b8', '#76768a', '#4a4a5c'];
@@ -91,8 +136,8 @@ const WHITE = ['#ffffff', '#e4e0d8', '#b8b2a8', '#86807a'];
 const TEAL = ['#5cd0b0', '#38a48c', '#227a68', '#124e44'];
 const CREAM = ['#f4e8c0', '#dcc898', '#b4a070', '#86744a'];
 const FIRE = ['#fff4b0', '#ffc848', '#f07a24', '#a83a12'];
-const LEAF = ['#8a8a44', '#6a6c30', '#4c4e20', '#303212'];
-const DARKLEAF = ['#4a6a3a', '#344e2a', '#22361c', '#142210'];
+const LEAF = ['#9ee05a', '#5ec23c', '#36a03a', '#22803a'];
+const DARKLEAF = ['#44b88a', '#279872', '#18785c', '#0f5848'];
 const GOLD = ['#fff0a0', '#f0c040', '#b88420', '#7a5410'];
 const BONE = ['#f6eed4', '#ddd2b4', '#aca084', '#7a705a'];
 const MARBLE = ['#fbf8f0', '#e4ded2', '#bab2a4', '#8c8476'];
@@ -102,7 +147,7 @@ const SLIME = ['#a8f08a', '#6ad04a', '#3e9a2e', '#22601a'];
 const TROLL = ['#8aa86a', '#6a8a4a', '#4a6632', '#2e4220'];
 const DRAGON = ['#f0704a', '#d0482a', '#9a2e1c', '#601a10'];
 const WING = ['#c84a5a', '#9a3044', '#6a1e30', '#40101c'];
-const GREEN = ['#5aa05a', '#3e7e3e', '#2a5a2a', '#183a18'];
+const GREEN = ['#74cc3e', '#44aa3a', '#2a8a3a', '#1c6a36'];
 const BRASS = ['#f8d878', '#d8a848', '#a87a2a', '#6a4a14'];
 const COPPER = ['#e89a6a', '#c0703e', '#8a4a26', '#5a2c14'];
 const SEPIA = ['#f2e2c0', '#dcc6a0', '#b8a07a', '#8a7454'];
@@ -140,28 +185,33 @@ function gear(s, cx, cy, r, ramp, teeth = 8, rot = 0) {
 // ---------------------------------------------------------------------------
 // Humanoids share one body; options change the look
 function human(o, f) {
-  const H = 34;
+  // Slim build: small head, narrow torso, thin arms and long legs
+  const H = 37;
   return paint(24, H, (s) => {
     const oy = 4;
     const lx = f ? 1 : 0;
     const legs = o.legs || o.skin;
-    s.rect(7 + lx, 22 + oy, 3, f ? 5 : 6, legs); s.rect(13 - lx, 22 + oy, 3, f ? 6 : 5, legs);
+    s.rect(9 + lx, 22 + oy, 2, f ? 7 : 8, legs); s.rect(13 - lx, 22 + oy, 2, f ? 8 : 7, legs);
     const boot = o.boots || HAIR;
-    s.rect(6 + lx, 26 + oy + (f ? -1 : 0), 4, 2, boot); s.rect(13 - lx, 26 + oy + (f ? 0 : -1), 4, 2, boot);
-    if (o.cape) s.ell(8, 18 + oy, 5, 7, o.cape);
-    s.ell(11.5, 18 + oy, 6, 6, o.body, o.bodyTex || 0);
-    if (o.halves) { for (let y = 12; y < 24; y++) for (let x = 12; x < 18; x++) if ((x - 11.5) ** 2 / 36 + (y - 18) ** 2 / 36 <= 1) s.put(x, y + oy, o.halves[(x + y) % 3 ? 1 : 2]); }
-    if (o.tabard) { s.rect(9, 13 + oy, 6, 9, o.tabard); s.put(11, 16 + oy, '#f0d040'); s.put(12, 16 + oy, '#f0d040'); s.put(11, 17 + oy, '#f0d040'); s.put(12, 15 + oy, '#f0d040'); }
-    if (o.spots) [[9, 16], [13, 19], [10, 20], [14, 16]].forEach(([x, y]) => s.put(x, y + oy, o.body[3]));
-    if (o.belt) s.rect(6, 21 + oy, 12, 1, o.belt);
-    if (o.badge) s.put(9, 16 + oy, '#f0d040');
-    // arms (back arm, front arm)
-    s.rect(4, 14 + oy + (f ? 1 : 0), 3, 7, o.arms || o.skin);
-    s.rect(17, 14 + oy + (f ? 0 : 1), 3, 6, o.arms || o.skin);
+    s.rect(8 + lx, 29 + oy + (f ? -1 : 0), 3, 2, boot); s.rect(13 - lx, 29 + oy + (f ? 0 : -1), 3, 2, boot);
+    if (o.cape) s.ell(8.5, 18 + oy, 4, 6.5, o.cape);
+    // back arm behind the body
+    s.rect(6, 14 + oy + (f ? 1 : 0), 2, 7, o.arms || o.skin);
+    s.ell(11.5, 17.5 + oy, 4.2, 5.2, o.body, o.bodyTex || 0);
+    s.rect(8, 18 + oy, 8, 5, o.body, o.bodyTex || 0);
+    for (let x = 8; x < 16; x += 2) s.put(x, 23 + oy, o.body[2]);
+    if (o.halves) { for (let y = 12; y < 24; y++) for (let x = 12; x < 16; x++) if (s.get(x, y + oy)) s.put(x, y + oy, o.halves[(x + y) % 3 ? 1 : 2]); }
+    if (o.tabard) { s.rect(10, 13 + oy, 4, 10, o.tabard); s.put(11, 16 + oy, '#f0d040'); s.put(12, 16 + oy, '#f0d040'); s.put(11, 17 + oy, '#f0d040'); s.put(12, 15 + oy, '#f0d040'); }
+    if (o.spots) [[10, 16], [13, 19], [10, 21], [14, 15]].forEach(([x, y]) => s.put(x, y + oy, o.body[3]));
+    if (o.belt) s.rect(8, 21 + oy, 8, 1, o.belt);
+    if (o.badge) s.put(10, 16 + oy, '#f0d040');
+    // front arm
+    s.rect(16, 14 + oy + (f ? 0 : 1), 2, 7, o.arms || o.skin);
+    s.put(16, 20 + oy + (f ? 0 : 1), o.skin[1]); s.put(17, 20 + oy + (f ? 0 : 1), o.skin[2]);
     // head
-    s.ell(11.5, 8 + oy, 5, 5, o.skin);
-    if (o.hair) { s.ell(10.5, 5 + oy, 7, 4, o.hair, 0.2); s.ell(5.5, 9 + oy, 2.5, 4, o.hair, 0.2); }
-    if (o.beard) s.ell(12.5, 12 + oy, 4, 2.4, o.beard, 0.2);
+    s.ell(11.5, 8 + oy, 4.6, 4.6, o.skin);
+    if (o.hair) { s.ell(10.5, 4.5 + oy, 5.8, 3.2, o.hair, 0.2); s.ell(7, 8 + oy, 1.8, 3.2, o.hair, 0.2); for (const x of [6, 9, 12, 15]) s.put(x, 1 + oy, o.hair[1]); }
+    if (o.beard) s.ell(12.5, 12.5 + oy, 3.4, 1.8, o.beard, 0.2);
     if (o.band) s.rect(6, 5 + oy, 12, 1, o.band);
     if (o.goggles) { s.rect(6, 5 + oy, 12, 1, LEATHER); s.ell(11.5, 5 + oy, 1.6, 1.5, o.goggles); s.ell(15, 5 + oy, 1.6, 1.5, o.goggles); s.put(11, 4 + oy, '#c8f0ff'); s.put(15, 4 + oy, '#c8f0ff'); }
     if (o.feathers) { s.line(8, 2 + oy, 6, -3 + oy, '#e8e0d0'); s.line(11, 1 + oy, 11, -4 + oy, '#d84a2a'); s.line(14, 2 + oy, 16, -3 + oy, '#e8e0d0'); }
@@ -183,7 +233,7 @@ function human(o, f) {
     if (o.mohawk) { s.rect(10, -2 + oy, 3, 7, o.mohawk); [[9, 0], [13, 1], [11, -3]].forEach(([x, y]) => s.put(x, y + oy, o.mohawk[0])); }
     if (o.antenna) { s.line(11, 3 + oy, 11, -2 + oy, STEEL[1]); s.put(11, -3 + oy, '#ff3a5a'); }
     if (o.paint) { s.put(10, 9 + oy, '#e8e0d0'); s.put(10, 10 + oy, '#e8e0d0'); s.put(15, 9 + oy, '#e8e0d0'); }
-    if (!o.grill) { s.put(14, 8 + oy, EYE); s.put(13, 8 + oy, '#f4ece0'); }
+    if (!o.grill) { s.put(14, 8 + oy, EYE); s.put(14, 9 + oy, EYE); s.put(11, 8 + oy, EYE); s.put(11, 9 + oy, EYE); s.put(15, 10 + oy, '#ff9a8a'); }
     if (o.shades) { s.rect(11, 7 + oy, 6, 2, ['#2a2a34', '#1a1a22', '#101016', '#08080c']); s.put(12, 7 + oy, '#8a9ab0'); }
     if (o.visor) { s.rect(9, 7 + oy, 9, 2, o.visor); s.put(15, 7 + oy, '#ffffff'); }
     if (o.alienEyes) { s.ell(13.5, 8 + oy, 1.8, 2.4, [EYE, EYE, EYE, EYE]); s.put(13, 7 + oy, '#c0e0ff'); s.ell(9.5, 8 + oy, 1.4, 2.2, [EYE, EYE, EYE, EYE]); }
@@ -632,6 +682,112 @@ function wizard() {
   });
 }
 
+
+// ---------------------------------------------------------------------------
+// Lush scenery: 6-tone ramps (light to dark) shaded from the top left, like the approved mockup
+const T_LEAF = ['#b4ea64', '#74cc3e', '#44aa3a', '#2a8a3a', '#1c6a36', '#124a2c'];
+const T_AUTUMN = ['#ffd25a', '#ffa03a', '#f0702c', '#c84a26', '#962e22', '#641c1a'];
+const T_ALIEN = ['#c0a0ff', '#9a70f0', '#7a4ad8', '#5c34b0', '#422488', '#2c1860'];
+const T_PINE = ['#7adca6', '#44b88a', '#279872', '#18785c', '#0f5848', '#0a3a36'];
+const T_BARK = ['#d29256', '#a8693c', '#7e4a2c', '#58321e', '#3a2014'];
+const T_STONE = ['#eeeadc', '#c6c0b4', '#9a948e', '#716c72', '#4e4a58'];
+const T_MOSS = ['#b4dc58', '#80bc3c', '#58983a'];
+const T_FRUIT = ['#ffe0a0', '#ff8a4a', '#e0482c', '#a02420'];
+function shadeIdx(sv, n) { return Math.max(0, Math.min(n - 1, Math.round((1 - (sv + 1) / 2) * (n - 1)))); }
+function lushEll(s, cx, cy, rx, ry, ramp, bias = 0, tex = 0, sd = 0) {
+  const m = Math.max(rx, ry) + 1;
+  for (let y = Math.floor(cy - ry); y <= cy + ry; y++) for (let x = Math.floor(cx - rx); x <= cx + rx; x++) {
+    const dx = x + 0.5 - cx, dy = y + 0.5 - cy, d = (dx / rx) ** 2 + (dy / ry) ** 2;
+    if (d > 1) continue;
+    let i = shadeIdx(-dx / m * 0.9 - dy / m * 1.1 + (1 - d) * 0.5 - 0.15 - bias, ramp.length);
+    if (tex && ghash(x + 40, y + 40, 91 + sd) < tex) i = Math.min(ramp.length - 1, i + 1);
+    s.put(x, y, ramp[i]);
+  }
+}
+function lushRect(s, x0, y0, w, h, ramp, bias = 0, tex = 0) {
+  for (let y = y0; y < y0 + h; y++) for (let x = x0; x < x0 + w; x++) {
+    const nx = (x - x0) / Math.max(1, w - 1) * 2 - 1, ny = (y - y0) / Math.max(1, h - 1) * 2 - 1;
+    let i = shadeIdx(-nx * 0.7 - ny * 0.5 + 0.2 - bias, ramp.length);
+    if (tex && ghash(x, y, 92) < tex) i = Math.min(ramp.length - 1, i + 1);
+    s.put(x, y, ramp[i]);
+  }
+}
+function lushTree(leaf, fruit, big = 1.35) {
+  const w = Math.round(44 * big), h = Math.round(56 * big);
+  return paint(w, h, (s) => {
+    const tx = w / 2, tw = Math.round(8 * big), ttop = Math.round(30 * big);
+    lushRect(s, Math.round(tx - tw / 2), ttop, tw, h - ttop - 1, T_BARK, 0, 0.12);
+    lushEll(s, tx - 6, h - 3, 3, 2, T_BARK, 0.3); lushEll(s, tx + 6, h - 3, 3, 2, T_BARK, 0.5);
+    for (let j = ttop + 2; j < h - 2; j += 3) s.put(tx - 1 + (j % 2), j, T_BARK[4]);
+    const R0 = 15 * big;
+    const clumps = [[0, -2, 1.0, 0.2], [-10, 2, 0.75, 0.45], [10, 2, 0.75, 0.55], [-6, -9, 0.7, -0.05], [6, -9, 0.7, 0.05], [0, -14, 0.6, -0.2], [-12, -4, 0.6, 0.25], [12, -4, 0.6, 0.35], [-4, 6, 0.7, 0.6], [6, 6, 0.65, 0.7]];
+    clumps.forEach(([ox, oy, r, b]) => lushEll(s, tx + ox * big, 20 * big + oy * big, R0 * r, R0 * r * 0.9, leaf, b, 0.16));
+    for (let j = 0; j < h; j++) for (let i = 0; i < w; i++) {
+      const c = s.get(i, j), k = leaf.indexOf(c);
+      if (k >= 0 && k < 3 && ghash(i, j, 77) < 0.06) { s.put(i, j, leaf[0]); if (s.get(i + 1, j + 1)) s.put(i + 1, j + 1, leaf[k + 1]); }
+    }
+    if (fruit) [[-7, 4], [8, -2], [2, 9]].forEach(([fx, fy]) => lushEll(s, tx + fx * big, 20 * big + fy * big, 2, 2, fruit));
+  });
+}
+function lushPine(sc = 1.4) {
+  const w = Math.round(30 * sc), h = Math.round(52 * sc);
+  return paint(w, h, (s) => {
+    const tx = w / 2;
+    lushRect(s, Math.round(tx - 3), h - 11, 6, 10, T_BARK, 0, 0.1);
+    for (let t = 0; t < 5; t++) {
+      const ty = 3 + t * (h - 16) / 5, half = (3 + t * 2.6) * sc, th = 12 * sc;
+      for (let j = 0; j < th; j++) for (let i = -half - 2; i <= half + 2; i++) {
+        const lim = half * (0.35 + 0.65 * j / th) + (ghash(Math.round(i) + 30, j + t * 20, 5) - 0.5) * 2.4;
+        if (Math.abs(i) > lim) continue;
+        let k = shadeIdx(-i / (half + 1) * 0.9 + 0.4 - j / th * 0.9 - t * 0.06, T_PINE.length);
+        if (ghash(Math.round(tx + i), Math.round(ty + j), 93) < 0.14) k = Math.min(5, k + 1);
+        s.put(tx + i, ty + j, T_PINE[k]);
+      }
+      for (let i = -half; i <= half; i += 2) s.put(tx + i, ty + th - (Math.round(i) % 4 === 0 ? 0 : 1), T_PINE[4]);
+    }
+  });
+}
+const LUSH = {
+  tree: () => lushTree(T_LEAF, T_FRUIT),
+  tree_autumn: () => lushTree(T_AUTUMN, null),
+  tree_alien: () => lushTree(T_ALIEN, ['#e0ffff', '#70f0ff', '#20b0e0', '#106090']),
+  pine: () => lushPine(1.4),
+  bush: () => paint(26, 18, (s) => {
+    [[8, 11, 6, 0.3], [18, 11, 6, 0.45], [13, 7, 6.5, 0]].forEach(([x, y, r, b]) => lushEll(s, x, y, r, r * 0.85, T_LEAF, b, 0.16));
+    [[9, 9], [16, 6], [19, 12]].forEach(([x, y]) => { s.put(x, y, '#ff4a6a'); s.put(x, y - 1, '#ffb0c0'); });
+  }),
+  fern: () => paint(26, 18, (s) => {
+    [[-2.4, 11], [-1.9, 12], [-1.3, 12], [-0.7, 11], [-3.0, 9], [-0.1, 9]].forEach(([a, L]) => {
+      for (let t = 0; t <= L; t++) {
+        const px = 13 + Math.cos(a) * t, py = 16 + Math.sin(a) * t * 0.9, wd = Math.sin(Math.PI * t / L) * 2.2;
+        for (let k = -wd; k <= wd; k += 0.5) s.put(px - Math.sin(a) * k, py + Math.cos(a) * k * 0.9, k < -0.5 ? T_LEAF[1] : k > 0.8 ? T_LEAF[3] : T_LEAF[2]);
+        s.put(px, py, T_LEAF[4]);
+      }
+    });
+  }),
+  boulder: () => paint(24, 17, (s) => {
+    lushEll(s, 11, 9, 10, 7.2, T_STONE, 0.05, 0.08); lushEll(s, 16, 11, 5.5, 4.5, T_STONE, 0.25);
+    for (let x = 0; x < 24; x++) for (let y = 0; y < 7; y++) if (s.get(x, y) && ghash(x, y, 94) < 0.55 && gnoise(x * 4 % 192, y * 4 % 192, 16, 3) > 0.45) s.put(x, y, T_MOSS[y < 3 ? 0 : 1]);
+    s.line(9, 6, 12, 11, T_STONE[4]);
+  }),
+  menhir: () => paint(14, 28, (s) => {
+    lushEll(s, 7, 14, 5.5, 13, T_STONE, 0, 0.1); lushRect(s, 2, 20, 10, 7, T_STONE, 0.2, 0.1);
+    [[6, 11], [7, 11], [8, 12], [8, 13], [7, 14], [6, 14], [5, 13], [5, 12], [6, 12], [7, 13]].forEach(([x, y]) => s.put(x, y, '#c0482c'));
+    for (let x = 0; x < 14; x++) for (let y = 0; y < 7; y++) if (s.get(x, y) && ghash(x, y, 95) < 0.5) s.put(x, y, T_MOSS[1]);
+  }),
+};
+
+// Chunky pixel heart for the HUD: shiny red, with a dark purple empty half
+function pixelHeart(kind) {
+  const rows = ['.11...11.', '1221.1221', '122211111', '122111111', '.1111111.', '..11111..', '...111...', '....1....'];
+  return paint(11, 10, (s) => rows.forEach((r, j) => [...r].forEach((ch, i) => {
+    if (ch === '.') return;
+    let c = ch === '2' ? '#ffd0d8' : (i > 5 || j > 4) ? '#c01c3c' : '#ff3a5a';
+    if (kind === 'empty' || (kind === 'half' && i > 4)) c = ch === '2' ? '#7a6a8a' : '#3a2c4a';
+    s.put(i + 1, j + 1, c);
+  })), { outline: '#2a0a18' });
+}
+
 // Items, icons and decor
 const ITEMS = {
   club: () => paint(16, 16, (s) => { s.line(2, 14, 10, 6, WOOD[1], 2); s.ell(11, 5, 4, 4, WOOD, 0.2); s.put(10, 3, WOOD[0]); }),
@@ -661,8 +817,8 @@ const ITEMS = {
   gearpile: () => paint(26, 18, (s) => { gear(s, 8, 11, 5, BRASS, 7); gear(s, 18, 12, 4, COPPER, 6, 0.3); gear(s, 13, 6, 3, STEEL, 6); }),
   statue: () => paint(18, 44, (s) => { s.rect(2, 34, 14, 9, MARBLE); s.rect(4, 32, 10, 3, MARBLE); s.ell(9, 22, 5, 9, MARBLE); s.ell(9, 9, 4, 4.5, MARBLE); s.ell(8.5, 6, 4.5, 2.5, MARBLE, 0.3); s.rect(3, 17, 3, 8, MARBLE); s.rect(12, 15, 3, 7, MARBLE); s.put(10, 9, MARBLE[3]); }),
   chest: () => paint(20, 16, (s) => { s.rect(1, 5, 18, 10, WOOD, 0.1); s.ell(10, 5, 9, 4, WOOD); s.rect(1, 8, 18, 1, BRONZE); s.rect(8, 7, 4, 4, GOLD); s.put(10, 9, EYE); }),
-  heart: () => paint(13, 12, (s) => { s.ell(3.5, 3.5, 3, 3, RED); s.ell(8.5, 3.5, 3, 3, RED); s.ell(6, 6, 5, 4, RED); s.line(3, 7, 6, 10, RED[1]); s.line(9, 7, 6, 10, RED[2]); s.put(3, 2, '#ffffff'); }),
-  heart_empty: () => paint(13, 12, (s) => { const D = ['#5a3a30', '#4a2e26', '#3a221c', '#2a1812']; s.ell(3.5, 3.5, 3, 3, D); s.ell(8.5, 3.5, 3, 3, D); s.ell(6, 6, 5, 4, D); s.line(3, 7, 6, 10, D[1]); s.line(9, 7, 6, 10, D[2]); }),
+  heart: () => pixelHeart('full'),
+  heart_empty: () => pixelHeart('empty'),
   sandal: () => paint(14, 12, (s) => { s.ell(7, 8, 6, 2.6, LEATHER); s.line(4, 7, 8, 2, LEATHER[2]); s.line(10, 7, 8, 2, LEATHER[2]); s.put(8, 2, '#f0c060'); }),
   totem: () => paint(12, 18, (s) => { s.rect(2, 2, 8, 15, WOOD, 0.1); s.rect(1, 1, 10, 2, RED); s.put(4, 5, EYE); s.put(7, 5, EYE); s.rect(4, 8, 4, 1, RED[2]); s.put(4, 12, EYE); s.put(7, 12, EYE); s.rect(4, 14, 4, 1, GOLD[1]); }),
   flint: () => paint(12, 14, (s) => { for (let y = 0; y < 10; y++) s.line(6 - y * 0.5, y, 6 + y * 0.3, y, GREYS[y < 4 ? 0 : y < 7 ? 1 : 2]); s.rect(5, 10, 2, 4, LEATHER); }),
@@ -685,12 +841,7 @@ const ITEMS = {
     s.line(6.5, 0, 6.5, 12, S[1]); s.line(0, 6.5, 12, 6.5, S[1]);
     s.ell(6.5, 6.5, 3.2, 3.2, S); s.put(6, 5, '#ffffff'); s.put(2, 2, S[2]); s.put(11, 11, S[2]); s.put(11, 2, S[2]); s.put(2, 11, S[2]);
   }),
-  heart_half: () => paint(13, 12, (s) => {
-    const D = ['#5a3a30', '#4a2e26', '#3a221c', '#2a1812'];
-    s.ell(3.5, 3.5, 3, 3, RED); s.ell(8.5, 3.5, 3, 3, D); s.ell(6, 6, 5, 4, D); s.line(9, 7, 6, 10, D[2]);
-    for (let y = 2; y < 11; y++) for (let x = 1; x <= 6; x++) if ((x - 6) ** 2 / 25 + (y - 6) ** 2 / 16 <= 1 || (x - 3.5) ** 2 + (y - 3.5) ** 2 <= 9) s.put(x, y, y < 5 ? RED[0] : RED[1]);
-    s.put(3, 2, '#ffffff');
-  }),
+  heart_half: () => pixelHeart('half'),
   shieldicon: () => paint(10, 12, (s) => { const B = ['#e0f0ff', '#a8c8f0', '#6a8ac8', '#3a5a9a']; s.rect(1, 1, 8, 5, B); s.ell(5, 6, 4, 4.5, B); s.put(5, 3, '#ffffff'); }),
   potion_purple: () => paint(12, 15, (s) => { s.rect(5, 1, 2, 4, CREAM); s.ell(6, 9, 5, 5, PURPLE); s.put(4, 7, '#ffffff'); s.put(7, 10, '#f0d040'); s.put(5, 11, '#7ad0f4'); }),
   rabbitfoot: () => paint(12, 16, (s) => { s.ell(6, 10, 4, 5, CREAM, 0.1); s.ell(4, 5, 1.6, 3, CREAM); s.ell(8, 5, 1.6, 3, CREAM); s.rect(3, 14, 6, 1, GOLD); s.put(6, 13, GOLD[1]); }),
@@ -810,6 +961,7 @@ export function buildDefaultSprites() {
   for (const k of ['wolf', 'raptor', 'sabertooth', 'mammoth', 'trex', 'hydra', 'chariot', 'golem', 'pebble', 'testudo', 'slime', 'slimelet', 'troll', 'dragon', 'clockwork', 'gearling', 'cog', 'automaton', 'mech', 'steamhound', 'furnace', 'coalcart', 'coal', 'rat', 'locomotive', 'biker', 'tank', 'drone', 'minidrone', 'taxi', 'chopper', 'hoverbot', 'walker', 'ufo', 'nanite', 'overlord']) { seed = 202; add(k, [quad(k, 0), quad(k, 1)]); }
   seed = 303; add('wizard', [wizard()]);
   for (const [k, fn] of Object.entries(ITEMS)) { seed = 404; add(k, [fn()]); }
+  for (const [k, fn] of Object.entries(LUSH)) { seed = 707; add(k, [fn()]); }
   for (const [k, fn] of Object.entries(ANIM_ITEMS)) { seed = 505; add(k, [fn(0), fn(1)]); }
   for (const [k, fn] of Object.entries(PAINTINGS)) { seed = 606; add(k, [fn()]); }
   cache = out;
@@ -828,7 +980,7 @@ export const SPRITE_GROUPS = {
   Weapons: ['club', 'axe', 'spear', 'flame', 'rock', 'bolt', 'boneclub', 'amber', 'spiritflame', 'pilum', 'holyblade', 'tesla', 'steamhammer', 'drone_s', 'plasma', 'plasmabeam', 'dynamite', 'nailgun', 'nail', 'disc', 'lute', 'note', 'flask', 'swordcane', 'guitar', 'raygun', 'raybolt'],
   Items: ['treasure', 'chest_open', 'scroll', 'trophy', 'combo', 'cogicon', 'heart_half', 'shieldicon', 'potion_purple', 'rabbitfoot', 'firegem', 'mirror', 'gem_s', 'gem_m', 'gem_l', 'coin', 'spark', 'meat', 'magnet', 'chest', 'potion', 'star', 'reroll', 'skull', 'lock', 'crystal', 'feather', 'idol', 'ark', 'monalisa', 'alienegg', 'alien', 'excalibur', 'declaration', 'lightray'],
   Icons: ['heart', 'heart_empty', 'sandal', 'totem', 'flint', 'tusk', 'lodestone'],
-  Scenery: ['boulder', 'fern', 'bones', 'tree', 'campfire', 'handprint', 'deer', 'hunters', 'column', 'broken', 'urn', 'cypress', 'brazier', 'banner', 'haybale', 'shrub', 'torch', 'gravestone', 'easel', 'gearpile', 'statue', 'lantern', 'chimney', 'crate', 'barrel', 'rails', 'hydrant', 'cone', 'trashcan', 'stopsign', 'bench', 'pylon', 'crystalrock', 'pod', 'antenna', 'holosign', 'coalicon', 'missile'],
+  Scenery: ['boulder', 'fern', 'bones', 'tree', 'tree_autumn', 'tree_alien', 'pine', 'bush', 'menhir', 'campfire', 'handprint', 'deer', 'hunters', 'column', 'broken', 'urn', 'cypress', 'brazier', 'banner', 'haybale', 'shrub', 'torch', 'gravestone', 'easel', 'gearpile', 'statue', 'lantern', 'chimney', 'crate', 'barrel', 'rails', 'hydrant', 'cone', 'trashcan', 'stopsign', 'bench', 'pylon', 'crystalrock', 'pod', 'antenna', 'holosign', 'coalicon', 'missile'],
 };
 
 export function getSprite(key, overrides = {}) {
@@ -866,16 +1018,10 @@ export function generateTextures(scene, overrides = {}) {
     const tex = scene.textures.addCanvas(key, canvas);
     for (let i = 0; i < n; i++) tex.add(i, 0, i * w, 0, w, h);
   }
-  makeCaveGround(scene);
-  makeMosaicGround(scene);
-  makeTapestryGround(scene);
-  makeParchmentGround(scene);
-  makeNewsprintGround(scene);
-  makePopArtGround(scene);
-  makeNeonGround(scene);
+  for (const [k, g] of Object.entries(GROUNDS)) makeLushGround(scene, k, g);
   makeSimple(scene, 'px', 2, 2, (ctx) => { ctx.fillStyle = '#fff'; ctx.fillRect(0, 0, 2, 2); });
   makeSimple(scene, 'shadow', 16, 6, (ctx) => {
-    ctx.fillStyle = 'rgba(40,16,6,0.32)';
+    ctx.fillStyle = 'rgba(24,36,80,0.34)';
     ctx.fillRect(3, 0, 10, 6); ctx.fillRect(1, 1, 14, 4); ctx.fillRect(0, 2, 16, 2);
   });
   makeSimple(scene, 'portal', 40, 56, (ctx) => {
@@ -924,155 +1070,112 @@ function makeSimple(scene, key, w, h, draw) {
   scene.textures.addCanvas(key, c);
 }
 
-// Ochre cave floor: warm specks, cracks and dust
-function makeCaveGround(scene) {
-  makeSimple(scene, 'ground_cave', 192, 192, (ctx) => {
-    let s = 9001;
-    const r = () => { s = (s * 16807) % 2147483647; return s / 2147483647; };
-    ctx.fillStyle = '#c49a64'; ctx.fillRect(0, 0, 192, 192);
-    const specks = ['#ba9058', '#cea672', '#b0864e', '#d6b282', '#a87c48'];
-    for (let i = 0; i < 9000; i++) {
-      ctx.fillStyle = specks[Math.floor(r() * specks.length)];
-      ctx.fillRect(Math.floor(r() * 192), Math.floor(r() * 192), 1, 1 + Math.floor(r() * 2));
-    }
-    ctx.fillStyle = 'rgba(110,64,34,0.35)';
-    for (let i = 0; i < 6; i++) {
-      let x = 20 + r() * 150, y = 20 + r() * 150;
-      for (let j = 0; j < 24; j++) { ctx.fillRect(Math.floor(x), Math.floor(y), 1, 1); x += r() * 2 - 0.6; y += r() * 2 - 0.9; }
-    }
-    ctx.fillStyle = 'rgba(240,210,160,0.25)';
-    for (let i = 0; i < 30; i++) ctx.fillRect(Math.floor(r() * 190), Math.floor(r() * 190), 2, 1);
-  });
+// ---------------------------------------------------------------------------
+// Lush tiled grounds, one per age. Every noise wraps every 192px so the tile repeats seamlessly.
+const GT = 192;
+function ghash(x, y, sd) {
+  let h = (x * 374761393 + y * 668265263 + sd * 1442695041) | 0;
+  h = Math.imul(h ^ (h >>> 13), 1274126177); h ^= h >>> 16;
+  return ((h >>> 0) % 100000) / 100000;
+}
+// Value noise that wraps at the tile edge (sc must divide 192)
+function gnoise(x, y, sc, sd) {
+  const P = GT / sc, fx = x / sc, fy = y / sc, x0 = Math.floor(fx), y0 = Math.floor(fy), tx = fx - x0, ty = fy - y0;
+  const m = (v) => ((v % P) + P) % P, sm = (t) => t * t * (3 - 2 * t), L = (a, b, t) => a + (b - a) * t;
+  const a = ghash(m(x0), m(y0), sd), b = ghash(m(x0 + 1), m(y0), sd), c = ghash(m(x0), m(y0 + 1), sd), d = ghash(m(x0 + 1), m(y0 + 1), sd);
+  return L(L(a, b, sm(tx)), L(c, d, sm(tx)), sm(ty));
 }
 
-// Roman mosaic floor: small tesserae, a border band and a diamond in each panel
-function makeMosaicGround(scene) {
-  makeSimple(scene, 'ground_mosaic', 192, 192, (ctx) => {
-    let s = 4242;
-    const r = () => { s = (s * 16807) % 2147483647; return s / 2147483647; };
-    const T = 3;
-    const cream = ['#e8dcbc', '#e0d2b0', '#ecdec0', '#dccca8'];
-    const terra = ['#b8582e', '#a84a26', '#c0643a'];
-    const blue = ['#3a5a8a', '#2e4a76', '#46689a'];
-    const ink = ['#3a2a20', '#2e2018'];
-    ctx.fillStyle = '#8a7a64'; ctx.fillRect(0, 0, 192, 192);
-    for (let y = 0; y < 192; y += T) for (let x = 0; x < 192; x += T) {
-      const px = x % 96, py = y % 96;
-      const edge = Math.min(px, py, 95 - px, 95 - py);
-      const cx = Math.abs(px - 48), cy = Math.abs(py - 48);
-      let set = cream;
-      if (edge < 6) set = terra;
-      else if (edge < 9) set = ink;
-      else if (cx + cy < 18) set = blue;
-      else if (cx + cy < 21) set = ink;
-      else if ((cx + cy) % 24 < 3 && cx + cy < 40) set = terra;
-      ctx.fillStyle = set[Math.floor(r() * set.length)];
-      ctx.fillRect(x, y, T - 1, T - 1);
-    }
-  });
-}
+const GROUNDS = {
+  // Stone Age: bright spring meadow with worn dirt clearings
+  cave: { grass: ['#c6e25c', '#98cf3e', '#70b834', '#519c2f', '#3b7d2c'], patch: 'dirt', dirt: ['#ffdc84', '#f6c062', '#e4a24a', '#c8803a', '#a0602e'], cover: 0.2, flowers: ['#ff6aa8', '#ffe060', '#b070ff', '#ffffff'] },
+  // Roman Empire: sun-baked olive grass and old sandstone road slabs
+  mosaic: { grass: ['#dce070', '#b8cc4c', '#94b23e', '#729636', '#56782e'], patch: 'slabs', dirt: ['#fff2d0', '#f0dcb0', '#dcc290', '#bca274', '#94805a'], cover: 0.26, flowers: ['#ff5a4a', '#ffffff', '#ffe060'] },
+  // Middle Ages: deep green fields with cobblestone patches and mushrooms
+  tapestry: { grass: ['#8cd062', '#62b244', '#46963c', '#317a36', '#225e30'], patch: 'cobble', dirt: ['#d8d8d0', '#b0aeac', '#8a8890', '#6a6874', '#4a4858'], cover: 0.18, flowers: ['#ff4a4a', '#ffffff', '#c080ff'] },
+  // Renaissance: Tuscan flower meadow, lavender and poppies
+  parchment: { grass: ['#b8e070', '#8ec64c', '#68aa3e', '#4c8c38', '#36702e'], patch: 'dirt', dirt: ['#ffe8b0', '#f4d090', '#e2b470', '#c8945a', '#a07446'], cover: 0.12, flowers: ['#b080ff', '#9a60f0', '#ff4a4a', '#ffd040', '#ffffff'], flowerDensity: 3 },
+  // Industrial Age: autumn grass, cinder paths with coal and brick bits
+  newsprint: { grass: ['#f0c45c', '#d8a040', '#bc8038', '#9a6232', '#784a2c'], patch: 'cinder', dirt: ['#8a8088', '#6e666e', '#565058', '#423c46', '#2e2a34'], cover: 0.24, flowers: ['#ff7a3a', '#ffe060'] },
+  // Modern Age: striped park lawn with concrete paving
+  popart: { grass: ['#a8ea64', '#7cd44c', '#5cbc42', '#44a03c', '#328236'], patch: 'pavement', dirt: ['#f0f0ea', '#d8d8d2', '#bcbcb8', '#9a9aa0', '#7a7a84'], cover: 0.26, stripes: true, flowers: ['#ffffff', '#ffe060'] },
+  // Far Future: teal alien moss with glowing metal floor panels
+  neongrid: { grass: ['#6af0d0', '#3ad0b8', '#22a8a0', '#1a8088', '#145c70'], patch: 'panel', dirt: ['#b8c4e0', '#8e9cc0', '#6a789e', '#4c587c', '#343e5c'], cover: 0.22, flowers: ['#ff70ff', '#70ffff', '#fff070'], glow: '#5af0ff' },
+};
 
-// Medieval tapestry: woven wool threads, a gold lattice and little fleur shapes
-function makeTapestryGround(scene) {
-  makeSimple(scene, 'ground_tapestry', 192, 192, (ctx) => {
-    let s = 777;
-    const r = () => { s = (s * 16807) % 2147483647; return s / 2147483647; };
-    const red = ['#7a2e2a', '#722a26', '#80342e', '#6a2622'];
-    const green = ['#3e5a34', '#36502e', '#46623a'];
-    const gold = ['#c8a050', '#b89040', '#d4ac5c'];
-    for (let y = 0; y < 192; y++) for (let x = 0; x < 192; x++) {
-      const px = x % 48, py = y % 48;
-      const d1 = Math.abs(((px + py) % 48) - 24), d2 = Math.abs(((px - py + 96) % 48) - 24);
-      const cx = Math.abs(px - 24), cy = Math.abs(py - 24);
-      let set = red;
-      if (Math.min(d1, d2) > 22) set = gold;
-      else if (cx + cy < 6 || (cx < 2 && cy < 10) || (cy < 2 && cx < 10)) set = green;
-      // Woven look: alternate thread shading
-      const c = set[Math.floor(r() * set.length)];
-      ctx.fillStyle = c; ctx.fillRect(x, y, 1, 1);
-      if ((x + (y >> 1)) % 4 === 0) { ctx.fillStyle = 'rgba(0,0,0,0.12)'; ctx.fillRect(x, y, 1, 1); }
-      if ((y + (x >> 1)) % 6 === 0) { ctx.fillStyle = 'rgba(255,230,200,0.06)'; ctx.fillRect(x, y, 1, 1); }
-    }
-  });
+function makeLushGround(scene, key, g) {
+  makeSimple(scene, `ground_${key}`, GT, GT, (ctx) => drawLushGround(ctx, key, g));
 }
-
-// Renaissance sketchbook: sepia paper, faint grid and ink sketches of gears and flying machines
-function makeParchmentGround(scene) {
-  makeSimple(scene, 'ground_parchment', 192, 192, (ctx) => {
-    let s = 1452;
-    const r = () => { s = (s * 16807) % 2147483647; return s / 2147483647; };
-    ctx.fillStyle = '#dcc69c'; ctx.fillRect(0, 0, 192, 192);
-    const specks = ['#d4bc90', '#e2cea6', '#cfb486', '#e8d6b0'];
-    for (let i = 0; i < 7000; i++) {
-      ctx.fillStyle = specks[Math.floor(r() * specks.length)];
-      ctx.fillRect(Math.floor(r() * 192), Math.floor(r() * 192), 1 + Math.floor(r() * 2), 1);
-    }
-    ctx.fillStyle = 'rgba(120,90,50,0.12)';
-    for (let i = 0; i < 192; i += 24) { ctx.fillRect(i, 0, 1, 192); ctx.fillRect(0, i, 192, 1); }
-    // Ink sketches: a gear and a wing
-    ctx.fillStyle = 'rgba(80,50,24,0.35)';
-    const ring = (cx, cy, rad, teeth) => {
-      for (let a = 0; a < Math.PI * 2; a += 0.05) ctx.fillRect(Math.round(cx + Math.cos(a) * rad), Math.round(cy + Math.sin(a) * rad), 1, 1);
-      for (let i = 0; i < teeth; i++) {
-        const a = (i / teeth) * Math.PI * 2;
-        ctx.fillRect(Math.round(cx + Math.cos(a) * (rad + 2)), Math.round(cy + Math.sin(a) * (rad + 2)), 2, 2);
+export function drawLushGround(ctx, key, g = GROUNDS[key]) {
+  {
+    const img = ctx.createImageData(GT, GT), D = img.data;
+    const sd = key.length * 31 + key.charCodeAt(0);
+    const G = g.grass.map(rgbOf), P = g.dirt.map(rgbOf);
+    const W8 = (v) => ((v % GT) + GT) % GT;
+    const set = (x, y, c) => { const i = (W8(y) * GT + W8(x)) * 4; D[i] = c[0]; D[i + 1] = c[1]; D[i + 2] = c[2]; D[i + 3] = 255; };
+    // patches cover a set share of the tile (g.cover), whatever the noise happens to do
+    const pv = [];
+    for (let y = 0; y < GT; y++) for (let x = 0; x < GT; x++) pv[y * GT + x] = gnoise(x, y, 64, sd) * 0.85 + gnoise(x, y, 12, sd + 1) * 0.15;
+    const cut = [...pv].sort((a, b) => b - a)[Math.floor(pv.length * g.cover)];
+    const patch = pv.map(v => v > cut);
+    const pAt = (x, y) => patch[W8(y) * GT + W8(x)];
+    for (let y = 0; y < GT; y++) for (let x = 0; x < GT; x++) {
+      if (!pAt(x, y)) {
+        const n = gnoise(x, y, 24, sd + 2) * 0.7 + gnoise(x, y, 6, sd + 3) * 0.3;
+        let i = n > 0.62 ? 1 : n > 0.42 ? 2 : 3;
+        if (g.stripes && Math.floor(y / 24) % 2) i = Math.max(1, i - 1);
+        if (ghash(x, y, sd + 4) < 0.12) i += 1;
+        set(x, y, G[Math.min(4, i)]);
+        continue;
       }
-    };
-    ring(50, 60, 14, 10); ring(68, 74, 8, 7); ring(150, 140, 11, 9);
-    for (let i = 0; i < 6; i++) {
-      for (let t = 0; t < 30; t++) ctx.fillRect(Math.round(110 + t * 1.6), Math.round(40 + i * 3 - Math.sin(t / 30 * Math.PI) * 10), 1, 1);
+      const n = gnoise(x, y, 12, sd + 5);
+      let c = P[n > 0.55 ? 1 : 2];
+      if (g.patch === 'dirt' || g.patch === 'cinder') {
+        if (ghash(x, y, sd + 6) < 0.07) c = P[3];
+      } else if (g.patch === 'cobble') {
+        // round-ish stones in a staggered grid with dark gaps
+        const cy = Math.floor(y / 6), ox = (cy % 2) * 3, cx = Math.floor((x + ox) / 6);
+        const lx = (x + ox) % 6, ly = y % 6;
+        const v = ghash(cx % 32, cy % 32, sd + 7);
+        c = (lx === 0 || ly === 0 || (lx === 5 && ly === 5)) ? P[4] : (lx + ly < 3 ? P[0] : lx + ly > 7 ? P[2] : P[v > 0.5 ? 1 : 2]);
+      } else if (g.patch === 'slabs') {
+        const cy = Math.floor(y / 12), ox = (cy % 2) * 8, lx = (x + ox) % 16, ly = y % 12;
+        c = (lx === 0 || ly === 0) ? P[3] : (lx === 1 || ly === 1) ? P[0] : P[n > 0.5 ? 1 : 2];
+        if (ghash(x, y, sd + 8) < 0.02) c = ['#c0482c', '#2a6ab0', '#e8b030'].map(rgbOf)[Math.floor(ghash(x, y, 9) * 3)]; // mosaic chips
+      } else if (g.patch === 'pavement') {
+        const lx = x % 16, ly = y % 16;
+        c = (lx === 0 || ly === 0) ? P[3] : (lx === 1 || ly === 1) ? P[0] : P[n > 0.5 ? 1 : 2];
+      } else if (g.patch === 'panel') {
+        const lx = x % 24, ly = y % 24;
+        c = (lx === 0 || ly === 0) ? rgbOf(g.glow) : (lx === 1 || ly === 1) ? P[0] : (lx === 23 || ly === 23) ? P[4] : P[n > 0.5 ? 1 : 2];
+        if ((lx === 12 && ly > 8 && ly < 16) || (ly === 12 && lx > 8 && lx < 16)) c = P[3];
+      }
+      set(x, y, c);
     }
-    for (let i = 0; i < 4; i++) { const y = 150 + i * 6; ctx.fillRect(20, y, 30 + Math.floor(r() * 20), 1); }
-  });
-}
-
-// Industrial Age: a Victorian newspaper engraving, grey paper with crosshatching and columns of print
-function makeNewsprintGround(scene) {
-  makeSimple(scene, 'ground_newsprint', 192, 192, (ctx) => {
-    let s = 1851;
-    const r = () => { s = (s * 16807) % 2147483647; return s / 2147483647; };
-    ctx.fillStyle = '#c8c2b2'; ctx.fillRect(0, 0, 192, 192);
-    const specks = ['#c0baa8', '#d0caba', '#bab4a2', '#d4cebe'];
-    for (let i = 0; i < 7000; i++) {
-      ctx.fillStyle = specks[Math.floor(r() * specks.length)];
-      ctx.fillRect(Math.floor(r() * 192), Math.floor(r() * 192), 1, 1);
+    // grass lip over the patches, darker patch rim
+    for (let y = 0; y < GT; y++) for (let x = 0; x < GT; x++) {
+      const p = pAt(x, y), nb = [pAt(x - 1, y), pAt(x + 1, y), pAt(x, y - 1), pAt(x, y + 1)];
+      if (p && nb.includes(false)) { set(x, y, P[4]); if (!pAt(x, y - 1)) set(x, y + 1, P[3]); }
+      if (!p && nb.includes(true)) set(x, y, G[1]);
     }
-    // Columns of tiny print
-    ctx.fillStyle = 'rgba(40,36,32,0.16)';
-    for (const x0 of [8, 104]) for (let y = 10; y < 86; y += 4) ctx.fillRect(x0, y, 60 + Math.floor(r() * 18), 1);
-    ctx.fillStyle = 'rgba(40,36,32,0.22)'; ctx.fillRect(0, 96, 192, 1); ctx.fillRect(96, 0, 1, 96);
-    // Engraved crosshatching in the lower half
-    ctx.fillStyle = 'rgba(40,36,32,0.12)';
-    for (let i = -192; i < 192; i += 5) for (let t = 0; t < 96; t++) { const x = i + t, y = 96 + t; if (x >= 0 && x < 192) ctx.fillRect(x, y, 1, 1); }
-    for (let i = 0; i < 384; i += 9) for (let t = 0; t < 96; t++) { const x = i - t, y = 96 + t; if (x >= 0 && x < 192 && (x + y) % 3) ctx.fillRect(x, y, 1, 1); }
-  });
-}
-
-// Modern Age: pop-art comic page, yellow with soft Ben-Day dots and thick panel lines
-function makePopArtGround(scene) {
-  makeSimple(scene, 'ground_popart', 192, 192, (ctx) => {
-    ctx.fillStyle = '#f2d04e'; ctx.fillRect(0, 0, 192, 192);
-    ctx.fillStyle = '#e6b83e';
-    for (let y = 0; y < 192; y += 6) for (let x = (y / 6) % 2 ? 3 : 0; x < 192; x += 6) ctx.fillRect(x, y, 2, 2);
-    // A red-dotted panel
-    ctx.fillStyle = '#ecc04a'; ctx.fillRect(100, 100, 88, 88);
-    ctx.fillStyle = '#e09a7a';
-    for (let y = 102; y < 188; y += 6) for (let x = (y / 6) % 2 ? 105 : 102; x < 188; x += 6) ctx.fillRect(x, y, 2, 2);
-    ctx.fillStyle = 'rgba(30,24,40,0.5)';
-    ctx.fillRect(0, 96, 192, 3); ctx.fillRect(96, 0, 3, 192);
-  });
-}
-
-// Far Future: dark synthwave floor with a glowing neon grid and a few stars
-function makeNeonGround(scene) {
-  makeSimple(scene, 'ground_neongrid', 192, 192, (ctx) => {
-    let s = 3001;
-    const r = () => { s = (s * 16807) % 2147483647; return s / 2147483647; };
-    ctx.fillStyle = '#1c1036'; ctx.fillRect(0, 0, 192, 192);
-    for (let i = 0; i < 60; i++) { ctx.fillStyle = r() < 0.5 ? 'rgba(200,220,255,0.5)' : 'rgba(255,160,255,0.35)'; ctx.fillRect(Math.floor(r() * 192), Math.floor(r() * 192), 1, 1); }
-    ctx.fillStyle = 'rgba(200,60,255,0.28)';
-    for (let i = 0; i < 192; i += 32) { ctx.fillRect(i, 0, 1, 192); ctx.fillRect(0, i, 192, 1); }
-    ctx.fillStyle = 'rgba(90,240,255,0.18)';
-    for (let i = 16; i < 192; i += 32) { ctx.fillRect(i, 0, 1, 192); ctx.fillRect(0, i, 192, 1); }
-  });
+    // leaf tufts, pebbles and flowers
+    for (let y = 0; y < GT; y++) for (let x = 0; x < GT; x++) {
+      if (pAt(x, y)) {
+        if ((g.patch === 'dirt' || g.patch === 'cinder') && ghash(x, y, sd + 10) < 0.01 && pAt(x + 2, y + 2) && pAt(x - 2, y - 2)) {
+          const peb = g.patch === 'cinder' && ghash(x, y, 11) < 0.5 ? ['#2a2228', '#141016', '#ff8a30'] : null;
+          set(x, y, peb ? rgbOf(peb[0]) : P[4]); set(x + 1, y, peb ? rgbOf(peb[1]) : P[3]); set(x, y - 1, peb ? rgbOf(peb[2]) : P[0]);
+        }
+        continue;
+      }
+      if (ghash(x, y, sd + 12) < 0.035 && !pAt(x, y + 2) && !pAt(x, y - 2)) {
+        const light = ghash(x, y, sd + 13) < 0.5 ? G[0] : G[1];
+        set(x - 1, y - 1, light); set(x + 1, y - 1, light); set(x, y, light); set(x, y + 1, G[4]); set(x - 1, y, G[2]); set(x + 1, y, G[2]);
+      } else if (ghash(x, y, sd + 14) < 0.0022 * (g.flowerDensity || 1) && !pAt(x, y + 2) && !pAt(x + 2, y)) {
+        const f = rgbOf(g.flowers[Math.floor(ghash(x, y, sd + 15) * g.flowers.length)]);
+        const lt = f.map(v => v + (255 - v) * 0.5), dk = f.map(v => v * 0.7);
+        set(x, y - 1, lt); set(x - 1, y, dk); set(x + 1, y, f); set(x, y + 1, f); set(x, y, rgbOf('#fff2a0')); set(x, y + 2, G[4]);
+      }
+    }
+    ctx.putImageData(img, 0, 0);
+  }
 }

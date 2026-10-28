@@ -20,6 +20,8 @@ export const POOL_WEAPONS = Object.keys(WEAPONS).filter(k => !WEAPONS[k].signatu
 // A signature weapon counts as its normal weapon for combos
 export const baseWeapon = (k) => (WEAPONS[k] && WEAPONS[k].base) || k;
 export const EVENTS = CFG.events || [];
+// Index of the age a shared weapon belongs to (0 = from the start)
+export const weaponEra = (k) => Math.max(0, AGES.findIndex(a => a.key === (WEAPONS[k] && WEAPONS[k].era)));
 
 // Level-up card rarities. mult = how much bigger this level's stat boost is
 // (a Rare Sharp Flint gives +14% damage instead of +12%).

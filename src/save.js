@@ -12,6 +12,7 @@ const DEFAULTS = {
   sparks: 0,          // carry-over currency, spent on permanent upgrades
   upgrades: {},       // meta upgrade id -> level
   relics: {},         // relic id -> true once unlocked with Sparks
+  weaponsFound: {},   // weapon key -> true once equipped; it then shows up from the first age
   daily: { date: '', best: 0, bestKills: 0, played: false },
   tutorialDone: false,
   stats: {},          // lifetime counters for quests (see quests.js)
@@ -49,6 +50,12 @@ export const save = load();
 const REMOVED_RELICS = { rosetta: 800, grail: 1000, fleece: 1000, pandora: 1500 };
 for (const [id, cost] of Object.entries(REMOVED_RELICS)) {
   if (save.relics[id]) { delete save.relics[id]; save.sparks += cost; }
+}
+
+// Weapons used before they were tied to an age stay unlocked
+if (!save.weaponsFound.__seeded) {
+  for (const [k, n] of Object.entries((save.stats && save.stats.wk) || {})) if (n > 0) save.weaponsFound[k] = true;
+  save.weaponsFound.__seeded = true;
 }
 
 // Thick Skin now only goes to level 1: levels bought past that give their Sparks back

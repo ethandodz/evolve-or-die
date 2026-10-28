@@ -1,7 +1,7 @@
 import Phaser from 'phaser';
 import { audio } from '../audio.js';
 import { save, persist } from '../save.js';
-import { AGES, ENEMIES, WEAPONS, PASSIVES, SHOP_ITEMS, RARE_ITEMS, META, CFG, RARITIES, wholeEffect, AGE_LENGTH, BAL, CHARACTERS, COMBOS, EVENTS, statsOf, xpForLevel, POOL_WEAPONS, baseWeapon, RELICS } from '../data.js';
+import { AGES, ENEMIES, WEAPONS, PASSIVES, SHOP_ITEMS, RARE_ITEMS, META, CFG, RARITIES, wholeEffect, AGE_LENGTH, BAL, CHARACTERS, COMBOS, EVENTS, statsOf, xpForLevel, POOL_WEAPONS, baseWeapon, RELICS, weaponEra } from '../data.js';
 import { W, H, FONT, buzz } from '../ui.js';
 import { stats, bump, best, allQuests, isDone, doneIds } from '../quests.js';
 import { submitScore, cloudBackup, onlineEnabled } from '../online.js';
@@ -811,9 +811,20 @@ export default class Game extends Phaser.Scene {
 
   // ------------------------------------------------------------------
   // Weapons
+  // Shared weapons you can be offered: those from this age or earlier, plus any found in past runs
+  poolWeapons() {
+    return POOL_WEAPONS.filter(k => weaponEra(k) <= this.ageIndex || this.loop > 0 || save.weaponsFound[k]);
+  }
+
   addWeapon(key) {
     const w = { key, level: 1, t: 0.4, queue: [], sprites: [], phase: 0 };
     this.weapons.push(w);
+    // Equipping a later age's weapon for the first time unlocks it from the Stone Age on
+    if (!WEAPONS[key].signature && !save.weaponsFound[key]) {
+      save.weaponsFound[key] = true;
+      persist();
+      if (weaponEra(key) > 0 && this.ui && this.ui.ready) this.ui.banner('DISCOVERED!', `${WEAPONS[key].name} can now show up\nfrom the ${AGES[0].name} in future runs`, 2200, '#7ad0f4');
+    }
     if (WEAPONS[key].behavior === 'aura') {
       w.ring = this.add.graphics().setDepth(-1.8e7);
       for (let i = 0; i < 10; i++) w.sprites.push(this.add.sprite(0, 0, WEAPONS[key].icon, 0).setScale(1.4).setOrigin(0.5, 0.9));
@@ -1444,7 +1455,7 @@ export default class Game extends Phaser.Scene {
   // Free weapon pick early in the run
   openGift() {
     const owned = new Set(this.weapons.map(w => w.key));
-    const list = shuffle(POOL_WEAPONS.filter(k => !owned.has(k))).slice(0, 3)
+    const list = shuffle(this.poolWeapons().filter(k => !owned.has(k))).slice(0, 3)
       .map(k => ({ type: 'weapon', key: k, level: 1, isNew: true, gift: true }));
     if (!list.length) return;
     this.frozen = true;
@@ -1462,7 +1473,7 @@ export default class Game extends Phaser.Scene {
     const owned = new Set(this.weapons.map(w => w.key));
     for (const w of this.weapons) if (w.level < this.weaponMax(w.key)) pool.push({ type: 'weapon', key: w.key, cur: w.level, max: this.weaponMax(w.key) });
     for (const k of this.passiveOrder) if (this.passives[k] < this.passiveMax(k)) pool.push({ type: 'passive', key: k, cur: this.passives[k], max: this.passiveMax(k) });
-    if (this.weapons.length < this.weaponSlots) for (const k of POOL_WEAPONS) if (!owned.has(k)) pool.push({ type: 'weapon', key: k, cur: 0, max: this.weaponMax(k), isNew: true });
+    if (this.weapons.length < this.weaponSlots) for (const k of this.poolWeapons()) if (!owned.has(k)) pool.push({ type: 'weapon', key: k, cur: 0, max: this.weaponMax(k), isNew: true });
     if (this.passiveOrder.length < this.passiveSlots) for (const k of Object.keys(PASSIVES)) if (!this.passives[k]) pool.push({ type: 'passive', key: k, cur: 0, max: this.passiveMax(k), isNew: true });
     return pool;
   }
@@ -2093,7 +2104,7 @@ export default class Game extends Phaser.Scene {
   // Confusion Potion: every weapon becomes a different random one at the same level
   confuseWeapons() {
     const old = this.weapons;
-    const pool = shuffle(POOL_WEAPONS.filter(k => !old.some(w => w.key === k)).concat(old.map(w => w.key).filter(k => !WEAPONS[k].signature)));
+    const pool = shuffle(this.poolWeapons().filter(k => !old.some(w => w.key === k)).concat(old.map(w => w.key).filter(k => !WEAPONS[k].signature)));
     this.weapons = [];
     const used = new Set();
     for (const w of old) {
@@ -2156,7 +2167,7 @@ export default class Game extends Phaser.Scene {
       }
       case 'weapon': {
         const owned = new Set(this.weapons.map(w => w.key));
-        const opts = POOL_WEAPONS.filter(k => !owned.has(k));
+        const opts = this.poolWeapons().filter(k => !owned.has(k));
         if (!opts.length || this.weapons.length >= this.weaponSlots) return false;
         const k = pick(opts); this.addWeapon(k);
         this.checkCombos();

@@ -1650,28 +1650,26 @@ export default class Game extends Phaser.Scene {
     c.mult = RARITIES[ri].mult;
     c.level = c.cur + 1;
     // A weapon level-up raises one stat, shown on the card
-    if (c.type === 'weapon' && !c.isNew) c.up = this.rollUpgrade(this.weapons.find(w => w.key === c.key), c.mult);
+    if (c.type === 'weapon' && !c.isNew) c.ups = this.rollUpgrade(this.weapons.find(w => w.key === c.key), c.mult, ri + 1);
     return c;
   }
 
-  // Pick the one stat a weapon level-up raises, and by how much.
-  // Rarity multiplies the amount. Whole-number stats (+1 swing) are Common, or +2 on a Legendary.
-  rollUpgrade(w, mult = 1) {
-    const opts = upgradeOptions(w.key).filter(o => !o.whole || (w.ups?.[o.stat] || 0) < o.cap);
-    const cont = opts.filter(o => !o.whole);
-    const pool = mult > 1 && mult < 2 && cont.length ? cont : opts;
-    const o = pick(pool);
-    if (!o) return null;
-    if (o.whole) return { stat: o.stat, amount: Math.min(mult >= 2 ? 2 : 1, o.cap - (w.ups?.[o.stat] || 0)) };
-    return { stat: o.stat, amount: o.step * mult };
+  // Pick the stats a weapon level-up raises, and by how much: Common raises 1 stat,
+  // Rare 2, Epic 3, Legendary 4 (or all the weapon has). Rarity also multiplies each amount;
+  // whole-number stats (+1 swing) go up by 1, or 2 on a Legendary.
+  rollUpgrade(w, mult = 1, count = 1) {
+    const opts = shuffle(upgradeOptions(w.key).filter(o => !o.whole || (w.ups?.[o.stat] || 0) < o.cap));
+    return opts.slice(0, count).map(o => o.whole
+      ? { stat: o.stat, amount: Math.min(mult >= 2 ? 2 : 1, o.cap - (w.ups?.[o.stat] || 0)) }
+      : { stat: o.stat, amount: o.step * mult });
   }
 
-  // Level a weapon up by one, raising the given stat (or a random one)
-  levelWeapon(w, up = this.rollUpgrade(w)) {
+  // Level a weapon up by one, raising the given stats (or one random stat)
+  levelWeapon(w, ups = this.rollUpgrade(w)) {
     w.level++;
     w.ups ??= {};
-    if (up) w.ups[up.stat] = (w.ups[up.stat] || 0) + up.amount;
-    return up;
+    for (const up of ups) w.ups[up.stat] = (w.ups[up.stat] || 0) + up.amount;
+    return ups;
   }
 
   rerollChoices() {
@@ -1686,7 +1684,7 @@ export default class Game extends Phaser.Scene {
     if (c.rarity === 3) bump('legendary');
     if (c.type === 'weapon') {
       let w = this.weapons.find(x => x.key === c.key);
-      if (w) this.levelWeapon(w, c.up || this.rollUpgrade(w, mult));
+      if (w) this.levelWeapon(w, c.ups || this.rollUpgrade(w, mult, (c.rarity || 0) + 1));
       else {
         w = this.addWeapon(c.key);
         // A Rare+ new weapon starts with extra damage
@@ -2328,8 +2326,8 @@ export default class Game extends Phaser.Scene {
         const opts = this.upgradableWeapons();
         if (!opts.length) return false;
         const w = opts.find(x => x.key === choice) || pick(opts);
-        const up = this.levelWeapon(w);
-        it.result = `${WEAPONS[w.key].name} is now level ${w.level}${up ? `: ${upgradeText(w.key, up.stat, up.amount)}` : ''}`;
+        const ups = this.levelWeapon(w);
+        it.result = `${WEAPONS[w.key].name} is now level ${w.level}${ups.length ? `: ${ups.map(u => upgradeText(w.key, u.stat, u.amount)).join(', ')}` : ''}`;
         break;
       }
       case 'crystal': {

@@ -423,7 +423,7 @@ export default class UI extends Phaser.Scene {
       const d = WEAPONS[ch.key];
       name = d.name; icon = d.icon;
       if (ch.isNew) desc = `${d.kind}. ${d.blurb}`;
-      else desc = ch.up ? upgradeText(ch.key, ch.up.stat, ch.up.amount) : 'Stronger';
+      else desc = ch.ups && ch.ups.length ? ch.ups.map(u => upgradeText(ch.key, u.stat, u.amount)).join('\n') : 'Stronger';
       // A Rare+ new weapon starts with extra damage (Game.applyUpgrade)
       const dmg = d.stats?.dmg;
       if (ch.isNew && mult > 1 && dmg && dmg.per) desc += `\nStarts with ${upgradeText(ch.key, 'dmg', (upgradeOptions(ch.key).find(o => o.stat === 'dmg') || { step: 0 }).step * (mult - 1))}`;

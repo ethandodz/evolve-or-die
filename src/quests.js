@@ -1,6 +1,6 @@
 // Quests and achievements: lifetime goals that pay Sparks when claimed on the menu.
 import { save, persist } from './save.js';
-import { WEAPONS, AGES, ENEMIES, COMBOS, CHARACTERS } from './data.js';
+import { WEAPONS, PASSIVES, AGES, ENEMIES, COMBOS, CHARACTERS, RELICS, weaponEra } from './data.js';
 
 // Lifetime counters live in save.stats
 export function stats() {
@@ -97,13 +97,47 @@ export function weaponUnlocked(key) {
   return !!w && (!w.cost || bought('weapon', key));
 }
 
-// Everything on the UNLOCK menu: weapons, then characters
-export function unlockables() {
-  const out = [];
-  for (const [k, w] of Object.entries(WEAPONS)) if (w.cost) out.push({ type: 'weapon', key: k, name: w.name, icon: w.icon, blurb: w.blurb, cost: w.cost, item: w });
-  for (const ch of CHARACTERS) if (ch.cost) out.push({ type: 'char', key: ch.key, name: `${ch.name}, ${ch.title}`, icon: ch.sprite, blurb: ch.perk, cost: ch.cost, item: ch });
-  return out;
+export function passiveUnlocked(key) {
+  const p = PASSIVES[key];
+  return !!p && (!p.cost || bought('passive', key));
 }
+
+// Rows for one UNLOCK menu tab ('weapon', 'passive' or 'relic'), unlocked first.
+// goal: what's still needed; ready: the goal is met so it can be bought for cost Sparks
+export function unlockList(tab) {
+  const out = [];
+  if (tab === 'weapon') {
+    for (const [k, w] of Object.entries(WEAPONS)) {
+      const row = { type: 'weapon', key: k, name: w.name, icon: w.icon, blurb: w.blurb, cost: w.cost || 0, item: w };
+      if (w.signature) {
+        // A character's own weapon: unlocked along with the character (hidden characters' are left out)
+        const ch = CHARACTERS.find(c => c.key === w.signature);
+        if (!ch) continue;
+        Object.assign(row, { unlocked: charUnlocked(ch), goal: `Unlock ${ch.name} to find it` });
+      } else if (w.cost) {
+        Object.assign(row, { unlocked: bought('weapon', k), ready: goalMet(w), goal: goalText(w) });
+      } else {
+        // Shared weapons from later ages turn up once you reach their age
+        const era = weaponEra(k);
+        Object.assign(row, { unlocked: era === 0 || !!save.weaponsFound[k], goal: `Reach the ${titleCase(AGES[era].name)} to find it` });
+      }
+      out.push(row);
+    }
+  } else if (tab === 'passive') {
+    for (const [k, p] of Object.entries(PASSIVES)) {
+      out.push({ type: 'passive', key: k, name: p.name, icon: p.icon, blurb: p.blurb, cost: p.cost || 0, item: p,
+        unlocked: passiveUnlocked(k), ready: goalMet(p), goal: goalText(p) });
+    }
+  } else {
+    for (const r of RELICS) {
+      out.push({ type: 'relic', key: r.id, name: r.name, icon: r.icon, blurb: r.blurb, cost: r.cost, item: r,
+        unlocked: !!save.relics[r.id], ready: true, goal: `Unlock it for ${r.cost} Sparks, then find it in treasure chests during a run.` });
+    }
+  }
+  return out.filter(r => r.unlocked).concat(out.filter(r => !r.unlocked));
+}
+
+const titleCase = (t) => String(t).toLowerCase().replace(/\b\w/g, c => c.toUpperCase());
 
 // The goal still to reach for an unlockable, with progress ("Die 20 times 12/20")
 export function goalText(item) {
@@ -119,9 +153,10 @@ export function goalText(item) {
 }
 
 export function buyUnlock(u) {
-  if (bought(u.type, u.key) || !goalMet(u.item) || save.sparks < u.cost) return false;
+  if (u.unlocked || !u.cost || !u.ready || save.sparks < u.cost) return false;
   save.sparks -= u.cost;
-  save.unlocks[unlockId(u.type, u.key)] = true;
+  if (u.type === 'relic') save.relics[u.key] = true;
+  else save.unlocks[unlockId(u.type, u.key)] = true;
   persist();
   return true;
 }

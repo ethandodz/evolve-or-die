@@ -3,7 +3,7 @@ import { audio } from '../audio.js';
 import { save, persist, resetProgress } from '../save.js';
 import { CHARACTERS, AGES, WEAPONS, ENEMIES, META, TWISTS, RELICS } from '../data.js';
 import { W, H, text, button, panel, settingsPanel, COLORS, fmtTime, FONT } from '../ui.js';
-import { allQuests, progress, isDone, isClaimed, claimable, claim, charUnlocked, goalMet, bought, unlockables, goalText, buyUnlock } from '../quests.js';
+import { allQuests, progress, isDone, isClaimed, claimable, claim, charUnlocked, goalMet, bought, unlockList, buyUnlock } from '../quests.js';
 import { onlineEnabled, topScores, playerName, cloudCode, cloudBackup, cloudRestore } from '../online.js';
 
 const fit = (img, size) => { const f = img.frame; return img.setScale(Math.min(size / f.width, size / f.height)); };
@@ -62,9 +62,8 @@ export default class Title extends Phaser.Scene {
       button(this, W / 2 + 68, 536, 124, 48, 'EVOLVE', () => this.showUpgrades(), { size: 10, icon: 'spark', iconScale: 1.8 }),
       button(this, W / 2 - 68, 594, 124, 48, 'QUESTS', () => this.showQuests(), { size: 10, icon: 'scroll', iconScale: 1.6 }),
       button(this, W / 2 + 68, 594, 124, 48, 'SCORES', () => this.showScores(), { size: 10, icon: 'trophy', iconScale: 1.6 }),
-      button(this, W / 2 - 68, 650, 124, 40, 'UNLOCK', () => this.showUnlocks(), { size: 8, icon: 'lock', iconScale: 1.4, color: COLORS.red, hi: COLORS.redHi }),
-      button(this, W / 2 + 68, 650, 124, 40, 'RELICS', () => this.showRelics(), { size: 8, icon: 'monalisa', iconScale: 1.2, color: COLORS.purple, hi: COLORS.purpleHi }),
-      button(this, 142, 26, 84, 30, 'SETTINGS', () => this.openSettings(), { size: 6, color: COLORS.grey, hi: COLORS.button }),
+      button(this, W / 2 - 68, 650, 124, 40, 'UNLOCK', () => this.showUnlocks(), { size: 8, icon: 'lock', iconScale: 1.4, color: COLORS.purple, hi: COLORS.purpleHi }),
+      button(this, W / 2 + 68, 650, 124, 40, 'SETTINGS', () => this.openSettings(), { size: 8 }),
       button(this, 52, 26, 84, 30, 'EDITOR', () => { window.location.href = 'editor.html'; }, { size: 6, color: COLORS.grey, hi: COLORS.button }),
     ];
     // Red badge when quest rewards are waiting
@@ -379,100 +378,67 @@ export default class Title extends Phaser.Scene {
     this.scene.start('Game', { character, daily });
   }
 
-  // New weapons and characters: finish their goal, then buy them with Sparks
-  showUnlocks() {
-    const { c, close } = this.overlay(420, 740);
-    c.add(text(this, W / 2, 62, 'UNLOCK', 22, '#ffe070'));
-    c.add(text(this, W / 2, 90, 'Reach the goal, then spend Sparks\nto add it to the game.', 7, '#c0a080'));
-    c.add(this.add.image(W / 2 - 40, 126, 'spark').setScale(2));
-    const have = text(this, W / 2 - 22, 126, '', 12, '#ffe060', 0);
+  // Everything there is to unlock, in tabs: weapons, passives and relics.
+  // Locked ones are blacked out as ??? with the quest that unlocks them; some then cost Sparks.
+  showUnlocks(tab = 'weapon') {
+    const { c, close } = this.overlay(420, 760);
+    c.add(text(this, W / 2, 46, 'UNLOCK', 22, '#ffe070'));
+    c.add(this.add.image(W / 2 - 40, 78, 'spark').setScale(2));
+    const have = text(this, W / 2 - 22, 78, '', 12, '#ffe060', 0);
     c.add(have);
+    const TABS = [['weapon', 'WEAPONS'], ['passive', 'PASSIVES'], ['relic', 'RELICS']];
+    const tabBtns = TABS.map(([id, label], i) => {
+      const b = button(this, W / 2 - 128 + i * 128, 118, 120, 38, label, () => { audio.play('select'); tab = id; page = 0; draw(); }, { size: 8 });
+      c.add(b);
+      return [id, b];
+    });
     const rows = this.add.container(0, 0);
     c.add(rows);
+    const PER = 6;
+    let page = 0;
+    const pageText = text(this, W / 2, 690, '', 8, '#c0a080');
+    const prev = button(this, W / 2 - 110, 690, 70, 34, '<', () => { page--; draw(); }, { size: 12 });
+    const next = button(this, W / 2 + 110, 690, 70, 34, '>', () => { page++; draw(); }, { size: 12 });
+    c.add([pageText, prev, next]);
     const draw = () => {
       rows.removeAll(true);
       have.setText(String(save.sparks));
       this.sparkText.setText(String(save.sparks));
-      const list = unlockables();
-      if (!list.length) rows.add(text(this, W / 2, 300, 'Nothing new to unlock yet.\nMore is on the way!', 9, '#d0b890'));
-      list.forEach((u, i) => {
-        const y = 182 + i * 92;
-        const owned = bought(u.type, u.key), ready = goalMet(u.item);
+      for (const [id, b] of tabBtns) b.setAlpha(id === tab ? 1 : 0.55);
+      const list = unlockList(tab);
+      const pages = Math.max(1, Math.ceil(list.length / PER));
+      page = (page + pages) % pages;
+      pageText.setText(`${page + 1} / ${pages}`);
+      [pageText, prev, next].forEach(o => o.setVisible(pages > 1));
+      list.slice(page * PER, page * PER + PER).forEach((u, i) => {
+        const y = 186 + i * 82;
+        const open = u.unlocked, canBuy = !open && u.cost > 0;
         const g = this.add.graphics();
-        g.fillStyle(0x0c1030, 1).fillRect(W / 2 - 196, y - 42, 392, 86);
-        g.fillStyle(owned ? 0x2f7a3a : 0x263ea8, 1).fillRect(W / 2 - 194, y - 40, 388, 82);
+        g.fillStyle(0x0c1030, 1).fillRect(W / 2 - 196, y - 38, 392, 76);
+        g.fillStyle(open ? 0x263ea8 : 0x1c2a70, 1).fillRect(W / 2 - 194, y - 36, 388, 72);
         rows.add(g);
         if (this.textures.exists(u.icon)) {
           const ic = fit(this.add.image(W / 2 - 166, y, u.icon, 0), 42);
-          if (!owned && !ready) ic.setTintFill(0x0c0604);
+          if (!open) ic.setTintFill(0x0c0604);
           rows.add(ic);
         }
-        rows.add(text(this, W / 2 - 136, y - 28, `${u.name.toUpperCase()}${u.type === 'weapon' ? '  (WEAPON)' : ''}`, 8, owned ? '#9ae07a' : '#ffffff', 0));
-        rows.add(this.add.text(W / 2 - 136, y - 16, u.blurb || '', { fontFamily: FONT, fontSize: '7px', color: '#d0b890', wordWrap: { width: 200 }, lineSpacing: 3 }).setOrigin(0, 0));
-        if (!owned) rows.add(text(this, W / 2 - 136, y + 28, ready ? 'Goal done!' : goalText(u.item), 7, ready ? '#9ae07a' : '#ff9a8a', 0));
-        const b = button(this, W / 2 + 145, y, 86, 40, owned ? 'UNLOCKED' : String(u.cost), () => {
-          if (owned) return;
-          if (!buyUnlock(u)) { audio.play('deny'); return; }
-          audio.play('buy');
-          draw();
-        }, { size: owned ? 7 : 10, icon: owned ? null : 'spark', iconScale: 1.4, color: owned || !ready ? COLORS.grey : COLORS.green, hi: owned || !ready ? COLORS.grey : COLORS.greenHi });
-        if (!owned && (!ready || save.sparks < u.cost)) b.setAlpha(0.55);
-        if (owned) b.setDisabled(true);
-        rows.add(b);
+        const textW = canBuy ? 200 : 290;
+        rows.add(text(this, W / 2 - 136, y - 22, open ? u.name.toUpperCase() : '???', open && u.name.length > 18 ? 7 : 9, open ? '#ffffff' : '#7a6a5a', 0));
+        const desc = open ? u.blurb : u.type === 'relic' ? u.goal : u.ready && u.cost ? `Quest done! Unlock it for ${u.cost} Sparks.` : `To unlock: ${u.goal}`;
+        rows.add(this.add.text(W / 2 - 136, y - 10, desc || '', { fontFamily: FONT, fontSize: '7px', color: open ? '#d0b890' : u.type === 'relic' ? '#ffe060' : u.ready ? '#9ae07a' : '#ff9a8a', wordWrap: { width: textW }, lineSpacing: 3 }).setOrigin(0, 0));
+        if (canBuy) {
+          const b = button(this, W / 2 + 145, y, 86, 40, String(u.cost), () => {
+            if (!buyUnlock(u)) { audio.play('deny'); return; }
+            audio.play('buy');
+            draw();
+          }, { size: 10, icon: 'spark', iconScale: 1.4, color: u.ready ? COLORS.green : COLORS.grey, hi: u.ready ? COLORS.greenHi : COLORS.grey });
+          if (!u.ready || save.sparks < u.cost) b.setAlpha(0.55);
+          rows.add(b);
+        }
       });
     };
     draw();
     c.add(button(this, W / 2, 742, 160, 36, 'BACK', close, { size: 12 }));
-  }
-
-  // Relics: unlock with Sparks, then find them in treasure chests during runs
-  showRelics() {
-    audio.unlock();
-    this.mainButtons.forEach(b => b.setVisible(false));
-    const c = this.add.container(0, 0).setDepth(500);
-    c.add(this.add.rectangle(W / 2, H / 2, W, H, 0x000000, 0.75).setInteractive());
-    c.add(panel(this, W / 2, H / 2, 420, 740));
-    c.add(text(this, W / 2, 62, 'RELICS', 22, '#ffe070'));
-    c.add(text(this, W / 2, 90, 'Unlock a powerful relic for a chance\nto encounter them in your run.', 7, '#c0a080'));
-    c.add(this.add.image(W / 2 - 40, 126, 'spark').setScale(2));
-    const have = text(this, W / 2 - 22, 126, '', 12, '#ffe060', 0);
-    c.add(have);
-    const rows = this.add.container(0, 0);
-    c.add(rows);
-    const draw = () => {
-      rows.removeAll(true);
-      have.setText(String(save.sparks));
-      this.sparkText.setText(String(save.sparks));
-      RELICS.forEach((r, i) => {
-        const y = 182 + i * 82;
-        const owned = !!save.relics[r.id];
-        const g = this.add.graphics();
-        g.fillStyle(0x0c1030, 1).fillRect(W / 2 - 196, y - 37, 392, 76);
-        g.fillStyle(owned ? 0x4a2e8a : 0x263ea8, 1).fillRect(W / 2 - 194, y - 35, 388, 72);
-        rows.add(g);
-        if (this.textures.exists(r.icon)) {
-          const ic = fit(this.add.image(W / 2 - 166, y, r.icon, 0), 42);
-          if (!owned) ic.setTintFill(0x0c0604);
-          rows.add(ic);
-        }
-        rows.add(text(this, W / 2 - 136, y - 22, owned ? r.name.toUpperCase() : '???', owned && r.name.length > 18 ? 7 : 9, owned ? '#ffc040' : '#ffffff', 0));
-        rows.add(this.add.text(W / 2 - 136, y - 10, owned ? r.blurb : '???', { fontFamily: FONT, fontSize: '7px', color: '#d0b890', wordWrap: { width: 200 }, lineSpacing: 3 }).setOrigin(0, 0));
-        const b = button(this, W / 2 + 145, y, 86, 40, owned ? 'UNLOCKED' : String(r.cost), () => {
-          if (owned) return;
-          if (save.sparks < r.cost) { audio.play('deny'); return; }
-          save.sparks -= r.cost;
-          save.relics[r.id] = true;
-          persist();
-          audio.play('buy');
-          draw();
-        }, { size: owned ? 7 : 10, icon: owned ? null : 'spark', iconScale: 1.4, color: owned ? COLORS.grey : COLORS.green, hi: owned ? COLORS.grey : COLORS.greenHi });
-        if (!owned && save.sparks < r.cost) b.setAlpha(0.55);
-        if (owned) b.setDisabled(true);
-        rows.add(b);
-      });
-    };
-    draw();
-    c.add(button(this, W / 2, 742, 160, 36, 'BACK', () => { c.destroy(); this.mainButtons.forEach(b => b.setVisible(true)); }, { size: 12 }));
   }
 
   // Permanent upgrades bought with Sparks

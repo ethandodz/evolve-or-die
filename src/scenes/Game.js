@@ -3,7 +3,7 @@ import { audio } from '../audio.js';
 import { save, persist } from '../save.js';
 import { AGES, ENEMIES, WEAPONS, PASSIVES, SHOP_ITEMS, RARE_ITEMS, META, CFG, RARITIES, wholeEffect, AGE_LENGTH, BAL, CHARACTERS, COMBOS, EVENTS, statsOf, xpForLevel, POOL_WEAPONS, baseWeapon, RELICS, weaponEra } from '../data.js';
 import { W, H, FONT, buzz } from '../ui.js';
-import { stats, bump, best, allQuests, isDone, doneIds, unlockedSignatures, weaponUnlocked } from '../quests.js';
+import { stats, bump, best, allQuests, isDone, doneIds, unlockedSignatures, weaponUnlocked, passiveUnlocked } from '../quests.js';
 import { submitScore, cloudBackup, onlineEnabled } from '../online.js';
 import { controls } from '../controls.js';
 
@@ -1512,7 +1512,7 @@ export default class Game extends Phaser.Scene {
     for (const w of this.weapons) if (w.level < this.weaponMax(w.key)) pool.push({ type: 'weapon', key: w.key, cur: w.level, max: this.weaponMax(w.key) });
     for (const k of this.passiveOrder) if (this.passives[k] < this.passiveMax(k)) pool.push({ type: 'passive', key: k, cur: this.passives[k], max: this.passiveMax(k) });
     if (this.weapons.length < this.weaponSlots) for (const k of this.poolWeapons()) if (!owned.has(k)) pool.push({ type: 'weapon', key: k, cur: 0, max: this.weaponMax(k), isNew: true });
-    if (this.passiveOrder.length < this.passiveSlots) for (const k of Object.keys(PASSIVES)) if (!this.passives[k]) pool.push({ type: 'passive', key: k, cur: 0, max: this.passiveMax(k), isNew: true });
+    if (this.passiveOrder.length < this.passiveSlots) for (const k of Object.keys(PASSIVES)) if (!this.passives[k] && passiveUnlocked(k)) pool.push({ type: 'passive', key: k, cur: 0, max: this.passiveMax(k), isNew: true });
     return pool;
   }
 

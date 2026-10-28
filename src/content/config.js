@@ -109,6 +109,8 @@ function addNewContent(cfg, d, seen) {
     const nd = d.ages.find(x => x.key === a.key);
     if (nd) { a.decor = nd.decor; a.bg = nd.bg; a.paintings = nd.paintings; }
   }
+  // Tougher enemies (v20): health grows faster within an age, if never edited
+  if (seen < 20 && cfg.balance.hpGrowth === 50) cfg.balance.hpGrowth = d.balance.hpGrowth;
   cfg.contentVersion = d.contentVersion;
 }
 

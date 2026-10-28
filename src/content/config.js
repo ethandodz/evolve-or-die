@@ -76,6 +76,11 @@ function addNewContent(cfg, d, seen) {
     const bc = cfg.weapons.boneclub;
     if (bc && bc.name === 'Bone Club') { bc.name = d.weapons.boneclub.name; bc.blurb = d.weapons.boneclub.blurb; }
   }
+  // Smaller crowds (v29): Lauren found it got too hard too quickly
+  if (seen < 29) {
+    const OLD = { maxEnemies: 200, spawnGrowth: 0.06, crowdGrowth: 1.0, ageSpawnStep: 4, ageCrowdStep: 40 };
+    for (const [k, v] of Object.entries(OLD)) if (cfg.balance[k] === v || cfg.balance[k] === undefined) cfg.balance[k] = d.balance[k];
+  }
   // Bigger Mammoth Club (v27). English Tea is a new passive, so addNewContent brings it in.
   if (seen < 27 && cfg.weapons.boneclub && cfg.weapons.boneclub.stats) {
     cfg.weapons.boneclub.stats.radius = { ...d.weapons.boneclub.stats.radius };

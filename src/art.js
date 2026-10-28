@@ -197,17 +197,26 @@ function human(o, f) {
     if (o.cape) s.ell(8.5, 18 + oy, 4, 6.5, o.cape);
     // back arm behind the body
     s.rect(6, 14 + oy + (f ? 1 : 0), 2, 7, o.arms || o.skin);
-    s.ell(11.5, 17.5 + oy, 4.2, 5.2, o.body, o.bodyTex || 0);
+    s.ell(11.5, 17.5 + oy, o.broad ? 5.2 : 4.2, 5.2, o.body, o.bodyTex || 0);
+    if (o.broad) { s.ell(7.5, 14.5 + oy, 1.8, 1.8, o.body); s.ell(15.5, 14.5 + oy, 1.8, 1.8, o.body); }
     s.rect(8, 18 + oy, 8, 5, o.body, o.bodyTex || 0);
     for (let x = 8; x < 16; x += 2) s.put(x, 23 + oy, o.body[2]);
     if (o.halves) { for (let y = 12; y < 24; y++) for (let x = 12; x < 16; x++) if (s.get(x, y + oy)) s.put(x, y + oy, o.halves[(x + y) % 3 ? 1 : 2]); }
     if (o.tabard) { s.rect(10, 13 + oy, 4, 10, o.tabard); s.put(11, 16 + oy, '#f0d040'); s.put(12, 16 + oy, '#f0d040'); s.put(11, 17 + oy, '#f0d040'); s.put(12, 15 + oy, '#f0d040'); }
+    if (o.abs) {
+      // Chest and stomach muscles
+      s.line(9, 16 + oy, 11, 16 + oy, o.body[2]); s.line(13, 16 + oy, 15, 16 + oy, o.body[2]); s.put(12, 15 + oy, o.body[2]);
+      for (const y of [18, 20]) { s.put(11, y + oy, o.body[2]); s.put(13, y + oy, o.body[2]); }
+      s.put(10, 14 + oy, o.body[0]); s.put(14, 14 + oy, o.body[0]);
+    }
     if (o.spots) [[10, 16], [13, 19], [10, 21], [14, 15]].forEach(([x, y]) => s.put(x, y + oy, o.body[3]));
+    if (o.loin) { s.rect(10, 22 + oy, 4, 4, o.loin); s.put(11, 25 + oy, o.loin[2]); }
     if (o.belt) s.rect(8, 21 + oy, 8, 1, o.belt);
     if (o.badge) s.put(10, 16 + oy, '#f0d040');
     // front arm
     s.rect(16, 14 + oy + (f ? 0 : 1), 2, 7, o.arms || o.skin);
     s.put(16, 20 + oy + (f ? 0 : 1), o.skin[1]); s.put(17, 20 + oy + (f ? 0 : 1), o.skin[2]);
+    if (o.armband) s.rect(16, 18 + oy + (f ? 0 : 1), 2, 1, o.armband);
     // head
     s.ell(11.5, 8 + oy, 4.6, 4.6, o.skin);
     if (o.hair) { s.ell(10.5, 4.5 + oy, 5.8, 3.2, o.hair, 0.2); s.ell(7, 8 + oy, 1.8, 3.2, o.hair, 0.2); for (const x of [6, 9, 12, 15]) s.put(x, 1 + oy, o.hair[1]); }
@@ -220,6 +229,7 @@ function human(o, f) {
       s.rect(5, 7 + oy, 3, 5, o.helmet);
       if (o.plume) { s.ell(11.5, 0 + oy, 6, 2.6, o.plume, 0.1); s.rect(8, 1 + oy, 7, 2, o.plume); }
       if (o.grill) for (let y = 7; y < 12; y += 2) s.rect(12, y + oy, 5, 1, o.helmet);
+      if (o.crest) { s.rect(7, 0 + oy, 9, 2, o.crest); s.ell(11.5, 0 + oy, 4.5, 1.6, o.crest, 0.1); s.rect(6, 7 + oy, 12, 1, o.helmet); }
     }
     if (o.jesterHat) {
       s.ell(7, 3 + oy, 3.5, 3, o.jesterHat[0], 0); s.ell(16, 3 + oy, 3.5, 3, o.jesterHat[1], 0);
@@ -259,6 +269,8 @@ const CHAR_LOOKS = {
   legionary: { skin: SKIN, helmet: BRONZE, body: RED, belt: '#5a3a20', shield: RED, sword: true, legs: SKIN, boots: LEATHER },
   spearman: { skin: SKIN, helmet: STEEL, body: BLUE, belt: '#3a2a20', spear: true, boots: LEATHER },
   gladiator: { skin: SKIN2, helmet: BRONZE, grill: true, body: SKIN2, arms: SKIN2, belt: '#8a5a2e', trident: true, legs: SKIN2, boots: LEATHER },
+  // Playable Gladiator: shirtless and muscular, bronze helmet with the face guard down, red crest and accents
+  gladiatorhero: { skin: SKIN2, helmet: BRONZE, grill: true, crest: RED, body: SKIN2, arms: SKIN2, broad: true, abs: true, armband: RED, belt: '#c8923a', loin: RED, legs: SKIN2, boots: LEATHER, sword: true },
   centurion: { skin: SKIN, helmet: BRONZE, plume: RED, body: RED, cape: ['#a83a2a', '#86281c', '#5e1a12', '#3a0e0a'], belt: '#f0c060', sword: true, boots: LEATHER },
   knight: { skin: SKIN, helmet: STEEL, plume: BLUE, body: STEEL, bodyTex: 0.25, tabard: BLUE, belt: '#f0c060', sword: true, legs: STEEL, boots: LEATHER },
   peasant: { skin: SKIN, hair: HAIR, beard: HAIR, body: SACK, belt: '#5a3a20', trident: true, legs: SACK, boots: LEATHER },
@@ -893,6 +905,13 @@ const ITEMS = {
   missile: () => paint(10, 20, (s) => { s.rect(3, 4, 4, 12, STEEL); s.ell(5, 16, 2, 3, RED); s.rect(1, 3, 8, 2, RED); s.put(4, 1, FIRE[1]); s.put(5, 0, FIRE[0]); s.put(5, 2, FIRE[2]); }),
   lute: () => paint(16, 18, (s) => { s.line(8, 9, 14, 1, WOOD[2], 2); s.ell(6, 12, 5, 4.5, WOOD, 0.05); s.ell(6, 12, 1.5, 1.5, [EYE, EYE, EYE, EYE]); s.rect(13, 0, 3, 2, WOOD[3]); }),
   flask: () => paint(12, 16, (s) => { s.rect(5, 1, 3, 5, CREAM); s.ell(6, 10, 5, 5, ['#b0ff8a', '#6ad04a', '#3e9a2e', '#22601a']); s.put(4, 8, '#ffffff'); s.put(7, 12, '#e0ffb0'); s.rect(4, 0, 5, 2, WOOD); }),
+  // Points up; the game turns it so the point faces away from the player
+  gladius: () => paint(10, 26, (s) => {
+    s.put(4, 0, STEEL[1]); s.put(5, 0, STEEL[1]);
+    s.rect(3, 1, 4, 15, STEEL); s.line(5, 2, 5, 15, STEEL[0]); s.line(6, 2, 6, 15, STEEL[2]);
+    s.rect(0, 16, 10, 2, GOLD); s.rect(4, 18, 2, 5, LEATHER); s.put(4, 20, '#e0503c'); s.put(5, 20, '#b8322a');
+    s.ell(4.5, 24, 2.2, 1.6, GOLD);
+  }),
   swordcane: () => paint(32, 8, (s) => { s.line(1, 3, 12, 3, BLACKL[1], 2); s.ell(1.5, 3.5, 1.6, 1.6, GOLD); s.rect(12, 2, 2, 4, GOLD); s.line(14, 3, 29, 3, STEEL[0]); s.line(14, 4, 28, 4, STEEL[2]); s.put(30, 3, STEEL[1]); }),
   guitar: () => paint(16, 18, (s) => { s.line(7, 10, 14, 1, BLACKL[0], 2); s.ell(5, 12, 4.5, 4, RED); s.ell(5, 12, 1.4, 1.4, [EYE, EYE, EYE, EYE]); s.rect(13, 0, 3, 2, STEEL); s.line(9, 12, 12, 15, '#ffe060'); }),
   raygun: () => paint(18, 12, (s) => { s.ell(7, 4, 6, 3, SPACE); s.rect(12, 3, 5, 2, NEON); s.ell(16.5, 4, 1.5, 1.5, NEON); s.rect(4, 6, 3, 5, NEONP); s.put(6, 3, '#ffffff'); }),
@@ -983,7 +1002,7 @@ export function buildDefaultSprites() {
 }
 
 export const SPRITE_GROUPS = {
-  Characters: ['caveman', 'tamer', 'shaman', 'knight', 'centurion', 'inventor', 'engineer', 'pilot', 'nova', 'bard', 'alchemist', 'inspector', 'rocker', 'zorp', 'wizard'],
+  Characters: ['caveman', 'tamer', 'shaman', 'knight', 'centurion', 'inventor', 'engineer', 'pilot', 'nova', 'bard', 'alchemist', 'inspector', 'rocker', 'zorp', 'gladiatorhero', 'wizard'],
   'Stone Age enemies': ['rival', 'wolf', 'raptor', 'sabertooth', 'golem', 'pebble', 'mammoth', 'trex'],
   'Roman enemies': ['legionary', 'spearman', 'gladiator', 'centurion', 'testudo', 'chariot', 'hydra', 'timecop'],
   'Medieval enemies': ['peasant', 'footman', 'jester', 'blackknight', 'slime', 'slimelet', 'troll', 'dragon'],
@@ -991,7 +1010,7 @@ export const SPRITE_GROUPS = {
   'Industrial enemies': ['sweep', 'navvy', 'luddite', 'steamhound', 'coalcart', 'coal', 'rat', 'furnace', 'locomotive'],
   'Modern enemies': ['punk', 'agent', 'soldier', 'biker', 'drone', 'minidrone', 'taxi', 'tank', 'chopper'],
   'Future enemies': ['android', 'cyborg', 'greyalien', 'hoverbot', 'ufo', 'nanite', 'walker', 'overlord'],
-  Weapons: ['club', 'axe', 'spear', 'flame', 'rock', 'bolt', 'boneclub', 'amber', 'spiritflame', 'pilum', 'holyblade', 'tesla', 'steamhammer', 'drone_s', 'plasma', 'plasmabeam', 'dynamite', 'nailgun', 'nail', 'disc', 'lute', 'note', 'flask', 'swordcane', 'guitar', 'raygun', 'raybolt', 'bone', 'meteor', 'gauntlet'],
+  Weapons: ['club', 'axe', 'spear', 'flame', 'rock', 'bolt', 'boneclub', 'amber', 'spiritflame', 'pilum', 'holyblade', 'tesla', 'steamhammer', 'drone_s', 'plasma', 'plasmabeam', 'dynamite', 'nailgun', 'nail', 'disc', 'lute', 'note', 'flask', 'swordcane', 'gladius', 'guitar', 'raygun', 'raybolt', 'bone', 'meteor', 'gauntlet'],
   Items: ['treasure', 'chest_open', 'scroll', 'trophy', 'combo', 'cogicon', 'heart_half', 'shieldicon', 'potion_purple', 'rabbitfoot', 'firegem', 'mirror', 'gem_s', 'gem_m', 'gem_l', 'coin', 'spark', 'meat', 'magnet', 'chest', 'potion', 'star', 'reroll', 'skull', 'lock', 'crystal', 'feather', 'idol', 'ark', 'monalisa', 'alienegg', 'alien', 'excalibur', 'declaration', 'lightray'],
   Icons: ['heart', 'heart_empty', 'sandal', 'totem', 'flint', 'tusk', 'lodestone', 'crit', 'fang', 'wardrum'],
   Scenery: ['boulder', 'fern', 'bones', 'tree', 'tree_autumn', 'tree_alien', 'pine', 'bush', 'menhir', 'campfire', 'handprint', 'deer', 'hunters', 'column', 'broken', 'urn', 'cypress', 'brazier', 'banner', 'haybale', 'shrub', 'torch', 'gravestone', 'easel', 'gearpile', 'statue', 'lantern', 'chimney', 'crate', 'barrel', 'rails', 'hydrant', 'cone', 'trashcan', 'stopsign', 'bench', 'pylon', 'crystalrock', 'pod', 'antenna', 'holosign', 'coalicon', 'missile'],

@@ -4,7 +4,7 @@
 export const DEFAULT_CONFIG = {
   version: 1,
   // Bump when new built-in content is added, so saved editor edits get it too (see config.js)
-  contentVersion: 33,
+  contentVersion: 34,
 
   balance: {
     ageLength: 210,        // seconds until the time police arrive (the boss fight doesn't stop the clock)
@@ -49,7 +49,7 @@ export const DEFAULT_CONFIG = {
     eventLength: 20,       // seconds a random event lasts
     treasureChance: 0.001,  // chance any enemy drops a relic chest (0.1%)
     bossTreasureChance: 0.25,  // chance an age boss drops a relic chest
-    xpDrop: 0.8,           // XP from each enemy (0.8 = 20% less than the original)
+    xpDrop: 0.6,           // XP from each enemy (0.6 = 40% less than the original)
     shopPriceMul: 5,       // wizard prices are this many times the listed cost
     passiveFirstPick: 3,   // a passive's first level in a run counts this many levels, so it's noticeable
   },
@@ -63,6 +63,8 @@ export const DEFAULT_CONFIG = {
   characters: [
     { key: 'caveman', name: 'GRUG', title: 'The Caveman', sprite: 'caveman', weapon: 'boneclub', hearts: 3, speed: 1, unlock: 'start',
       dmgPerLevel: 0.005, weaponSlots: 2, perk: '+0.5% damage every level up', drawback: 'Only 2 weapon slots' },
+    { key: 'gladiator', name: 'CASSIUS', title: 'The Gladiator', sprite: 'gladiatorhero', weapon: 'gladius', hearts: 3, speed: 1, unlock: 'hydra', cost: 100,
+      critPerLevel: 0.01, blurb: 'The Gladiator has mastered the arts of both showmanship and combat.', perk: '+1% critical chance every level up' },
     { key: 'shaman', name: 'ORA', title: 'The Shaman', sprite: 'shaman', weapon: 'spiritfire', hearts: 1, speed: 1, unlock: 'hydra',
       xpMul: 1.3, areaMul: 1.25, perk: '+30% XP, +25% area', drawback: 'Only 1 heart' },
     { key: 'centurion', name: 'MARCUS', title: 'The Centurion', sprite: 'centurion', weapon: 'pilum', hearts: 2, speed: 0.95, unlock: 'kills:3000',
@@ -133,6 +135,11 @@ export const DEFAULT_CONFIG = {
       name: 'Mammoth Club', countName: 'swing', icon: 'boneclub', behavior: 'swing', kind: 'Melee', max: 30, signature: 'caveman', tier: 1, base: 'club', iconScale: 1.15,
       blurb: "Grug's mammoth-bone club. Hits harder and knocks enemies further.",
       stats: { cd: { base: 0.95, per: -0.024 }, dmg: { base: 13.6, per: 2.8 }, radius: { base: 94.3, per: 3.45 }, count: { base: 1, at: [11, 25] }, knockback: { base: 330 } },
+    },
+    gladius: {
+      name: 'Gladius', icon: 'gladius', behavior: 'gladius', kind: 'Orbit', max: 30, signature: 'gladiator', tier: 15, base: 'axes',
+      blurb: 'Traditional weapon of the Roman centurions and very deadly in close quarters.',
+      stats: { dmg: { base: 12, per: 2.4 }, size: { base: 1, per: 0.025 }, count: { base: 2, at: [9, 18, 27] }, spin: { base: 2.2, per: 0.06 }, crit: { base: 0, per: 0.005 }, radius: { base: 40 }, hitDelay: { base: 0.4 } },
     },
     spiritfire: {
       name: 'Spirit Fire', icon: 'spiritflame', behavior: 'aura', kind: 'Aura', max: 30, signature: 'shaman', tier: 2, base: 'fire', ringColor: [0x3ac8e0, 0xa0f4ff],
@@ -463,6 +470,7 @@ export const BEHAVIORS = {
   rockfall: 'Things fall on enemies (uses cd, dmg, radius, count)',
   lightning: 'Strikes random enemies (uses cd, dmg, radius, count, chain, range)',
   shoot: 'Fires projectiles at the nearest enemy (uses cd, dmg, count, pierce, bounce, speed, size, range)',
+  gladius: 'Swords circle close to the player, points out, without spinning (uses dmg, size, count, spin, crit, radius, hitDelay)',
   fists: 'Floating gauntlets punch nearby enemies, piercing (uses cd, dmg, count, range, size; size grows with area)',
 };
 

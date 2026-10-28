@@ -48,6 +48,8 @@ export function allQuests() {
     // Weapon unlocks
     { id: 'fastboss', name: 'Lightning Fast', blurb: 'Defeat a boss within 10 seconds of summoning it', target: 1, reward: 30, value: () => st().fastBoss || 0 },
     { id: 'soloboss', name: 'One and Only', blurb: 'Defeat a boss with only one weapon equipped', target: 1, reward: 30, value: () => st().soloBoss || 0 },
+    // Passive unlocks
+    { id: 'renmini', name: 'Tea Time', blurb: 'Defeat the Renaissance mini boss', target: 1, reward: 20, value: () => st().renMini || 0 },
     { id: 'loop', name: 'Time Loop', blurb: 'Loop back in time with the Magic Mirror', target: 1, reward: 50, value: () => st().loops || 0 },
   ];
   // Weapon combos are switched off, so their quests are too
@@ -104,7 +106,7 @@ export function weaponUnlocked(key) {
 
 export function passiveUnlocked(key) {
   const p = PASSIVES[key];
-  return !!p && (!p.cost || bought('passive', key));
+  return !!p && goalMet(p) && (!p.cost || bought('passive', key));
 }
 
 // Rows for one UNLOCK menu tab ('weapon', 'passive' or 'relic').

@@ -800,6 +800,7 @@ export default class Game extends Phaser.Scene {
     const r = Math.random();
     const coin = this.mods.coin;
     const coinChance = BAL.coinChance * (this.event && this.event.id === 'gold' ? 5 : 1);
+    if (e.mini && this.age.key === 'renaissance') bump('renMini');
     if (e.mini) { this.dropPickup('chest', e.x + 24, e.y); this.dropPickup('spark', e.x + 16, e.y + 16, 2); }
     else if (e.def.heavy || e.elite) {
       for (let i = 0; i < 4; i++) this.dropPickup('coin', e.x + rand(-14, 14), e.y + rand(-14, 14), coin);
@@ -857,6 +858,10 @@ export default class Game extends Phaser.Scene {
       if (w.boost) for (const [k, s] of Object.entries(WEAPONS[w.key].stats || {})) if (s && s.per) st[k] += s.per * w.boost;
       if (w.dmgMul) st.dmg *= w.dmgMul;
       if (st.cd && this.charDef.cdMul) st.cd *= this.charDef.cdMul;
+      // Attack speed (English Tea)
+      if (st.cd) st.cd /= this.stats.haste;
+      if (st.tick) st.tick /= this.stats.haste;
+      st.iconScale = WEAPONS[w.key].iconScale || 1;
       if (w.bonusCount && st.count !== undefined) st.count += w.bonusCount;
       if (this.combos.has('pack') && (baseWeapon(w.key) === 'spear' || baseWeapon(w.key) === 'axes') && st.count !== undefined) st.count += 1;
       // Attacks add up in fractions (Tribal Totem, gauntlets): each whole number is one more
@@ -912,12 +917,12 @@ export default class Game extends Phaser.Scene {
           if (torch) this.ignite(e, st.dmg * 0.35 * this.stats.dmg, 2.5);
         }
       });
-      this.slashFx(q.ang, radius, arc, st.icon);
+      this.slashFx(q.ang, radius, arc, st.icon, st.iconScale);
       audio.play('swing');
     });
   }
 
-  slashFx(ang, radius, arc, icon = 'club') {
+  slashFx(ang, radius, arc, icon = 'club', scale = 1) {
     const g = this.add.graphics();
     const steps = 14;
     const draw = (inner, alpha, col) => {
@@ -939,7 +944,7 @@ export default class Game extends Phaser.Scene {
     draw(0.55, 0.35, 0xffe0a0);
     draw(0.75, 0.9, 0xffffff);
     this.fx.add(g);
-    const club = this.add.image(0, 0, icon).setScale(1.7).setOrigin(0.1, 0.9);
+    const club = this.add.image(0, 0, icon).setScale(1.7 * scale).setOrigin(0.1, 0.9);
     this.fx.add(club);
     const r0 = radius * 0.55;
     const obj = { a: ang - arc };
@@ -1655,7 +1660,7 @@ export default class Game extends Phaser.Scene {
       if (first) { this.passives[c.key] = 0; this.passivePts[c.key] = 0; this.passiveOrder.push(c.key); }
       this.passives[c.key]++;
       // The first pick of a passive counts as several levels so you feel it right away
-      const pts = mult * (first && !wholeEffect(PASSIVES[c.key].effect) ? (BAL.passiveFirstPick ?? 3) : 1);
+      const pts = mult * (first && !wholeEffect(PASSIVES[c.key].effect) ? (PASSIVES[c.key].firstPick ?? BAL.passiveFirstPick ?? 3) : 1);
       this.passivePts[c.key] += pts;
       if (first && pts > mult) this.floatText(this.player.x, this.player.y - 46, `${PASSIVES[c.key].name.toUpperCase()}!`, '#c08aff');
       if (PASSIVES[c.key].effect === 'hearts') { this.recomputeStats(); this.player.hearts = Math.min(this.player.maxHearts, this.player.hearts + Math.round(mult)); }
@@ -1688,7 +1693,7 @@ export default class Game extends Phaser.Scene {
 
   recomputeStats() {
     // Sum each passive's effect
-    const sum = { hearts: 0, speed: 0, count: 0, damage: 0, area: 0, pickup: 0, crit: 0, critDamage: 0, difficulty: 0 };
+    const sum = { hearts: 0, speed: 0, count: 0, damage: 0, area: 0, pickup: 0, crit: 0, critDamage: 0, difficulty: 0, haste: 0 };
     for (const [k, lvl] of Object.entries(this.passives)) {
       const d = PASSIVES[k];
       if (!d || sum[d.effect] === undefined) continue;
@@ -1704,6 +1709,7 @@ export default class Game extends Phaser.Scene {
     this.stats.crit = BAL.critChance * (ch.critMul || 1) + sum.crit;
     this.stats.critDmg = (BAL.critDamage ?? 2) * (1 + sum.critDamage);
     this.stats.difficulty = sum.difficulty;
+    this.stats.haste = 1 + sum.haste;
     this.stats.area = (1 + sum.area) * (ch.areaMul || 1);
     this.stats.count = sum.count + this.bonusCount;
     this.stats.pickup = BAL.pickupRange * (1 + sum.pickup + m.pickup);

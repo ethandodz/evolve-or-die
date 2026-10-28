@@ -438,14 +438,15 @@ export default class UI extends Phaser.Scene {
       name = d.name; icon = d.icon;
       // Hearts and attacks: a Legendary card counts as two levels
       // A passive's first pick counts several levels (BAL.passiveFirstPick)
-      const boost = mult * (ch.isNew && !wholeEffect(d.effect) ? (BAL.passiveFirstPick ?? 3) : 1);
+      const first = d.firstPick ?? BAL.passiveFirstPick ?? 3;
+      const boost = mult * (ch.isNew && !wholeEffect(d.effect) ? first : 1);
       desc = wholeEffect(d.effect) ? `${d.blurb}${mult > 1 ? `\nCounts as ${mult} levels` : ''}` : boostedBlurb(d.blurb, boost);
       // Fractional attacks: show where the total gets to
       if (d.effect === 'count') {
         const now = d.amount * (this.g.passivePts[ch.key] || 0), next = now + d.amount * boost;
         desc = `+${+(d.amount * boost).toFixed(2)} attacks (${+now.toFixed(2)} -> ${+next.toFixed(2)}).\nEach whole number = +1 attack for every weapon.`;
       }
-      if (ch.isNew && boost > mult) desc += '\nFirst pick: triple boost!';
+      if (ch.isNew && boost > mult) desc += first === 3 ? '\nFirst pick: triple boost!' : '\nFirst pick bonus!';
       tag = ch.isNew ? 'NEW PASSIVE' : `LV ${ch.level}`; tagColor = ch.isNew ? '#c08aff' : '#7ad0f4';
     } else if (ch.type === 'heal') {
       name = 'Roast Meat'; icon = 'meat'; desc = 'Heal all hearts.'; tag = ''; tagColor = '#fff';

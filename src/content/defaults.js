@@ -4,7 +4,7 @@
 export const DEFAULT_CONFIG = {
   version: 1,
   // Bump when new built-in content is added, so saved editor edits get it too (see config.js)
-  contentVersion: 26,
+  contentVersion: 27,
 
   balance: {
     ageLength: 210,        // seconds until the time police arrive (the boss fight doesn't stop the clock)
@@ -129,9 +129,9 @@ export const DEFAULT_CONFIG = {
     // Signature weapons: each character starts with their own, never offered to anyone else.
     // tier = power rank (later unlocks are stronger); base = the normal weapon it counts as for combos.
     boneclub: {
-      name: 'Mammoth Club', icon: 'boneclub', behavior: 'swing', kind: 'Melee', max: 30, signature: 'caveman', tier: 1, base: 'club',
+      name: 'Mammoth Club', icon: 'boneclub', behavior: 'swing', kind: 'Melee', max: 30, signature: 'caveman', tier: 1, base: 'club', iconScale: 1.15,
       blurb: "Grug's mammoth-bone club. Hits harder and knocks enemies further.",
-      stats: { cd: { base: 0.95, per: -0.024 }, dmg: { base: 13.6, per: 2.8 }, radius: { base: 82, per: 3 }, count: { base: 1, at: [11, 25] }, knockback: { base: 330 } },
+      stats: { cd: { base: 0.95, per: -0.024 }, dmg: { base: 13.6, per: 2.8 }, radius: { base: 94.3, per: 3.45 }, count: { base: 1, at: [11, 25] }, knockback: { base: 330 } },
     },
     spiritfire: {
       name: 'Spirit Fire', icon: 'spiritflame', behavior: 'aura', kind: 'Aura', max: 30, signature: 'shaman', tier: 2, base: 'fire', ringColor: [0x3ac8e0, 0xa0f4ff],
@@ -241,6 +241,8 @@ export const DEFAULT_CONFIG = {
     magnet:  { name: 'Lodestone', icon: 'lodestone', max: 30, effect: 'pickup', amount: 0.18, blurb: '+18% XP pickup range.' },
     crit:    { name: 'Focus', icon: 'crit', max: 30, effect: 'crit', amount: 0.03, blurb: '+3% chance of a critical hit (double damage, red number).' },
     critdmg: { name: 'Lethality', icon: 'fang', max: 30, effect: 'critDamage', amount: 0.15, blurb: 'Critical hits do +15% more damage.' },
+    // English Tea: the first cup gives +15% attack speed (firstPick 1.5 levels), then +10% a level
+    tea:     { name: 'English Tea', icon: 'tea', max: 30, effect: 'haste', amount: 0.1, firstPick: 1.5, unlock: 'quest:renmini', blurb: '+10% attack speed.' },
     danger:  { name: 'Difficulty', icon: 'wardrum', max: 30, effect: 'difficulty', amount: 0.05, blurb: '+5% more enemies and +5% enemy health. More enemies, more XP.' },
   },
 
@@ -461,7 +463,7 @@ export const BEHAVIORS = {
   fists: 'Floating gauntlets punch nearby enemies, piercing (uses cd, dmg, count, range, size; size grows with area)',
 };
 
-export const PASSIVE_EFFECTS = ['hearts', 'speed', 'count', 'damage', 'area', 'pickup', 'crit', 'critDamage', 'difficulty'];
+export const PASSIVE_EFFECTS = ['hearts', 'speed', 'count', 'damage', 'area', 'pickup', 'crit', 'critDamage', 'difficulty', 'haste'];
 export const BOSS_ATTACKS = ['charge', 'charge3', 'stomp', 'rocks', 'roar', 'lunge', 'ring', 'pools', 'summon', 'breath', 'meteors', 'fly', 'sweep', 'steam', 'laser', 'cogs', 'smoke', 'coal', 'missiles', 'strafe', 'orbital', 'grid', 'blink'];
 export const BOSS_STYLES = ['', 'hunter', 'rooted', 'flyer', 'mech', 'train', 'chopper', 'warp'];
 export const MUSIC = ['stone', 'stoneBoss', 'roman', 'romanBoss', 'medieval', 'medievalBoss', 'renaissance', 'renaissanceBoss', 'industrial', 'industrialBoss', 'modern', 'modernBoss', 'future', 'futureBoss', 'police', 'title'];

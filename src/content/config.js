@@ -76,6 +76,8 @@ function addNewContent(cfg, d, seen) {
     const bc = cfg.weapons.boneclub;
     if (bc && bc.name === 'Bone Club') { bc.name = d.weapons.boneclub.name; bc.blurb = d.weapons.boneclub.blurb; }
   }
+  // Gladius orbits 25% faster (v36)
+  if (seen < 36) { const g = cfg.weapons.gladius; if (g && g.stats.spin && g.stats.spin.base === 2.2) g.stats.spin.base = d.weapons.gladius.stats.spin.base; }
   // Ghost Heart pickup (v35)
   if (seen < 35 && cfg.balance.ghostChance === undefined) cfg.balance.ghostChance = d.balance.ghostChance;
   // Lauren (v34): enemies drop the old amount of XP again

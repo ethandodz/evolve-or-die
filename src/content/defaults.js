@@ -4,7 +4,7 @@
 export const DEFAULT_CONFIG = {
   version: 1,
   // Bump when new built-in content is added, so saved editor edits get it too (see config.js)
-  contentVersion: 35,
+  contentVersion: 36,
 
   balance: {
     ageLength: 210,        // seconds until the time police arrive (the boss fight doesn't stop the clock)
@@ -140,7 +140,7 @@ export const DEFAULT_CONFIG = {
     gladius: {
       name: 'Gladius', icon: 'gladius', behavior: 'gladius', kind: 'Orbit', max: 30, signature: 'gladiator', tier: 15, base: 'axes',
       blurb: 'Traditional weapon of the Roman centurions and very deadly in close quarters.',
-      stats: { dmg: { base: 12, per: 2.4 }, size: { base: 1, per: 0.025 }, count: { base: 2, at: [9, 18, 27] }, spin: { base: 2.2, per: 0.06 }, crit: { base: 0, per: 0.005 }, radius: { base: 40 }, hitDelay: { base: 0.4 } },
+      stats: { dmg: { base: 12, per: 2.4 }, size: { base: 1, per: 0.025 }, count: { base: 2, at: [9, 18, 27] }, spin: { base: 2.75, per: 0.06 }, crit: { base: 0, per: 0.005 }, radius: { base: 40 }, hitDelay: { base: 0.4 } },
     },
     spiritfire: {
       name: 'Spirit Fire', icon: 'spiritflame', behavior: 'aura', kind: 'Aura', max: 30, signature: 'shaman', tier: 2, base: 'fire', ringColor: [0x3ac8e0, 0xa0f4ff],

@@ -76,6 +76,11 @@ function addNewContent(cfg, d, seen) {
     const bc = cfg.weapons.boneclub;
     if (bc && bc.name === 'Bone Club') { bc.name = d.weapons.boneclub.name; bc.blurb = d.weapons.boneclub.blurb; }
   }
+  // Lauren (v38): hearts (meat) and Ghost Hearts drop half as often
+  if (seen < 38) {
+    if (cfg.balance.meatChance === 0.012) cfg.balance.meatChance = d.balance.meatChance;
+    if (cfg.balance.ghostChance === 0.003) cfg.balance.ghostChance = d.balance.ghostChance;
+  }
   // Lauren (v37): characters go by their role ("CAVEMAN"), not a personal name
   if (seen < 37) {
     for (const ch of cfg.characters) { const nd = d.characters.find(c => c.key === ch.key); if (nd) ch.name = nd.name; }

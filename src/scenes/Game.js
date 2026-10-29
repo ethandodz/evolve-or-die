@@ -824,7 +824,7 @@ export default class Game extends Phaser.Scene {
     else if (r < coinChance) this.dropPickup('coin', e.x + 6, e.y, coin);
     else if (r < coinChance + BAL.meatChance) { if (!this.mods.noMeat) this.dropPickup('meat', e.x, e.y); }
     else if (r < coinChance + BAL.meatChance + BAL.magnetChance) this.dropPickup('magnet', e.x, e.y);
-    else if (r < coinChance + BAL.meatChance + BAL.magnetChance + (BAL.ghostChance ?? 0.003)) this.dropPickup('ghost', e.x, e.y);
+    else if (r < coinChance + BAL.meatChance + BAL.magnetChance + (BAL.ghostChance ?? 0.0015)) this.dropPickup('ghost', e.x, e.y);
   }
 
   // A white silhouette that squashes flat and fades

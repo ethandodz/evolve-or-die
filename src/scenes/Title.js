@@ -320,7 +320,7 @@ export default class Title extends Phaser.Scene {
       });
       const w = WEAPONS[selected.weapon];
       const own = w && w.signature === selected.key;
-      desc.setText(`${selected.name}, ${selected.title.toUpperCase()}  -  ${selected.hearts || 5} HEARTS`);
+      desc.setText(`${selected.name}  -  ${selected.hearts || 5} HEARTS`);
       wName.setText(w ? `${w.name.toUpperCase()}  -  ${(w.kind || '').toUpperCase()} WEAPON` : '');
       if (w && this.textures.exists(w.icon)) {
         wIcon.setTexture(w.icon, 0).setVisible(true);
@@ -354,7 +354,7 @@ export default class Title extends Phaser.Scene {
         grid.add(spr);
         if (!open) grid.add(this.add.image(x, sy, 'lock').setScale(2));
         grid.add(text(this, x, y + (compact ? 25 : 34), open ? ch.name : '???', 9, open ? '#ffffff' : '#7a6a5a'));
-        grid.add(text(this, x, y + (compact ? 38 : 49), open ? ch.title : lockText(ch), 6, '#c0a080'));
+        grid.add(text(this, x, y + (compact ? 38 : 49), open ? '' : lockText(ch), 6, '#c0a080'));
         const hit = this.add.rectangle(x, y, cw, ch0, 0xffffff, 0.001).setInteractive({ useHandCursor: true });
         hit.on('pointerup', () => { if (!open) { audio.play('deny'); return; } audio.play('select'); selected = ch; refresh(); });
         grid.add(hit);

@@ -76,6 +76,12 @@ function addNewContent(cfg, d, seen) {
     const bc = cfg.weapons.boneclub;
     if (bc && bc.name === 'Bone Club') { bc.name = d.weapons.boneclub.name; bc.blurb = d.weapons.boneclub.blurb; }
   }
+  // Lauren (v37): characters go by their role ("CAVEMAN"), not a personal name
+  if (seen < 37) {
+    for (const ch of cfg.characters) { const nd = d.characters.find(c => c.key === ch.key); if (nd) ch.name = nd.name; }
+    const bc = cfg.weapons.boneclub;
+    if (bc && bc.blurb && bc.blurb.startsWith("Grug's")) bc.blurb = d.weapons.boneclub.blurb;
+  }
   // Gladius orbits 25% faster (v36)
   if (seen < 36) { const g = cfg.weapons.gladius; if (g && g.stats.spin && g.stats.spin.base === 2.2) g.stats.spin.base = d.weapons.gladius.stats.spin.base; }
   // Ghost Heart pickup (v35)

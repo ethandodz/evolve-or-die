@@ -4,7 +4,7 @@
 export const DEFAULT_CONFIG = {
   version: 1,
   // Bump when new built-in content is added, so saved editor edits get it too (see config.js)
-  contentVersion: 36,
+  contentVersion: 37,
 
   balance: {
     ageLength: 210,        // seconds until the time police arrive (the boss fight doesn't stop the clock)
@@ -62,34 +62,34 @@ export const DEFAULT_CONFIG = {
   // cost: Sparks to buy it on the UNLOCK menu once the unlock goal is met.
   // Only Grug is in the game for now; the others are hidden (HIDDEN_CHARS in data.js) until they're reworked.
   characters: [
-    { key: 'caveman', name: 'GRUG', title: 'The Caveman', sprite: 'caveman', weapon: 'boneclub', hearts: 3, speed: 1, unlock: 'start',
+    { key: 'caveman', name: 'CAVEMAN', title: 'The Caveman', sprite: 'caveman', weapon: 'boneclub', hearts: 3, speed: 1, unlock: 'start',
       dmgPerLevel: 0.005, weaponSlots: 2, perk: '+0.5% damage every level up', drawback: 'Only 2 weapon slots' },
-    { key: 'gladiator', name: 'CASSIUS', title: 'The Gladiator', sprite: 'gladiatorhero', weapon: 'gladius', hearts: 3, speed: 1, unlock: 'hydra', cost: 100,
+    { key: 'gladiator', name: 'GLADIATOR', title: 'The Gladiator', sprite: 'gladiatorhero', weapon: 'gladius', hearts: 3, speed: 1, unlock: 'hydra', cost: 100,
       critPerLevel: 0.01, blurb: 'The Gladiator has mastered the arts of both showmanship and combat.', perk: '+1% critical chance every level up' },
-    { key: 'shaman', name: 'ORA', title: 'The Shaman', sprite: 'shaman', weapon: 'spiritfire', hearts: 1, speed: 1, unlock: 'hydra',
+    { key: 'shaman', name: 'SHAMAN', title: 'The Shaman', sprite: 'shaman', weapon: 'spiritfire', hearts: 1, speed: 1, unlock: 'hydra',
       xpMul: 1.3, areaMul: 1.25, perk: '+30% XP, +25% area', drawback: 'Only 1 heart' },
-    { key: 'centurion', name: 'MARCUS', title: 'The Centurion', sprite: 'centurion', weapon: 'pilum', hearts: 2, speed: 0.95, unlock: 'kills:3000',
+    { key: 'centurion', name: 'CENTURION', title: 'The Centurion', sprite: 'centurion', weapon: 'pilum', hearts: 2, speed: 0.95, unlock: 'kills:3000',
       bonusCount: 1, dmgMul: 0.85, perk: '+1 attack for every weapon', drawback: '-15% damage' },
-    { key: 'knight', name: 'EDRIC', title: 'The Knight', sprite: 'knight', weapon: 'holyblades', hearts: 2, speed: 0.85, unlock: 'dragon',
+    { key: 'knight', name: 'KNIGHT', title: 'The Knight', sprite: 'knight', weapon: 'holyblades', hearts: 2, speed: 0.85, unlock: 'dragon',
       damageTaken: 0.5, perk: 'Hits only take half a heart', drawback: '15% slower' },
-    { key: 'inventor', name: 'NICO', title: 'The Inventor', sprite: 'inventor', weapon: 'tesla', hearts: 1, speed: 1, unlock: 'mech',
+    { key: 'inventor', name: 'INVENTOR', title: 'The Inventor', sprite: 'inventor', weapon: 'tesla', hearts: 1, speed: 1, unlock: 'mech',
       cdMul: 0.8, areaMul: 0.8, perk: 'Weapons attack 25% faster', drawback: '-20% area and range' },
-    { key: 'engineer', name: 'ADA', title: 'The Engineer', sprite: 'engineer', weapon: 'steamhammer', hearts: 2, speed: 0.9, unlock: 'locomotive',
+    { key: 'engineer', name: 'ENGINEER', title: 'The Engineer', sprite: 'engineer', weapon: 'steamhammer', hearts: 2, speed: 0.9, unlock: 'locomotive',
       areaMul: 1.4, perk: '+40% area and range', drawback: '10% slower' },
-    { key: 'pilot', name: 'MAX', title: 'The Stunt Pilot', sprite: 'pilot', weapon: 'droneswarm', hearts: 2, speed: 1.2, unlock: 'chopper',
+    { key: 'pilot', name: 'STUNT PILOT', title: 'The Stunt Pilot', sprite: 'pilot', weapon: 'droneswarm', hearts: 2, speed: 1.2, unlock: 'chopper',
       dmgMul: 0.85, perk: '20% faster', drawback: '-15% damage' },
-    { key: 'nova', name: 'NOVA', title: 'The Star Ranger', sprite: 'nova', weapon: 'plasmalance', hearts: 1, speed: 1, unlock: 'overlord',
+    { key: 'nova', name: 'STAR RANGER', title: 'The Star Ranger', sprite: 'nova', weapon: 'plasmalance', hearts: 1, speed: 1, unlock: 'overlord',
       cdMul: 0.87, dmgMul: 1.15, perk: '15% faster attacks, +15% damage', drawback: 'Only 1 heart' },
     // Unlocked by achievements (unlock: 'quest:<quest id>' from quests.js; unlockText is the short hint on the card)
-    { key: 'bard', name: 'BRAM', title: 'The Bard', sprite: 'bard', weapon: 'battlelute', hearts: 1, speed: 1, unlock: 'quest:level30', unlockText: 'Reach level 30',
+    { key: 'bard', name: 'BARD', title: 'The Bard', sprite: 'bard', weapon: 'battlelute', hearts: 1, speed: 1, unlock: 'quest:level30', unlockText: 'Reach level 30',
       cdMul: 0.9, xpMul: 1.15, perk: '10% faster attacks, +15% XP', drawback: 'Only 1 heart' },
-    { key: 'alchemist', name: 'BELLA', title: 'The Alchemist', sprite: 'alchemist', weapon: 'potionbombs', hearts: 2, speed: 1, unlock: 'quest:combo5', unlockText: 'Find 5 combos',
+    { key: 'alchemist', name: 'ALCHEMIST', title: 'The Alchemist', sprite: 'alchemist', weapon: 'potionbombs', hearts: 2, speed: 1, unlock: 'quest:combo5', unlockText: 'Find 5 combos',
       areaMul: 1.3, xpMul: 1.2, weaponSlots: 2, perk: '+30% area, +20% XP', drawback: 'Only 2 weapon slots' },
-    { key: 'inspector', name: 'IVY', title: 'The Inspector', sprite: 'inspector', weapon: 'swordcane', hearts: 2, speed: 1.1, unlock: 'quest:thief10', unlockText: 'Catch 10 thieves',
+    { key: 'inspector', name: 'INSPECTOR', title: 'The Inspector', sprite: 'inspector', weapon: 'swordcane', hearts: 2, speed: 1.1, unlock: 'quest:thief10', unlockText: 'Catch 10 thieves',
       critMul: 2, areaMul: 0.8, perk: 'Double crits, 10% faster', drawback: '-20% area and range' },
-    { key: 'rocker', name: 'ROXY', title: 'The Rockstar', sprite: 'rocker', weapon: 'ampblast', hearts: 2, speed: 1, unlock: 'quest:flawless3', unlockText: 'Beat 3 bosses unhit',
+    { key: 'rocker', name: 'ROCKSTAR', title: 'The Rockstar', sprite: 'rocker', weapon: 'ampblast', hearts: 2, speed: 1, unlock: 'quest:flawless3', unlockText: 'Beat 3 bosses unhit',
       dmgMul: 1.3, areaMul: 0.8, perk: '+30% damage', drawback: '-20% area and range' },
-    { key: 'zorp', name: 'ZORP', title: 'The Alien', sprite: 'zorp', weapon: 'raygun', hearts: 3, speed: 0.9, unlock: 'quest:elites500', unlockText: 'Beat 500 elites',
+    { key: 'zorp', name: 'ALIEN', title: 'The Alien', sprite: 'zorp', weapon: 'raygun', hearts: 3, speed: 0.9, unlock: 'quest:elites500', unlockText: 'Beat 500 elites',
       pet: 'ufo', perk: 'A mini UFO fights with you', drawback: '10% slower' },
   ],
 
@@ -134,7 +134,7 @@ export const DEFAULT_CONFIG = {
     // tier = power rank (later unlocks are stronger); base = the normal weapon it counts as for combos.
     boneclub: {
       name: 'Mammoth Club', countName: 'swing', icon: 'boneclub', behavior: 'swing', kind: 'Melee', max: 30, signature: 'caveman', tier: 1, base: 'club', iconScale: 1.15,
-      blurb: "Grug's mammoth-bone club. Hits harder and knocks enemies further.",
+      blurb: "The Caveman's mammoth-bone club. Hits harder and knocks enemies further.",
       stats: { cd: { base: 0.95, per: -0.024 }, dmg: { base: 13.6, per: 2.8 }, radius: { base: 94.3, per: 3.45 }, count: { base: 1, at: [11, 25] }, knockback: { base: 330 } },
     },
     gladius: {
@@ -144,63 +144,63 @@ export const DEFAULT_CONFIG = {
     },
     spiritfire: {
       name: 'Spirit Fire', icon: 'spiritflame', behavior: 'aura', kind: 'Aura', max: 30, signature: 'shaman', tier: 2, base: 'fire', ringColor: [0x3ac8e0, 0xa0f4ff],
-      blurb: "Ora's blue spirit flames. Wider, hotter and slows more than fire.",
+      blurb: "The Shaman's blue spirit flames. Wider, hotter and slows more than fire.",
       stats: { dmg: { base: 6, per: 1.4 }, radius: { base: 64, per: 3.5 }, tick: { base: 0.45, per: -0.008 }, slow: { base: 0.4, per: 0.015 } },
     },
     pilum: {
       name: 'Golden Pilum', icon: 'pilum', behavior: 'thrust', kind: 'Melee', max: 30, signature: 'centurion', tier: 3, base: 'spear',
-      blurb: "Marcus's golden javelin. Long reach, pierces everything.",
+      blurb: "The Centurion's golden javelin. Long reach, pierces everything.",
       stats: { cd: { base: 1.1, per: -0.028 }, dmg: { base: 28.8, per: 5.2 }, length: { base: 150, per: 6 }, count: { base: 1, at: [11, 25] } },
     },
     holyblades: {
       name: 'Holy Blades', icon: 'holyblade', behavior: 'orbit', kind: 'Orbit', max: 30, signature: 'knight', tier: 4, base: 'axes',
-      blurb: "Edric's three blessed swords spin around him.",
+      blurb: "The Knight's three blessed swords spin around him.",
       stats: { dmg: { base: 12, per: 2.8 }, radius: { base: 72, per: 2.5 }, count: { base: 3, at: [11, 20, 30] }, spin: { base: 3.8, per: 0.125 }, hitDelay: { base: 0.4 } },
     },
     tesla: {
       name: 'Tesla Coil', icon: 'tesla', behavior: 'lightning', kind: 'Area', max: 30, signature: 'inventor', tier: 6, base: 'bolt', boltColor: 0x7ae0ff,
-      blurb: "Nico's invention. Blue lightning that always chains to more enemies.",
+      blurb: "The Inventor's invention. Blue lightning that always chains to more enemies.",
       stats: { cd: { base: 1.4, per: -0.036 }, dmg: { base: 48, per: 7.2 }, radius: { base: 32, per: 1 }, count: { base: 2, at: [11, 20, 30] }, chain: { base: 2, at: [20] }, range: { base: 300 } },
     },
     // Only from the Ark of the Covenant relic
     steamhammer: {
       name: 'Steam Hammer', icon: 'steamhammer', behavior: 'swing', kind: 'Melee', max: 30, signature: 'engineer', tier: 8, base: 'club',
-      blurb: "Ada's piston hammer. Huge swings that blast enemies away.",
+      blurb: "The Engineer's piston hammer. Huge swings that blast enemies away.",
       stats: { cd: { base: 0.9, per: -0.02 }, dmg: { base: 52, per: 8 }, radius: { base: 96, per: 3.5 }, count: { base: 1, at: [11, 25] }, knockback: { base: 420 } },
     },
     droneswarm: {
       name: 'Drone Swarm', icon: 'drone_s', behavior: 'orbit', kind: 'Orbit', max: 30, signature: 'pilot', tier: 10, base: 'axes',
-      blurb: "Max's stunt drones zip around you, four at a time.",
+      blurb: "The Stunt Pilot's stunt drones zip around you, four at a time.",
       stats: { dmg: { base: 30, per: 5 }, radius: { base: 84, per: 3 }, count: { base: 4, at: [11, 20, 30] }, spin: { base: 4.2, per: 0.125 }, hitDelay: { base: 0.35 } },
     },
     plasmalance: {
       name: 'Plasma Lance', icon: 'plasma', fx: 'plasmabeam', behavior: 'thrust', kind: 'Melee', max: 30, signature: 'nova', tier: 12, base: 'spear',
-      blurb: "Nova's lance of pure starlight. Long beams that pierce everything.",
+      blurb: "The Star Ranger's lance of pure starlight. Long beams that pierce everything.",
       stats: { cd: { base: 0.85, per: -0.02 }, dmg: { base: 72, per: 11 }, length: { base: 260, per: 8 }, count: { base: 2, at: [11, 20, 30] } },
     },
     battlelute: {
       name: 'Battle Lute', icon: 'lute', auraIcon: 'note', behavior: 'aura', kind: 'Aura', max: 30, signature: 'bard', tier: 5, base: 'fire', ringColor: [0xb030e0, 0xf070ff],
-      blurb: "Bram's war songs. Musical notes circle him, hurting and slowing everything close.",
+      blurb: "The Bard's war songs. Musical notes circle him, hurting and slowing everything close.",
       stats: { dmg: { base: 10, per: 1.75 }, radius: { base: 70, per: 3 }, tick: { base: 0.4, per: -0.008 }, slow: { base: 0.35, per: 0.01 } },
     },
     potionbombs: {
       name: 'Potion Bombs', icon: 'flask', behavior: 'rockfall', kind: 'Area', max: 30, signature: 'alchemist', tier: 7, base: 'rocks', burn: 0.4,
-      blurb: "Bella's bubbling flasks smash on enemies and set them alight.",
+      blurb: "The Alchemist's bubbling flasks smash on enemies and set them alight.",
       stats: { cd: { base: 1.7, per: -0.04 }, dmg: { base: 40, per: 7 }, radius: { base: 48, per: 2 }, count: { base: 2, at: [11, 20, 30] } },
     },
     swordcane: {
       name: 'Sword Cane', icon: 'swordcane', behavior: 'thrust', kind: 'Melee', max: 30, signature: 'inspector', tier: 9, base: 'spear',
-      blurb: "Ivy's walking cane hides a blade. Lightning-quick lunges.",
+      blurb: "The Inspector's walking cane hides a blade. Lightning-quick lunges.",
       stats: { cd: { base: 0.55, per: -0.012 }, dmg: { base: 60, per: 9 }, length: { base: 180, per: 6 }, count: { base: 1, at: [11, 20, 30] } },
     },
     ampblast: {
       name: 'Amp Blast', icon: 'guitar', behavior: 'lightning', kind: 'Area', max: 30, signature: 'rocker', tier: 11, base: 'bolt', boltColor: 0xff4ad0,
-      blurb: "Roxy's power chords blast enemies with pink lightning that jumps between them.",
+      blurb: "The Rockstar's power chords blast enemies with pink lightning that jumps between them.",
       stats: { cd: { base: 1.2, per: -0.032 }, dmg: { base: 70, per: 10 }, radius: { base: 40, per: 1.5 }, count: { base: 3, at: [11, 20, 30] }, chain: { base: 2, at: [20] }, range: { base: 300 } },
     },
     raygun: {
       name: 'Ray Gun', icon: 'raygun', fx: 'raybolt', behavior: 'shoot', kind: 'Projectile', max: 30, signature: 'zorp', tier: 13, base: 'nailgun',
-      blurb: "Zorp's ray gun. Fast bolts that pierce a whole line of enemies.",
+      blurb: "The Alien's ray gun. Fast bolts that pierce a whole line of enemies.",
       stats: { cd: { base: 0.7, per: -0.016 }, dmg: { base: 64, per: 9 }, count: { base: 2, at: [11, 20, 30] }, pierce: { base: 3, at: [11, 25] }, speed: { base: 700 }, size: { base: 12 }, range: { base: 460 } },
     },
     // New weapons anyone can find

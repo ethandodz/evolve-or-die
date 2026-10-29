@@ -1782,7 +1782,7 @@ export default class Game extends Phaser.Scene {
     }
     const ch = this.charDef;
     const m = this.meta, mods = this.mods;
-    // Grug's perk: a little more damage for every level up
+    // The Caveman's perk: a little more damage for every level up
     const levelDmg = 1 + (ch.dmgPerLevel || 0) * (this.level - 1);
     this.stats.dmg = (1 + sum.damage + m.damage) * this.powerMul * mods.dmg * (ch.dmgMul || 1) * levelDmg;
     // The Gladiator's perk: more crit chance every level up

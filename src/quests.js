@@ -119,7 +119,7 @@ export function unlockList(tab) {
     CHARACTERS.forEach((ch, i) => {
       const w = WEAPONS[ch.weapon];
       const blurb = [ch.blurb, ch.perk && `+ ${ch.perk}`, w && `Starts with the ${w.name}`].filter(Boolean).join('\n');
-      out.push({ type: 'char', key: ch.key, name: `${ch.name} ${ch.title || ''}`.trim(), icon: ch.sprite, blurb, cost: ch.cost || 0, item: ch, order: i,
+      out.push({ type: 'char', key: ch.key, name: ch.name, icon: ch.sprite, blurb, cost: ch.cost || 0, item: ch, order: i,
         unlocked: charUnlocked(ch), ready: goalMet(ch), goal: ch.unlockText || goalText(ch) });
     });
   } else if (tab === 'weapon') {

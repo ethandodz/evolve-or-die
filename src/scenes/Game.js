@@ -1483,6 +1483,14 @@ export default class Game extends Phaser.Scene {
     this.time.delayedCall(1300, () => this.endRun(false));
   }
 
+  // Quit from the pause menu: no death, but the run still pays out its Sparks
+  quitRun() {
+    if (this.over) return;
+    this.frozen = true;
+    audio.stopMusic();
+    this.endRun(false, { quit: true });
+  }
+
   endRun(won, info = {}) {
     this.over = true;
     // Sparks still on the floor are picked up for you
@@ -1496,7 +1504,7 @@ export default class Game extends Phaser.Scene {
     let dailyNew = false;
     best('bestTime', this.totalTime); best('bestLevel', this.level); best('bestCoins', this.coinsEarned);
     if (this.daily) bump('dailies');
-    if (!won) bump('deaths');
+    if (!won && !info.quit) bump('deaths');
     // Best runs on this device, for the scores screen
     save.history.push({ time: Math.floor(this.totalTime), kills: this.kills, age: this.age.name, character: this.charDef.name, date: new Date().toISOString().slice(0, 10), daily: this.daily ? this.daily.date : null });
     save.history.sort((a, b) => b.time - a.time);

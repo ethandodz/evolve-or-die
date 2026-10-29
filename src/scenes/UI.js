@@ -366,10 +366,10 @@ export default class UI extends Phaser.Scene {
       c.setVisible(false);
       settingsPanel(this, () => c.setVisible(true));
     }));
+    // Quitting ends the run like dying does, so its Sparks are kept
     c.add(button(this, W / 2, H / 2 + 160, 240, 46, 'QUIT RUN', () => {
       this.closeModal();
-      this.scene.stop('Game');
-      this.scene.start('Title');
+      this.g.quitRun();
     }, { color: COLORS.red, hi: COLORS.redHi }));
   }
 
@@ -596,13 +596,13 @@ export default class UI extends Phaser.Scene {
     const c = this.openModal();
     c.kind = 'results';
     c.add(panel(this, W / 2, H / 2, 400, 720));
-    const title = r.won ? (r.title || 'VICTORY') : 'YOU DIED';
-    const t = text(this, W / 2, 95, title, 26, r.won ? '#f2c84b' : '#d83c3c');
+    const title = r.won ? (r.title || 'VICTORY') : r.quit ? 'RUN ENDED' : 'YOU DIED';
+    const t = text(this, W / 2, 95, title, 26, r.won ? '#f2c84b' : r.quit ? '#e0b070' : '#d83c3c');
     t.setScale(0.4);
     this.tweens.add({ targets: t, scale: 1, duration: 400, ease: 'Back.out' });
     c.add(t);
     if (r.daily) c.add(text(this, W / 2, 128, r.dailyNew ? 'DAILY CHALLENGE - NEW BEST!' : 'DAILY CHALLENGE', 8, '#7ad0f4'));
-    if (r.won) c.add(this.add.sprite(W / 2, 175, this.g.charDef.sprite, 0).setScale(3));
+    if (r.won || r.quit) c.add(this.add.sprite(W / 2, 175, this.g.charDef.sprite, 0).setScale(3));
     else c.add(this.add.sprite(W / 2, 175, this.g.charDef.sprite, 0).setScale(3).setAngle(90).setTint(0x8080a0));
     const rows = [
       ['TIME SURVIVED', fmtTime(r.time)],

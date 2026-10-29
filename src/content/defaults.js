@@ -41,6 +41,7 @@ export const DEFAULT_CONFIG = {
     sparkBoss: 20,         // Sparks from an age boss (times the early-summon bonus)
     rarityChances: [0.7, 0.2, 0.08, 0.02], // common, rare, epic, legendary level-up cards
     loopHp: 2.5,           // extra enemy health for each Magic Mirror loop
+    endlessHpDouble: 90,   // in endless, enemy health doubles every this many seconds (no limit)
     miniBossHp: 6,
     stampedeSize: 26,
     bossDarkness: 0.75,    // how dark boss fights get (0 = off)

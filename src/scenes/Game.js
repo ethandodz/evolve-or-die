@@ -88,6 +88,7 @@ export default class Game extends Phaser.Scene {
     this.sparks = 0;
     this.revives = this.meta.revive;
     this.loop = 0;           // Magic Mirror loops back to the first age
+    this.hpCarry = 0;        // enemy health reached by the end of the last age (never goes back down)
     this.fireGem = false;
     this.speedMul = 1;       // Rabbit's Foot
     this.lostHearts = 0;     // Rabbit's Foot
@@ -249,6 +250,8 @@ export default class Game extends Phaser.Scene {
     this.questT -= dt;
     if (this.questT <= 0) { this.questT = 1; this.checkQuests(); }
 
+    // Once everything is maxed there's nothing to pick, so level-ups pass without a screen
+    if (this.pendingLevels > 0 && !this.upgradePool().length) this.pendingLevels = 0;
     if (this.pendingLevels > 0 && !this.frozen && !this.over && this.levelFx <= 0) this.startLevelFx();
     // A free second weapon early in the first age
     if (!this.giftGiven && this.ageIndex === 0 && this.ageTime >= this.ageLen * BAL.giftWeaponAt && !this.frozen && !this.over && this.levelFx <= 0) {
@@ -308,8 +311,16 @@ export default class Game extends Phaser.Scene {
 
   // ------------------------------------------------------------------
   // Spawning: more enemies with more health over time
+  // Each age starts from at least the health the last age ended on, then keeps growing,
+  // so enemies never get weaker when you go through a portal
   hpScale() {
-    return this.age.hpMul * (1 + this.ageTime / BAL.hpGrowth) * this.loopMul() * this.ease();
+    const start = this.age.hpMul * this.loopMul() * this.ease();
+    return (Math.max(start, this.hpCarry) + start * this.ageTime / BAL.hpGrowth) * this.endlessMul();
+  }
+
+  // Endless: enemy health keeps doubling, with no limit
+  endlessMul() {
+    return this.endless ? 2 ** ((this.totalTime - this.endlessStart) / (BAL.endlessHpDouble || 90)) : 1;
   }
 
   // Early ages are gentler: fewer enemies, a smaller crowd and weaker normal enemies
@@ -411,7 +422,7 @@ export default class Game extends Phaser.Scene {
         this.policeAcc -= 1;
         if (this.enemies.length < MAX_ENEMIES + 40) {
           const e = this.spawnEnemy('timecop');
-          e.hp = e.maxHp = ENEMIES.timecop.hp * this.age.hpMul * (1.5 + over / 20) * this.hpBoost();
+          e.hp = e.maxHp = ENEMIES.timecop.hp * this.age.hpMul * (1.5 + over / 20) * this.hpBoost() * this.endlessMul();
           e.speed = ENEMIES.timecop.speed + Math.min(60, over * 0.8);
         }
       }
@@ -1769,6 +1780,7 @@ export default class Game extends Phaser.Scene {
       this.ringFx(this.player.x, this.player.y, 140, RARITIES[c.rarity].color);
     }
     if (!c.gift) this.pendingLevels--;
+    if (!this.upgradePool().length) this.pendingLevels = 0;
     if (this.pendingLevels > 0 && !c.gift) {
       this.ui.showLevelUp(this.makeChoices());
     } else {
@@ -2268,6 +2280,7 @@ export default class Game extends Phaser.Scene {
       // Last age: endless from here, and the wizard sells a Magic Mirror to loop back in time
       this.ui.banner('ENDLESS', 'Survive, or buy the Magic Mirror\nfrom the wizard to loop back in time', 3000, '#7ad0f4');
       this.endless = true;
+      this.endlessStart = this.totalTime;
       this.finalShop = true;
       this.time.delayedCall(1500, () => this.openPortal(true));
       this.time.delayedCall(2500, () => { this.cleared = false; this.policeMode = true; this.policeAcc = 0; audio.playMusic('police'); });
@@ -2451,6 +2464,7 @@ export default class Game extends Phaser.Scene {
           this.pickups = [];
           // The Magic Mirror loops back to the first age, with tougher enemies
           let next = this.ageIndex + 1;
+          this.hpCarry = this.hpScale();
           if (next >= AGES.length || this.finalShop) { next = 0; this.loop++; this.finalShop = false; bump('loops'); }
           this.startAge(next);
           p.spr.setScale(this.charDef.scale || 1.5).setAngle(0);

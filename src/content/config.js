@@ -76,6 +76,15 @@ function addNewContent(cfg, d, seen) {
     const bc = cfg.weapons.boneclub;
     if (bc && bc.name === 'Bone Club') { bc.name = d.weapons.boneclub.name; bc.blurb = d.weapons.boneclub.blurb; }
   }
+  // Lauren (v39): Stone Age too hard. Fewer enemies, more hearts and a weaker mini-boss there, weaker T-Rex, Grug 4 hearts
+  if (seen < 39) {
+    const a = cfg.ages.find(x => x.key === 'stone'), nd = d.ages.find(x => x.key === 'stone');
+    if (a && nd) { if (a.calm === undefined) a.calm = nd.calm; if (a.meatMul === undefined) a.meatMul = nd.meatMul; if (a.miniHpMul === undefined) a.miniHpMul = nd.miniHpMul; }
+    const grug = cfg.characters.find(c => c.key === 'caveman');
+    if (grug && grug.hearts === 3) grug.hearts = 4;
+    const tr = cfg.enemies && cfg.enemies.trex;
+    if (tr && tr.hp === 4200) tr.hp = d.enemies.trex.hp;
+  }
   // Lauren (v38): hearts (meat) and Ghost Hearts drop half as often
   if (seen < 38) {
     if (cfg.balance.meatChance === 0.012) cfg.balance.meatChance = d.balance.meatChance;

@@ -4,7 +4,7 @@
 export const DEFAULT_CONFIG = {
   version: 1,
   // Bump when new built-in content is added, so saved editor edits get it too (see config.js)
-  contentVersion: 38,
+  contentVersion: 39,
 
   balance: {
     ageLength: 210,        // seconds until the time police arrive (the boss fight doesn't stop the clock)
@@ -63,7 +63,7 @@ export const DEFAULT_CONFIG = {
   // cost: Sparks to buy it on the UNLOCK menu once the unlock goal is met.
   // Only Grug is in the game for now; the others are hidden (HIDDEN_CHARS in data.js) until they're reworked.
   characters: [
-    { key: 'caveman', name: 'CAVEMAN', title: 'The Caveman', sprite: 'caveman', weapon: 'boneclub', hearts: 3, speed: 1, unlock: 'start',
+    { key: 'caveman', name: 'CAVEMAN', title: 'The Caveman', sprite: 'caveman', weapon: 'boneclub', hearts: 4, speed: 1, unlock: 'start',
       dmgPerLevel: 0.005, weaponSlots: 2, perk: '+0.5% damage every level up', drawback: 'Only 2 weapon slots' },
     { key: 'gladiator', name: 'GLADIATOR', title: 'The Gladiator', sprite: 'gladiatorhero', weapon: 'gladius', hearts: 3, speed: 1, unlock: 'hydra', cost: 100,
       critPerLevel: 0.01, blurb: 'The Gladiator has mastered the arts of both showmanship and combat.', perk: '+1% critical chance every level up' },
@@ -290,7 +290,7 @@ export const DEFAULT_CONFIG = {
     automaton:  { name: 'Brass Automaton', sprite: 'automaton', hp: 700, speed: 32, r: 22, xp: 20, scale: 1.7, color: '#c8923a', heavy: true },
     thief:      { name: 'Treasure Thief', sprite: 'thief', hp: 60, speed: 118, r: 10, xp: 5, scale: 1.5, color: '#8a5ab0' },
     timecop:    { name: 'Time police', sprite: 'timecop', hp: 90, speed: 96, r: 12, xp: 5, scale: 1.55, color: '#3a6ac8' },
-    trex:       { name: 'T-Rex', sprite: 'trex', hp: 4200, speed: 46, r: 34, xp: 0, scale: 2.2, color: '#b86a2a', boss: true, heavy: true },
+    trex:       { name: 'T-Rex', sprite: 'trex', hp: 3000, speed: 46, r: 34, xp: 0, scale: 2.2, color: '#b86a2a', boss: true, heavy: true },
     hydra:      { name: 'Hydra', sprite: 'hydra', hp: 11000, speed: 34, r: 36, xp: 0, scale: 2.2, color: '#3ab8a4', boss: true, heavy: true },
     dragon:     { name: 'Dragon', sprite: 'dragon', hp: 26000, speed: 40, r: 36, xp: 0, scale: 2.2, color: '#d84a2a', boss: true, heavy: true },
     mech:       { name: 'Steam Mech', sprite: 'mech', hp: 52000, speed: 40, r: 38, xp: 0, scale: 2.2, color: '#c8923a', boss: true, heavy: true },
@@ -333,6 +333,9 @@ export const DEFAULT_CONFIG = {
       basic: ['rival', 'raptor', 'wolf'], medium: 'sabertooth', elite: 'mammoth', specials: ['golem'],
       stampede: 'wolf', stampedeName: 'STAMPEDE!', boss: 'trex', bossName: 'T-REX', bossAttacks: ['charge3', 'stomp', 'rocks', 'charge3', 'roar'], bossStyle: 'hunter',
       music: 'stone', bossMusic: 'stoneBoss', hpMul: 1, xpMul: 1, ease: 0.6,
+      // First age only: fewer enemies on top of ease (health untouched, so later ages stay the same),
+      // more hearts and a mini-boss with half the health
+      calm: 0.75, meatMul: 2.5, miniHpMul: 0.5,
     },
     {
       key: 'roman', name: 'ROMAN EMPIRE', ground: 'mosaic', bg: '#94b23e',

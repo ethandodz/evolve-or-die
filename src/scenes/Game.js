@@ -329,6 +329,12 @@ export default class Game extends Phaser.Scene {
     return this.loop ? 1 : (this.age.ease ?? 1);
   }
 
+  // The first age can thin the crowd further without touching enemy health (age `calm`),
+  // so the health later ages carry over from it stays the same
+  calm() {
+    return this.loop ? 1 : (this.age.calm ?? 1);
+  }
+
   // Every enemy (bosses too) is tougher overall, and a bit more so after each age
   hpBoost() {
     return (BAL.enemyHpMul ?? 1.4) * (1 + (BAL.ageHpBonus ?? 0.1)) ** this.stage();
@@ -350,10 +356,10 @@ export default class Game extends Phaser.Scene {
     // reaching the same peak by the end of the age
     const len = this.ageLen || AGE_LENGTH;
     const ramp = len * Math.pow(t / len, BAL.rampCurve ?? 1);
-    let rate = (BAL.spawnBase + st * (BAL.ageSpawnStep ?? 4) + ramp * BAL.spawnGrowth) * this.mods.spawn * more * this.ease();
+    let rate = (BAL.spawnBase + st * (BAL.ageSpawnStep ?? 4) + ramp * BAL.spawnGrowth) * this.mods.spawn * more * this.ease() * this.calm();
     if (this.boss) rate *= 0.45;
     // The crowd grows over the age, up to the cap (Difficulty lets a few more in)
-    const cap = Math.min(MAX_ENEMIES * Math.min(1.5, more), (BAL.crowdStart + st * (BAL.ageCrowdStep ?? 40) + ramp * BAL.crowdGrowth) * more * this.ease());
+    const cap = Math.min(MAX_ENEMIES * Math.min(1.5, more), (BAL.crowdStart + st * (BAL.ageCrowdStep ?? 40) + ramp * BAL.crowdGrowth) * more * this.ease() * this.calm());
     this.spawnAcc += rate * dt;
     while (this.spawnAcc >= 1) {
       this.spawnAcc -= 1;
@@ -366,7 +372,7 @@ export default class Game extends Phaser.Scene {
     if (t >= this.nextCluster && !this.boss) {
       this.nextCluster += 14;
       const a = rand(0, TAU);
-      const n = Math.round((6 + Math.floor(t / 40)) * this.ease());
+      const n = Math.round((6 + Math.floor(t / 40)) * this.ease() * this.calm());
       const type = pick(this.age.basic);
       // Groups can go a little over the crowd limit, but not past it by much
       for (let i = 0; i < n && this.enemies.length < cap + 20; i++) {
@@ -394,7 +400,8 @@ export default class Game extends Phaser.Scene {
     if (!this.miniSpawned && t >= this.ageLen / 2 && !this.boss) {
       this.miniSpawned = true;
       const e = this.spawnEnemy(this.age.elite);
-      e.hp = e.maxHp = e.maxHp * BAL.miniBossHp;
+      // Age `miniHpMul` softens the mini-boss in the first age (not after a Magic Mirror loop)
+      e.hp = e.maxHp = e.maxHp * BAL.miniBossHp * (this.loop ? 1 : (this.age.miniHpMul ?? 1));
       e.mini = true;
       e.mt = 3; e.mn = 0; e.mstate = null;
       this.mini = e;
@@ -826,6 +833,8 @@ export default class Game extends Phaser.Scene {
     const r = Math.random();
     const coin = this.mods.coin;
     const coinChance = BAL.coinChance * (this.event && this.event.id === 'gold' ? 5 : 1);
+    // The first age drops more hearts (age `meatMul`), not after a Magic Mirror loop
+    const meat = BAL.meatChance * (this.loop ? 1 : (this.age.meatMul ?? 1));
     if (e.mini && this.age.key === 'renaissance') bump('renMini');
     if (e.mini) { this.dropPickup('chest', e.x + 24, e.y); this.dropPickup('spark', e.x + 16, e.y + 16, 2); }
     else if (e.def.heavy || e.elite) {
@@ -833,9 +842,9 @@ export default class Game extends Phaser.Scene {
       if (Math.random() < (e.def.heavy ? 0.35 : 0.25)) this.dropPickup('spark', e.x, e.y - 8, 1);
     }
     else if (r < coinChance) this.dropPickup('coin', e.x + 6, e.y, coin);
-    else if (r < coinChance + BAL.meatChance) { if (!this.mods.noMeat) this.dropPickup('meat', e.x, e.y); }
-    else if (r < coinChance + BAL.meatChance + BAL.magnetChance) this.dropPickup('magnet', e.x, e.y);
-    else if (r < coinChance + BAL.meatChance + BAL.magnetChance + (BAL.ghostChance ?? 0.0015)) this.dropPickup('ghost', e.x, e.y);
+    else if (r < coinChance + meat) { if (!this.mods.noMeat) this.dropPickup('meat', e.x, e.y); }
+    else if (r < coinChance + meat + BAL.magnetChance) this.dropPickup('magnet', e.x, e.y);
+    else if (r < coinChance + meat + BAL.magnetChance + (BAL.ghostChance ?? 0.0015)) this.dropPickup('ghost', e.x, e.y);
   }
 
   // A white silhouette that squashes flat and fades
